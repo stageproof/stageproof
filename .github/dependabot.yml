@@ -9,8 +9,13 @@ updates:
     directory: /
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 10
     groups:
       github-actions:
         patterns:
           - "*"
+    ignore:
+      # v4 installs Cosign 3. The release workflow signs with Cosign 2 commands.
+      - dependency-name: sigstore/cosign-installer
+        update-types:
+          - version-update:semver-major
