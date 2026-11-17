@@ -1,0 +1,74 @@
+version: 2
+
+project_name: stageproof
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: stageproof
+    main: ./cmd/stageproof
+    binary: stageproof
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{ .Tag }}
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+
+archives:
+  - formats: [tar.gz]
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+    files:
+      - LICENSE
+      - NOTICE
+      - SECURITY.md
+
+checksum:
+  name_template: checksums.txt
+
+signs:
+  - cmd: cosign
+    signature: ${artifact}.sig
+    certificate: ${artifact}.pem
+    args:
+      - sign-blob
+      - --yes
+      - --output-certificate
+      - ${certificate}
+      - --output-signature
+      - ${signature}
+      - ${artifact}
+    artifacts: checksum
+
+brews:
+  - name: stageproof
+    repository:
+      owner: stageproof
+      name: homebrew-stageproof
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    homepage: https://github.com/stageproof/stageproof
+    description: Check a Helm chart upgrade before you merge it
+    license: Apache-2.0
+    install: |
+      bin.install "stageproof"
+    test: |
+      system "#{bin}/stageproof", "version"
+
+changelog:
+  use: github
+
+release:
+  github:
+    owner: stageproof
+    name: stageproof

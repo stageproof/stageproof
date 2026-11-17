@@ -1,0 +1,19 @@
+name: Bug
+description: A check gave the wrong result, or a command failed.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Paste the command and the report. Remove values that are private.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Stageproof version
+      placeholder: v0.1.0
+    validations:
+      required: true

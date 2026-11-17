@@ -1,0 +1,1403 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Documentation - Stageproof</title>
+  <meta name="description" content="Stageproof documentation: check a Helm chart upgrade before you merge it. Guides for chart directories, git branches, Argo CD Applications, pull requests, Kubernetes versions, and the live rehearsal." />
+  <meta name="theme-color" content="#06080D" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/styles.css?v=18" />
+  <script src="assets/app.js?v=17" defer></script>
+  <script src="assets/docs.js?v=20" defer></script>
+</head>
+<body>
+  <a class="skip" href="#doc-content">Skip to documentation</a>
+
+  <header class="nav">
+    <div class="wrap nav-inner">
+      <a class="brand" href="index.html">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+          <rect x="2" y="2" width="28" height="28" rx="7" fill="#0B0F17" stroke="#38BDF8" stroke-width="1.8"/>
+          <path d="M8.5 11.5h15M8.5 16h9" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+          <path d="M18 21.5l2.6 2.6 4.9-5.3" stroke="#2DD4BF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-word">stageproof</span>
+      </a>
+
+      <nav class="nav-links" id="nav-links" aria-label="Primary">
+        <a href="index.html">Overview</a>
+        <a href="roadmap.html">Roadmap</a>
+        <a href="docs.html" class="active">Docs</a>
+        <a href="architecture.html">Architecture</a>
+        <a href="security.html">Security</a>
+      </nav>
+
+      <div class="nav-cta">
+        <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to light theme">
+          <span class="theme-toggle-thumb" aria-hidden="true">
+            <svg class="theme-icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 14.5A8.5 8.5 0 1 1 9.5 3 7 7 0 0 0 21 14.5z"/></svg>
+            <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
+          </span>
+        </button>
+        <a class="btn btn-primary btn-sm" href="docs.html">Read the docs</a>
+      </div>
+
+      <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation">Menu</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <div class="wrap docs-wrap">
+      <div class="docs-mobile-bar">
+        <span class="docs-mobile-current" id="docs-mobile-current">What Stageproof does</span>
+        <button class="btn btn-ghost btn-sm" id="docs-mobile-toggle" type="button" aria-expanded="false" aria-controls="docs-sidebar">Browse topics</button>
+      </div>
+
+      <div class="docs-shell">
+        <aside class="docs-sidebar" id="docs-sidebar" aria-label="Documentation topics">
+          <div class="docs-search-wrap">
+            <span class="docs-search-icon" aria-hidden="true">/</span>
+            <input class="docs-search" id="docs-search" type="search" placeholder="Search the docs" aria-label="Search the documentation" />
+          </div>
+          <nav id="docs-nav"></nav>
+        </aside>
+
+        <article class="docs-article docs-main" id="doc-content" tabindex="-1"></article>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap">
+      <div class="footer-bottom">
+        <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
+        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.0</span>
+      </div>
+    </div>
+  </footer>
+
+  <!--
+    Documentation content. One <template> per page.
+    Rules for editing:
+    - One task per page and one command per example. Never combine two use cases in one command.
+    - Every output block is copied from a real run. Do not edit output by hand.
+    - <pre data-kind="cmd"> is a command, "file" is file content, "out" is terminal output.
+    - Keep <pre> content flush left. Escape < as &lt; and & as &amp;.
+  -->
+
+  <!-- ================================================================ START HERE -->
+
+  <template data-topic="overview" data-group="Start here" data-title="What Stageproof does">
+<p class="docs-lede">Stageproof checks a Helm chart upgrade before you merge it. It compares the chart version you run today with the version you want to run, and reports whether the upgrade is safe to apply to your cluster.</p>
+
+<h2>The problem</h2>
+<p>A chart upgrade can pass <code>helm lint</code> and <code>helm template</code> and still break a cluster. Those tools read the new chart on its own. They do not know which version you run today, which values you set, or which Kubernetes version your cluster runs. Three failures come from that gap:</p>
+<ul>
+  <li><strong>A setting you rely on stops working.</strong> The new chart renames or removes a values key. Helm ignores the old key without an error, so your override is no longer applied.</li>
+  <li><strong>The chart uses an API your cluster no longer serves.</strong> Kubernetes removes old API versions over time. A chart that still uses one fails when it is applied.</li>
+  <li><strong>The upgrade cannot be applied in place.</strong> Some fields cannot change on a running workload, for example the label selector of a Deployment. A fresh install works. The upgrade of an existing release fails.</li>
+</ul>
+<p>Stageproof finds these while the change is still a pull request.</p>
+
+<h2>What it checks</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Check</th><th>Question it answers</th><th>When it runs</th></tr></thead>
+  <tbody>
+    <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Every run</td></tr>
+    <tr><td>Values</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file</td></tr>
+    <tr><td>Kubernetes API versions</td><td>Does the chart use an API that your Kubernetes version has removed?</td><td>Every run</td></tr>
+    <tr><td>Upgrade safety</td><td>Does the upgrade change a field that Kubernetes does not allow to change?</td><td>When you give a current chart</td></tr>
+    <tr><td>CRD size</td><td>Is a CRD too large to apply without server-side apply?</td><td>Every run</td></tr>
+    <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
+  </tbody>
+</table></div>
+
+<h2>What you get back</h2>
+<p>Every run ends with one of four results. The exit code of the command carries the same information, so a CI job can act on it.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Result</th><th>Exit code</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><span class="verdict-badge ok">PROVEN</span></td><td><code>0</code></td><td>The checks passed and the upgrade was rehearsed in a temporary cluster.</td></tr>
+    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>The checks on the chart files passed. The upgrade was not rehearsed in a cluster.</td></tr>
+    <tr><td><span class="verdict-badge bad">BLOCKED</span></td><td><code>1</code></td><td>The upgrade has a problem. The report names it.</td></tr>
+    <tr><td><span class="verdict-badge warn">NOT CHECKED</span></td><td><code>2</code></td><td>Stageproof could not finish the check, or <code>--require-rehearsal</code> was set and no rehearsal ran.</td></tr>
+  </tbody>
+</table></div>
+<p>See <a href="#results">Read the result</a> for the full report format.</p>
+
+<h2>Two kinds of upgrade</h2>
+<p>The word upgrade means two different things in these docs. They use different flags, so keep them apart.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Kind</th><th>Example</th><th>What Stageproof does</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Chart upgrade</strong></td><td>The argo-cd chart moves from 10.9.6 to 10.18.0.</td><td>This is the main job. Stageproof compares the two chart versions.</td></tr>
+    <tr><td><strong>Kubernetes cluster upgrade</strong></td><td>Your cluster moves from Kubernetes 1.31 to 1.32.</td><td>Stageproof does not upgrade a cluster. It tells you whether a chart works on the version you run, and warns you about the version you plan to move to.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>What is supported</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Input</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>A Helm chart in a directory</td><td>Supported</td></tr>
+    <tr><td>A Helm chart named in an Argo CD Application (HTTPS chart repository or <code>oci://</code> registry)</td><td>Supported</td></tr>
+    <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
+    <tr><td>Container image contents</td><td>Not supported</td></tr>
+    <tr><td>Kustomize, Flux <code>HelmRelease</code>, Helmfile, plain manifests</td><td>Not supported</td></tr>
+  </tbody>
+</table></div>
+<p>The full list is in <a href="#limits">Scope and limits</a>.</p>
+
+<h2>What it never does</h2>
+<ul>
+  <li><strong>It does not change your repository.</strong> It does not commit, push, or edit files. It reads and reports.</li>
+  <li><strong>It does not touch your real cluster.</strong> The live rehearsal runs in a temporary local cluster that Stageproof creates and deletes.</li>
+  <li><strong>It does not use AI.</strong> Results come from fixed rules. The same input gives the same result.</li>
+</ul>
+  </template>
+
+  <template data-topic="install" data-group="Start here" data-title="Install">
+<p class="docs-lede">Stageproof is a single command line program. There is no packaged release yet, so you build it from source. The build takes a few seconds.</p>
+
+<h2>Requirements</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
+  <tbody>
+    <tr><td>Go</td><td>1.23 or newer</td><td>Building the program</td></tr>
+    <tr><td>Helm</td><td>3 or 4</td><td>Every check. Stageproof calls <code>helm template</code> and <code>helm pull</code>.</td></tr>
+    <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
+    <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Build</h2>
+<p>In the Stageproof source tree, the program is in the <code>cli</code> directory.</p>
+<pre data-kind="cmd" data-label="Build the program">
+cd cli
+go build -o stageproof ./cmd/stageproof</pre>
+
+<h2>Put it on your PATH</h2>
+<pre data-kind="cmd" data-label="Install for all users">
+sudo mv stageproof /usr/local/bin/</pre>
+
+<h2>Check that it works</h2>
+<pre data-kind="cmd" data-label="Print the version">
+stageproof version</pre>
+<pre data-kind="out">
+stageproof v0.1.0 (Apache-2.0)</pre>
+<p>Next: <a href="#first-check">Run your first check</a>.</p>
+  </template>
+
+  <template data-topic="first-check" data-group="Start here" data-title="Run your first check">
+<p class="docs-lede">This walkthrough compares two public versions of the metrics-server chart. You need Stageproof and Helm. It takes about a minute.</p>
+
+<h2>1. Download two versions of a chart</h2>
+<p>The first command downloads the version you pretend to run today. The second downloads the version you want to move to.</p>
+<pre data-kind="cmd" data-label="Download version 3.12.2 and version 3.13.0">
+helm pull metrics-server --repo https://kubernetes-sigs.github.io/metrics-server/ --version 3.12.2 --untar --untardir current
+helm pull metrics-server --repo https://kubernetes-sigs.github.io/metrics-server/ --version 3.13.0 --untar --untardir new</pre>
+
+<h2>2. Compare them</h2>
+<pre data-kind="cmd" data-label="Check the upgrade">
+stageproof check --current-chart current/metrics-server --new-chart new/metrics-server</pre>
+
+<h2>3. Read the output</h2>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  current/metrics-server -> new/metrics-server
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 9 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
+<p>The result is <code>PASSED</code>. Stageproof rendered the new chart, found no removed Kubernetes API, and found no field that would block an in-place upgrade. The line <code>checked: files</code> says that no cluster was used. <a href="#results">Read the result</a> explains each line. <a href="#live">Rehearse the upgrade</a> is how a run becomes <code>PROVEN</code>.</p>
+
+<h2>Where to go next</h2>
+<ul>
+  <li>You have your own chart and a values file: <a href="#compare-charts">Compare two chart versions</a>.</li>
+  <li>Your chart lives in a git repository: <a href="#compare-git">Compare a chart with a git branch</a>.</li>
+  <li>You deploy with Argo CD: <a href="#argocd">Check an Argo CD Application</a>.</li>
+  <li>You want this on every pull request: <a href="#pull-request">Check a pull request</a>.</li>
+</ul>
+  </template>
+
+  <template data-topic="results" data-group="Start here" data-title="Read the result">
+<p class="docs-lede">Every run prints a short report and ends with an exit code. This page explains each part of the report and what to do with each result.</p>
+
+<h2>The report</h2>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  ./webapp-1.4.0 -> ./webapp-1.5.0
+values  values-prod.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+verdict  PASSED (exit 0)  · 195ms · 0 AI calls</pre>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Line</th><th>What it tells you</th></tr></thead>
+  <tbody>
+    <tr><td><code>stageproof</code></td><td>The result and the exit code.</td></tr>
+    <tr><td><code>compare</code></td><td>The current chart on the left and the new chart on the right.</td></tr>
+    <tr><td><code>values</code></td><td>The values the chart was checked with. The line is left out when you gave no values file.</td></tr>
+    <tr><td><code>k8s</code></td><td>The Kubernetes version the chart was checked against, then what was actually checked. <code>checked: files</code> means the chart files were analyzed and nothing was started. <code>checked: files, live cluster</code> means the upgrade was also rehearsed in a temporary cluster.</td></tr>
+    <tr><td><code>PASS</code> / <code>FAIL</code> lines</td><td>One line per check.</td></tr>
+    <tr><td><code>ERROR</code> blocks</td><td>A problem that blocks the upgrade. Each one has a rule name, the place it was found, and an explanation. They do not appear in the example above.</td></tr>
+    <tr><td><code>WARN</code> blocks</td><td>Something to know about. A warning does not change the result.</td></tr>
+    <tr><td><code>checked:</code></td><td><code>files</code> or <code>files, live cluster</code>. This is the scope of the result.</td></tr>
+    <tr><td><code>WARN</code> with a reason code</td><td>The live rehearsal did not finish, and the report says why. A file check that you did not ask to rehearse does not print this.</td></tr>
+    <tr><td><code>verdict</code></td><td>The result again, and how long the run took. <code>0 AI calls</code> states that no AI model took part in the result.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>The four results</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Result</th><th>Exit code</th><th>What happened</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><span class="verdict-badge ok">PROVEN</span></td><td><code>0</code></td><td>Every check passed, and the upgrade and the rollback both worked in a temporary cluster.</td><td>Merge.</td></tr>
+    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>Every check on the chart files passed. No cluster was used, or the rehearsal stopped for a reason outside the chart.</td><td>Merge when a file-level check is enough. Use <a href="#live"><code>--live</code></a> when you want the upgrade exercised. <code>--require-rehearsal</code> turns this case into <code>NOT CHECKED</code>.</td></tr>
+    <tr><td><span class="verdict-badge bad">BLOCKED</span></td><td><code>1</code></td><td>At least one <code>ERROR</code> was found.</td><td>Fix what the report names, then run again. <a href="#findings">Findings</a> lists every rule.</td></tr>
+    <tr><td><span class="verdict-badge warn">NOT CHECKED</span></td><td><code>2</code></td><td>Stageproof could not complete the check. Typical causes are a wrong flag, a git ref that does not exist, a chart that could not be downloaded, or <code>--require-rehearsal</code> without a completed rehearsal.</td><td>Read the error message, fix the cause, and run again. It says nothing about whether the upgrade is safe.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Use the exit code in a script</h2>
+<p>Exit code <code>0</code> means <code>PASSED</code> or <code>PROVEN</code>. Any other exit code is a failure. A script that stops on the first non-zero status already does the right thing.</p>
+<pre data-kind="cmd" data-label="Fail unless the result is PASSED or PROVEN">
+stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
+
+<h2>Other output formats</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>What you get</th></tr></thead>
+  <tbody>
+    <tr><td><code>--format markdown</code></td><td>The report as Markdown on standard output.</td></tr>
+    <tr><td><code>--format json</code></td><td>The report as JSON on standard output.</td></tr>
+    <tr><td><code>--out report.json</code></td><td>The JSON report in a file, in addition to the normal output.</td></tr>
+    <tr><td><code>--comment-file comment.md</code></td><td>The Markdown report in a file, in addition to the normal output. Use it for a pull request comment.</td></tr>
+  </tbody>
+</table></div>
+  </template>
+
+  <!-- ================================================================ GUIDES -->
+
+  <template data-topic="compare-charts" data-group="Guides" data-title="Compare two chart versions">
+<p class="docs-lede">Check an upgrade when you have both chart versions on disk. This is the most direct way to find a values key that the new chart no longer reads.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You have the current chart, the new chart, and the values file you deploy with.</dd></div>
+  <div><dt>Finds</dt><dd>Values keys that stop working, removed Kubernetes APIs, and changes that cannot be applied in place.</dd></div>
+  <div><dt>Needs</dt><dd>Helm. No cluster.</dd></div>
+</dl>
+
+<h2>The example</h2>
+<p>You run <code>webapp</code> chart 1.4.0 and want 2.0.0. Your production values set the log level:</p>
+<pre data-kind="file" data-label="values-prod.yaml">
+replicaCount: 2
+config:
+  logLevel: warn</pre>
+<p>Chart 2.0.0 renamed that setting from <code>config.logLevel</code> to <code>logging.level</code>. Helm accepts the old key and ignores it.</p>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-2.0.0 -f values-prod.yaml</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  ./webapp-1.4.0 -> ./webapp-2.0.0
+values  values-prod.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✕ FAIL  values.yaml AST          1 silently dropped key across 1 overlay
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+  ERROR  helm.values.silently_dropped
+         values-prod.yaml (config.logLevel)
+         Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
+
+verdict  BLOCKED (exit 1)  · 192ms · 0 AI calls</pre>
+
+<h2>What the result means</h2>
+<p>The chart still renders, which is why <code>helm template</code> passes. The problem is that <code>config.logLevel</code> in your values file no longer changes anything. After the upgrade, the application would run with the chart's default log level and not with <code>warn</code>.</p>
+<p>To fix it, rename the key in <code>values-prod.yaml</code> to the name the new chart uses, then run the check again.</p>
+
+<h2>How Stageproof decides that a key is used</h2>
+<p>A key in your values file counts as used by a chart when one of these is true:</p>
+<ul>
+  <li>A template in the chart, or in one of its subcharts, reads it.</li>
+  <li>The chart lists it in its own <code>values.yaml</code>.</li>
+  <li>The chart declares it in <code>values.schema.json</code>.</li>
+  <li>It is under <code>global</code>.</li>
+</ul>
+<p>When a template passes a whole section on, for example with <code>toYaml</code> or <code>range</code>, every key under that section counts as used.</p>
+
+<h2>Related cases</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Situation</th><th>What Stageproof reports</th></tr></thead>
+  <tbody>
+    <tr><td>The key was used by the current chart and is not used by the new chart.</td><td><code>ERROR helm.values.silently_dropped</code>. The result is <code>BLOCKED</code>.</td></tr>
+    <tr><td>The key was already unused by the current chart.</td><td><code>WARN helm.values.preexisting_orphan</code>. The upgrade did not cause it, so the result does not change.</td></tr>
+    <tr><td>The new chart requires a value that the current chart did not, and you do not set it.</td><td><code>ERROR helm.values.new_required_unset</code>. The result is <code>BLOCKED</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>You can pass <code>-f</code> more than once when you deploy with several values files.</p>
+  </template>
+
+  <template data-topic="compare-git" data-group="Guides" data-title="Compare a chart with a git branch">
+<p class="docs-lede">Check a chart that lives in your repository against the version of that chart on another branch. You do not need a second copy of the chart on disk.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You changed a chart on a branch and want to compare it with <code>main</code>.</dd></div>
+  <div><dt>Finds</dt><dd>The same problems as <a href="#compare-charts">Compare two chart versions</a>.</dd></div>
+  <div><dt>Needs</dt><dd>Helm and Git. Run the command inside the repository.</dd></div>
+</dl>
+
+<h2>Run the check</h2>
+<p>The chart is in <code>charts/webapp</code>. You are on a branch that changed it.</p>
+<pre data-kind="cmd">
+stageproof check --new-chart charts/webapp --current-git main</pre>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  main:charts/webapp -> charts/webapp
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+verdict  PASSED (exit 0)  · 90ms · 0 AI calls</pre>
+
+<h2>What happens</h2>
+<ol>
+  <li>Stageproof copies <code>charts/webapp</code> as it exists on <code>main</code> into a temporary directory. That copy is the current chart.</li>
+  <li>The files in your working directory are the new chart.</li>
+  <li>The two are compared, and the temporary copy is deleted.</li>
+</ol>
+<p>The <code>compare</code> line shows this as <code>main:charts/webapp -&gt; charts/webapp</code>. Your branch and your working directory are not changed.</p>
+
+<h2>What you can pass to <code>--current-git</code></h2>
+<p>Any name that Git can resolve: a branch, a tag, or a commit hash. The chart directory must exist at that point in history. If it does not, the command prints an error and ends with exit code <code>3</code>.</p>
+<p>In CI, a shallow clone may not contain the branch you compare with. Fetch it first. <a href="#ci-gitlab">GitLab CI</a> shows how.</p>
+  </template>
+
+  <template data-topic="argocd" data-group="Guides" data-title="Check an Argo CD Application">
+<p class="docs-lede">Check a chart version bump in an Argo CD Application. The chart is not in your repository. Stageproof downloads both versions and compares them.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>An Argo CD <code>Application</code> file pins a remote chart, and a change bumps <code>targetRevision</code>.</dd></div>
+  <div><dt>Finds</dt><dd>The same problems as <a href="#compare-charts">Compare two chart versions</a>, using the values written in the Application.</dd></div>
+  <div><dt>Needs</dt><dd>Helm, Git, and network access to the chart repository.</dd></div>
+</dl>
+
+<h2>The example</h2>
+<p>On <code>main</code>, this file pins version <code>10.9.6</code>. Your branch changes one line to <code>10.18.0</code>.</p>
+<pre data-kind="file" data-label="apps/argo-cd.yaml">
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argo-cd
+  namespace: argo-cd
+spec:
+  project: default
+  source:
+    repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 10.18.0
+    helm:
+      values: |
+        server:
+          replicas: 2
+        configs:
+          params:
+            server.insecure: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argo-cd
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true</pre>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --argocd-file apps/argo-cd.yaml --current-git main</pre>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  argo-cd@10.9.6 (main) -> argo-cd@10.18.0 (apps/argo-cd.yaml)
+values  helm.values in apps/argo-cd.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 60 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33 (SSA mode)
+
+verdict  PASSED (exit 0)  · 4111ms · 0 AI calls</pre>
+
+<h2>What happens</h2>
+<ol>
+  <li>Stageproof reads the file in your working directory. That gives the new version, <code>10.18.0</code>.</li>
+  <li>It reads the same file as it exists on <code>main</code>. That gives the current version, <code>10.9.6</code>.</li>
+  <li>It downloads both chart versions with <code>helm pull</code> into a temporary directory.</li>
+  <li>It uses the values written under <code>helm.values</code> as your values file.</li>
+  <li>It runs the same checks as for two chart directories, then deletes the downloads.</li>
+</ol>
+<p>The <code>compare</code> line confirms which two versions were compared, and the <code>values</code> line confirms that the values came from the Application. <code>every user key</code> means all three keys in <code>helm.values</code> still have an effect in chart 10.18.0.</p>
+
+<h2>What Stageproof reads from the Application</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Field</th><th>Used as</th></tr></thead>
+  <tbody>
+    <tr><td><code>spec.source.repoURL</code></td><td>The chart repository. An HTTPS repository, or a registry when the URL starts with <code>oci://</code>.</td></tr>
+    <tr><td><code>spec.source.chart</code></td><td>The chart name.</td></tr>
+    <tr><td><code>spec.source.targetRevision</code></td><td>The chart version.</td></tr>
+    <tr><td><code>spec.source.helm.values</code></td><td>Your values.</td></tr>
+    <tr><td><code>spec.source.helm.parameters</code></td><td>Single value overrides, the same as <code>--set</code>.</td></tr>
+    <tr><td><code>spec.syncPolicy.syncOptions</code></td><td>If it contains <code>ServerSideApply=true</code>, the <a href="#large-crds">large CRD warning</a> is not raised.</td></tr>
+  </tbody>
+</table></div>
+<p>These fields are not read: <code>spec.sources</code> (several sources), <code>helm.valuesObject</code>, <code>helm.valueFiles</code>, and sources that point to a path in a Git repository.</p>
+
+<h2>Applications written as templates</h2>
+<p>Some teams generate Application files from a template, for example a Terraform <code>.yaml.tmpl</code> file with <code>${...}</code> placeholders. Stageproof accepts these files. Before reading the file it replaces each placeholder with a fixed sample value, so that the file is valid YAML: <code>10Gi</code> when the placeholder name contains <code>size</code>, <code>2</code> when it contains <code>replica</code>, <code>count</code>, <code>port</code>, or <code>concurrent</code>, and a fixed text for everything else.</p>
+  </template>
+
+  <template data-topic="pull-request" data-group="Guides" data-title="Check a pull request">
+<p class="docs-lede">Check everything a pull request changes with one command. You do not tell Stageproof which chart changed. It reads the git diff and works that out.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You want one command for CI, or you want to check your branch before you open a pull request.</dd></div>
+  <div><dt>Finds</dt><dd>Changed charts and changed Argo CD Applications, then checks each one.</dd></div>
+  <div><dt>Needs</dt><dd>Helm and Git. Run the command inside the repository, on the pull request branch.</dd></div>
+</dl>
+
+<h2>Run the check</h2>
+<p>Pass the branch that the pull request will merge into.</p>
+<pre data-kind="cmd">
+stageproof check-pr --current-git main</pre>
+<p>In this example the branch changed one line in <code>apps/argo-cd.yaml</code>, the version bump from <a href="#argocd">Check an Argo CD Application</a>.</p>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  argo-cd@10.9.6 (main) -> argo-cd@10.18.0 (apps/argo-cd.yaml)
+values  helm.values in apps/argo-cd.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 60 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33 (SSA mode)
+
+verdict  PASSED (exit 0)  · 4397ms · 0 AI calls</pre>
+
+<h2>How it decides what to check</h2>
+<p>Stageproof lists the files that differ between the target branch and your branch, then handles each file by its type.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Changed file</th><th>What Stageproof checks</th></tr></thead>
+  <tbody>
+    <tr><td>An Argo CD Application file (<code>.yaml</code>, <code>.yml</code>, or <code>.yaml.tmpl</code>) that names a remote chart</td><td>The chart version in the file on the target branch against the version in your branch.</td></tr>
+    <tr><td>Any file inside a chart directory</td><td>The whole chart on the target branch against the chart in your branch. Stageproof finds the chart by walking up to the nearest <code>Chart.yaml</code>. A change inside a subchart under <code>charts/</code> is checked as a change to the parent chart.</td></tr>
+    <tr><td>Any other file</td><td>Nothing. The file is ignored.</td></tr>
+  </tbody>
+</table></div>
+<p>For a chart in your repository, Stageproof uses the chart's own <code>values.yaml</code> as the values file. To check the values files you deploy with, see <a href="#values-files">Check each values file of a chart</a>.</p>
+
+<h2>When nothing relevant changed</h2>
+<p>If the pull request changes no chart and no Application, Stageproof prints one line and exits <code>0</code>. There was nothing to check, so the pipeline stays green:</p>
+<pre data-kind="out">
+stageproof check-pr: no Helm charts or Argo CD Applications modified between main and HEAD.</pre>
+
+<h2>When several charts changed</h2>
+<p>Each chart is checked in turn and each prints its own report. The result of the pull request is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. <code>PASSED</code> and <code>PROVEN</code> both exit <code>0</code>. <code>PASSED</code> is reported when any chart was not rehearsed.</p>
+<p><code>--comment-file</code> writes one Markdown file for the whole pull request. With one check it is that report. With several it starts with a summary, followed by every report in full:</p>
+<pre data-kind="file" data-label="The start of the comment file for a pull request that changed two charts">
+## Stageproof: `BLOCKED` (exit `1`) across 3 checks
+
+| Compared | Values | Result |
+|---|---|---|
+| `main:charts/billing` → `charts/billing` | `charts/billing/values.yaml` | **PASSED** |
+| `main:charts/webapp` → `charts/webapp` | `charts/webapp/values-prod.yaml` | **BLOCKED** |
+| `main:charts/webapp` → `charts/webapp` | `charts/webapp/values.yaml` | **PASSED** |</pre>
+<p><code>--out</code> writes one JSON file with the overall <code>verdict</code>, the <code>exit_code</code>, and a <code>reports</code> list that holds every report.</p>
+
+<h2>Who opened the pull request does not matter</h2>
+<p>Stageproof reads Git. It does not call Renovate, Dependabot, GitHub, or GitLab to find out what changed. A pull request from a person and a pull request from a bot are checked the same way.</p>
+  </template>
+
+  <template data-topic="values-files" data-group="Guides" data-title="Check each values file of a chart">
+<p class="docs-lede">Most charts are deployed more than once, with a different values file for each environment. Tell Stageproof which values files belong to a chart, and a pull request check covers every one of them.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>A chart in your repository has values files such as <code>values-prod.yaml</code> and <code>values-staging.yaml</code>.</dd></div>
+  <div><dt>Finds</dt><dd>A values key that stops working in one environment, even when the chart defaults are fine.</dd></div>
+  <div><dt>Needs</dt><dd>A <code>.stageproof.yaml</code> file in the top directory of the repository.</dd></div>
+</dl>
+
+<h2>Why the chart's own values file is not enough</h2>
+<p>Without a configuration file, a pull request check renders the chart with its own <code>values.yaml</code>. Those are the chart defaults, and a chart always agrees with its own defaults. A key that only your production file sets is never looked at.</p>
+
+<h2>1. List the values files of the chart</h2>
+<pre data-kind="file" data-label=".stageproof.yaml">
+charts:
+  - name: webapp
+    path: charts/webapp
+    valuesFiles:
+      - charts/webapp/values-prod.yaml
+      - charts/webapp/values.yaml</pre>
+<p>Paths are relative to the top directory of the repository. <code>stageproof init</code> writes this list for you: it finds every chart, and for each chart every <code>values.yaml</code>, <code>values-*.yaml</code>, and file in a <code>ci</code> directory.</p>
+
+<h2>2. Check the pull request</h2>
+<p>The branch upgrades the <code>webapp</code> chart to 2.0.0, which renamed <code>config.logLevel</code>. Only <code>values-prod.yaml</code> sets that key.</p>
+<pre data-kind="cmd">
+stageproof check-pr --current-git main</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  main:charts/webapp -> charts/webapp
+values  charts/webapp/values-prod.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✕ FAIL  values.yaml AST          1 silently dropped key across 1 overlay
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+  ERROR  helm.values.silently_dropped
+         charts/webapp/values-prod.yaml (config.logLevel)
+         Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
+
+verdict  BLOCKED (exit 1)  · 183ms · 0 AI calls
+
+stageproof  PASSED  exit 0
+compare  main:charts/webapp -> charts/webapp
+values  charts/webapp/values.yaml
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+verdict  PASSED (exit 0)  · 213ms · 0 AI calls</pre>
+
+<h2>What the result means</h2>
+<p>There are two reports, one for each values file. The <code>values</code> line tells them apart. The check with the chart defaults passes. The check with <code>values-prod.yaml</code> is blocked, because production sets a key that chart 2.0.0 no longer reads. The pull request as a whole is <code>BLOCKED</code>.</p>
+
+<h2>Rules</h2>
+<ul>
+  <li><strong>Each file is checked on its own.</strong> The files in the list are not merged. If one deployment needs two files layered on each other, use <code>stageproof check</code> with <code>-f</code> twice.</li>
+  <li><strong>Only listed charts change behavior.</strong> A chart that is not in the list is checked with its own <code>values.yaml</code>.</li>
+  <li><strong>A file that does not exist is skipped.</strong></li>
+  <li><strong>The list applies to <code>stageproof check-pr</code>.</strong> <code>stageproof check</code> uses the files you pass with <code>-f</code>.</li>
+</ul>
+  </template>
+
+  <template data-topic="cluster-version" data-group="Guides" data-title="Check against your Kubernetes version">
+<p class="docs-lede">Tell Stageproof which Kubernetes version your cluster runs. It then reports any resource in the chart that uses an API your cluster no longer serves.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>Always. Give the version on every check, with <code>--current-k8s</code> or once in the <a href="#config">configuration file</a>. Without it, Stageproof assumes Kubernetes <code>1.33</code>.</dd></div>
+  <div><dt>Finds</dt><dd>Resources that use a removed API, and resources that use a deprecated one.</dd></div>
+  <div><dt>Needs</dt><dd>Helm. No cluster. Stageproof does not connect to your cluster to read its version.</dd></div>
+</dl>
+
+<h2>The example</h2>
+<p>The <code>ratelimit</code> chart contains a <code>FlowSchema</code> written for the API version <code>flowcontrol.apiserver.k8s.io/v1beta3</code>. Kubernetes removed that version in 1.32. Your cluster runs 1.32.</p>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --new-chart ./ratelimit --current-k8s 1.32</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  (single-chart check) -> ./ratelimit
+k8s  1.32  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✕ FAIL  k8s 1.32 compatibility   1 removed API or immutable upgrade blocker
+
+  ERROR  k8s.api.removed
+         FlowSchema/default/stageproof-rel-tenants
+         API `flowcontrol.apiserver.k8s.io/v1beta3` (FlowSchema) was removed in Kubernetes 1.32 (target is 1.32).
+         Migrate resource to `flowcontrol.apiserver.k8s.io/v1`.
+
+verdict  BLOCKED (exit 1)  · 55ms · 0 AI calls</pre>
+
+<h2>What the result means</h2>
+<p>A cluster on Kubernetes 1.32 rejects this resource. The report names the resource, the API version it uses, and the version to move to.</p>
+<p>On a cluster that runs 1.31, the same chart still works. Stageproof then reports <code>WARN k8s.api.deprecated</code> and the result is not blocked.</p>
+
+<h2>How the check works</h2>
+<ol>
+  <li>Stageproof renders the chart for the version you gave, the same way <code>helm template --kube-version</code> does. Charts that choose an API version based on the cluster version render the way they would on your cluster.</li>
+  <li>It compares the API version and kind of every rendered resource with a built-in list of removals.</li>
+</ol>
+
+<h2>The built-in list of removed APIs</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>API version</th><th>Kinds</th><th>Removed in</th><th>Use this API version</th></tr></thead>
+  <tbody>
+    <tr><td><code>extensions/v1beta1</code></td><td>All</td><td>1.22</td><td><code>apps/v1</code> or <code>networking.k8s.io/v1</code></td></tr>
+    <tr><td><code>networking.k8s.io/v1beta1</code></td><td>Ingress, IngressClass</td><td>1.22</td><td><code>networking.k8s.io/v1</code></td></tr>
+    <tr><td><code>rbac.authorization.k8s.io/v1beta1</code></td><td>All</td><td>1.22</td><td><code>rbac.authorization.k8s.io/v1</code></td></tr>
+    <tr><td><code>apiextensions.k8s.io/v1beta1</code></td><td>CustomResourceDefinition</td><td>1.22</td><td><code>apiextensions.k8s.io/v1</code></td></tr>
+    <tr><td><code>admissionregistration.k8s.io/v1beta1</code></td><td>All</td><td>1.22</td><td><code>admissionregistration.k8s.io/v1</code></td></tr>
+    <tr><td><code>batch/v1beta1</code></td><td>CronJob</td><td>1.25</td><td><code>batch/v1</code></td></tr>
+    <tr><td><code>policy/v1beta1</code></td><td>PodDisruptionBudget</td><td>1.25</td><td><code>policy/v1</code></td></tr>
+    <tr><td><code>policy/v1beta1</code></td><td>PodSecurityPolicy</td><td>1.25</td><td>Pod Security Admission</td></tr>
+    <tr><td><code>autoscaling/v2beta1</code></td><td>HorizontalPodAutoscaler</td><td>1.25</td><td><code>autoscaling/v2</code></td></tr>
+    <tr><td><code>autoscaling/v2beta2</code></td><td>HorizontalPodAutoscaler</td><td>1.26</td><td><code>autoscaling/v2</code></td></tr>
+    <tr><td><code>flowcontrol.apiserver.k8s.io/v1beta1</code></td><td>All</td><td>1.26</td><td><code>flowcontrol.apiserver.k8s.io/v1</code></td></tr>
+    <tr><td><code>storage.k8s.io/v1beta1</code></td><td>CSIStorageCapacity</td><td>1.27</td><td><code>storage.k8s.io/v1</code></td></tr>
+    <tr><td><code>flowcontrol.apiserver.k8s.io/v1beta2</code></td><td>All</td><td>1.29</td><td><code>flowcontrol.apiserver.k8s.io/v1</code></td></tr>
+    <tr><td><code>networking.k8s.io/v1alpha1</code></td><td>ClusterCIDR</td><td>1.31</td><td><code>networking.k8s.io/v1</code> ServiceCIDR</td></tr>
+    <tr><td><code>flowcontrol.apiserver.k8s.io/v1beta3</code></td><td>All</td><td>1.32</td><td><code>flowcontrol.apiserver.k8s.io/v1</code></td></tr>
+    <tr><td><code>admissionregistration.k8s.io/v1beta1</code></td><td>ValidatingAdmissionPolicy, ValidatingAdmissionPolicyBinding</td><td>1.34</td><td><code>admissionregistration.k8s.io/v1</code></td></tr>
+  </tbody>
+</table></div>
+<p>When a row names the kind of a resource, that row decides. A row for all kinds applies only to kinds that have no row of their own.</p>
+<p>APIs added by a CRD, for example a <code>ServiceMonitor</code>, are not in this list. Stageproof does not judge their versions.</p>
+<p>To look ahead to the version you plan to upgrade the cluster to, see <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</p>
+  </template>
+
+  <template data-topic="cluster-upgrade" data-group="Guides" data-title="Prepare for a Kubernetes cluster upgrade">
+<p class="docs-lede">Find out which charts will stop working after you upgrade the cluster itself to a newer Kubernetes version. Stageproof warns you while the chart still works, so you can migrate it first.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You plan to move your cluster to a newer Kubernetes version.</dd></div>
+  <div><dt>Finds</dt><dd>Resources that work on the version you run and are removed in the version you plan to run.</dd></div>
+  <div><dt>Needs</dt><dd>Helm. No cluster. Stageproof does not upgrade a cluster.</dd></div>
+</dl>
+
+<h2>Two flags, two meanings</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Meaning</th><th>A removed API becomes</th></tr></thead>
+  <tbody>
+    <tr><td><code>--current-k8s</code></td><td>The Kubernetes version your cluster runs today.</td><td>An <code>ERROR</code>. The chart is broken now.</td></tr>
+    <tr><td><code>--next-k8s</code></td><td>The Kubernetes version you plan to upgrade the cluster to.</td><td>A <code>WARN</code>. The chart works now and will break after the cluster upgrade.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>The example</h2>
+<p>Your cluster runs Kubernetes 1.31. You plan to upgrade it to 1.32. You want to know whether the <code>ratelimit</code> chart survives that.</p>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --new-chart ./ratelimit --current-k8s 1.31 --next-k8s 1.32</pre>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  (single-chart check) -> ./ratelimit
+k8s  1.31  next 1.32  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  k8s 1.31 compatibility   0 blockers (1 deprecation, EOL, or CRD warning)
+
+  WARN  k8s.api.eol_blocker
+         FlowSchema/default/stageproof-rel-tenants
+         API `flowcontrol.apiserver.k8s.io/v1beta3` (FlowSchema) works on 1.31, but is REMOVED in next EOL target Kubernetes 1.32.
+         Migrate to `flowcontrol.apiserver.k8s.io/v1` before upgrading cluster to 1.32.
+
+verdict  PASSED (exit 0)  · 46ms · 0 AI calls</pre>
+
+<h2>What the result means</h2>
+<p>The result is not blocked, because the chart works on the cluster you have. The <code>k8s.api.eol_blocker</code> warning is the finding to act on: this resource stops working when the cluster reaches 1.32. Migrate it to <code>flowcontrol.apiserver.k8s.io/v1</code> before you upgrade the cluster.</p>
+<p>The <code>k8s</code> line shows both versions: <code>1.31  next 1.32</code>.</p>
+
+<h2>Check every chart you run</h2>
+<p>This command checks one chart. To review a whole cluster before an upgrade, run it once for each chart you deploy, with the values you deploy it with.</p>
+<p>To get the warning on every future change as well, set <code>nextKubernetes</code> in the <a href="#config">configuration file</a>.</p>
+  </template>
+
+  <template data-topic="live" data-group="Guides" data-title="Rehearse the upgrade in a temporary cluster">
+<p class="docs-lede">Add <code>--live</code> to carry out the upgrade for real, in a temporary Kubernetes cluster on the machine that runs the command. This is the only way to reach the result <code>PROVEN</code>.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You want proof that the upgrade works on a running release, and that you can roll it back.</dd></div>
+  <div><dt>Finds</dt><dd>Pods that fail to start or restart after the upgrade, a failed <code>helm upgrade</code>, and a failed <code>helm rollback</code>.</dd></div>
+  <div><dt>Needs</dt><dd>Helm, kind, kubectl, and Docker on the machine that runs the command.</dd></div>
+</dl>
+
+<h2>What <code>--live</code> does not do</h2>
+<ul>
+  <li><strong>It does not fix anything.</strong> It reports a result. It does not edit files, commit, or push. It behaves the same on your laptop and on a CI runner.</li>
+  <li><strong>It does not connect to your real cluster.</strong> It creates its own cluster and uses a separate, temporary kubeconfig. Your kubeconfig is not changed.</li>
+</ul>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0 -f values-prod.yaml --live</pre>
+<pre data-kind="out">
+stageproof  PROVEN  exit 0
+compare  ./webapp-1.4.0 -> ./webapp-1.5.0
+values  values-prod.yaml
+k8s  1.33  ·  checked: files, live cluster
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
+  ✓ PASS  baseline install         baseline revision 1 healthy in 7.3s
+  ✓ PASS  in-place helm upgrade    upgraded cleanly in 400ms (0 restarts)
+  ✓ PASS  rollback rehearsal       reverted to revision 1 cleanly in 200ms
+
+verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
+
+<h2>What happens, step by step</h2>
+<ol>
+  <li><strong>File checks run first.</strong> If they find an error, Stageproof stops with <code>BLOCKED</code> and does not create a cluster.</li>
+  <li><strong>A cluster is created.</strong> Stageproof starts a kind cluster named <code>stageproof-ephemeral</code>, on the Kubernetes version your cluster runs. This is most of the run time.</li>
+  <li><strong>Missing CRDs are installed.</strong> If the chart creates resources whose CRD it does not ship, Stageproof installs the CRD from a built-in list. See the list below.</li>
+  <li><strong>The current chart is installed</strong> in a new namespace. Stageproof waits until its pods are ready.</li>
+  <li><strong>The new chart is applied as an upgrade</strong> of that release, with <code>helm upgrade --wait</code>. If the new chart has a <code>crds</code> directory, those CRDs are applied first. Stageproof then checks that every pod is ready and that no container restarted.</li>
+  <li><strong>The release is rolled back</strong> to the first revision, and Stageproof waits until it is healthy again.</li>
+  <li><strong>The cluster is deleted.</strong></li>
+</ol>
+
+<h2>When the upgrade fails</h2>
+<p>In this run, chart 1.6.0 starts the container with a command that exits with an error.</p>
+<pre data-kind="cmd">
+stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.6.0 -f values-prod.yaml --live</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  ./webapp-1.4.0 -> ./webapp-1.6.0
+values  values-prod.yaml
+k8s  1.33  ·  checked: files, live cluster
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
+  ✓ PASS  baseline install         baseline revision 1 healthy in 1.8s
+  ✕ FAIL  in-place helm upgrade    pod `sp-rel-webapp-755977846f-4r2gf` CrashLoopBackOff (restarts=1)
+  ✓ PASS  rollback rehearsal       reverted cleanly to revision 1 in 400ms after failed upgrade
+
+  ERROR  helm.runtime.upgrade_failed
+         sp-trial-886740/sp-rel
+         In-place `helm upgrade` failed against healthy baseline: pod `sp-rel-webapp-755977846f-4r2gf` CrashLoopBackOff (restarts=1)
+         aborted wait early on terminal pod state: sp-rel-webapp-755977846f-4r2gf: exited 1 (restarts=1)
+
+verdict  BLOCKED (exit 1)  · 7180ms · 0 AI calls</pre>
+<p>The file checks passed, so only the rehearsal could find this. The current chart was healthy, the new chart was not, and that makes the upgrade the cause. Stageproof still rehearses the rollback after a failed upgrade. Here it passed, so a rollback would have recovered the release.</p>
+<p>Stageproof does not wait for the full timeout when a pod has clearly failed. It stops waiting as soon as a pod crashes or cannot pull its image.</p>
+
+<h2>When the rehearsal cannot finish</h2>
+<p>The temporary cluster is empty. It has no access to your private registry, your Secrets, or your databases. When the rehearsal stops for one of those reasons, Stageproof does not blame the upgrade.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>What stopped the rehearsal</th><th>Result</th><th>Reason shown</th></tr></thead>
+  <tbody>
+    <tr><td>The chart needs a CRD that is not in the chart and not in the built-in list.</td><td><code>PASSED</code></td><td><code>missing_external_crds</code>. Pass the CRD with <code>--crd-file</code>. With <code>--require-rehearsal</code> the result is <code>NOT CHECKED</code>.</td></tr>
+    <tr><td>The current chart cannot start in an empty cluster: an image in a private registry, a missing Secret or ConfigMap, a database that cannot be reached, or a storage class that does not exist.</td><td><code>PASSED</code></td><td><code>baseline_requires_external_dependency</code>. With <code>--require-rehearsal</code> the result is <code>NOT CHECKED</code>.</td></tr>
+    <tr><td>The current chart fails to start for any other reason.</td><td><code>NOT CHECKED</code></td><td>The failure, on the <code>baseline install</code> line.</td></tr>
+    <tr><td>The cluster could not be created.</td><td><code>NOT CHECKED</code></td><td>The error from kind.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>The Kubernetes version of the temporary cluster</h2>
+<p>The temporary cluster runs the same Kubernetes version as the file checks: the one you gave with <code>--current-k8s</code> or in the configuration file, and <code>1.33</code> when you gave none. The <code>kind cluster boot</code> line states the exact version, <code>v1.33.12</code> in the runs above.</p>
+<p>kind publishes its cluster images for specific patch releases. Stageproof looks up the newest one for your version on Docker Hub and creates the cluster from it.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Situation</th><th>What happens</th></tr></thead>
+  <tbody>
+    <tr><td>An image exists for your version.</td><td>The cluster runs your version.</td></tr>
+    <tr><td>No image exists for your version, or Docker Hub cannot be reached.</td><td>The cluster runs the default version of your kind release. The report adds a <code>WARN</code> line named <code>rehearsal version</code> that states both versions.</td></tr>
+    <tr><td>A cluster with that name already exists, for example from <code>--keep-cluster</code>.</td><td>It is reused as it is. If its version differs, the report adds the same <code>WARN</code> line.</td></tr>
+    <tr><td>Your kind release cannot start the image for your version.</td><td>The result is <code>NOT CHECKED</code>. The message names the image. A newer kind release is usually the fix.</td></tr>
+  </tbody>
+</table></div>
+<p>The warning does not change the result. A rehearsal on another version still shows that the upgrade and the rollback work, and the report says which version that was.</p>
+
+<h2>CRDs that are installed for you</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Resources in your chart</th><th>CRDs installed from</th></tr></thead>
+  <tbody>
+    <tr><td><code>ServiceMonitor</code>, <code>PodMonitor</code>, <code>PrometheusRule</code></td><td>Prometheus Operator v0.78.1</td></tr>
+    <tr><td><code>HTTPRoute</code>, <code>Gateway</code></td><td>Gateway API v1.2.0</td></tr>
+    <tr><td><code>Certificate</code>, <code>Issuer</code>, <code>ClusterIssuer</code></td><td>cert-manager v1.16.2</td></tr>
+    <tr><td><code>Cluster</code> (<code>postgresql.cnpg.io</code>)</td><td>CloudNativePG v1.24.1</td></tr>
+  </tbody>
+</table></div>
+<p>Only the CRDs are installed. The controllers behind them are not.</p>
+
+<h2>Options</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>--crd-file</code></td><td>A CRD file or URL to install before the rehearsal. Repeat it for several.</td></tr>
+    <tr><td><code>--timeout</code></td><td>How long to wait for pods at each step. The default is <code>90s</code>.</td></tr>
+    <tr><td><code>--helm-test</code></td><td>Also run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
+    <tr><td><code>--require-rehearsal</code></td><td>If the rehearsal does not run and pass, the result is <code>NOT CHECKED</code> (exit 2) instead of <code>PASSED</code> (exit 0).</td></tr>
+        <tr><td><code>--keep-cluster</code></td><td>Do not delete the cluster at the end. The next run reuses it and starts faster.</td></tr>
+    <tr><td><code>--cluster-name</code></td><td>Use another name for the cluster. The default is <code>stageproof-ephemeral</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>If you give only <code>--new-chart</code>, there is nothing to upgrade from. The rehearsal installs the new chart once and skips the rollback.</p>
+  </template>
+
+  <template data-topic="large-crds" data-group="Guides" data-title="Large CRDs and server-side apply">
+<p class="docs-lede">Some charts ship CRDs that are too large to apply the default way. Stageproof warns you before the deployment fails. Read this page when a report contains <code>k8s.crd.oversized_annotation_limit</code>.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>A report shows the large CRD warning, or you deploy charts such as argo-cd or kube-prometheus-stack.</dd></div>
+  <div><dt>Finds</dt><dd>Every CRD in the chart that is larger than 256 KiB.</dd></div>
+  <div><dt>Needs</dt><dd>Helm. No cluster.</dd></div>
+</dl>
+
+<h2>Why size matters</h2>
+<p>The default way to apply a resource is client-side apply. It stores a full copy of the resource in an annotation on that resource. Kubernetes limits annotations to 256 KiB. A CRD larger than that cannot be applied this way, and the deployment fails with an error about annotations being too long.</p>
+<p>Server-side apply does not use that annotation, so it has no such limit.</p>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --new-chart ./argo-cd</pre>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  (single-chart check) -> ./argo-cd
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 60 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  k8s 1.33 compatibility   0 blockers (2 deprecation, EOL, or CRD warnings)
+
+  WARN  k8s.crd.oversized_annotation_limit
+         CustomResourceDefinition/default/applications.argoproj.io
+         CRD size is 550 KiB (>256 KiB client-side `last-applied-configuration` limit).
+         1-line fixes -> Argo CD: `syncOptions: [ServerSideApply=true]` | Flux: `install/upgrade.crds: CreateReplace` | Helm v4: `helm upgrade --server-side` | kubectl: `kubectl apply --server-side -f crds/` (pass `--server-side-apply` if already enabled).
+  WARN  k8s.crd.oversized_annotation_limit
+         CustomResourceDefinition/default/applicationsets.argoproj.io
+         CRD size is 2778 KiB (>256 KiB client-side `last-applied-configuration` limit).
+         1-line fixes -> Argo CD: `syncOptions: [ServerSideApply=true]` | Flux: `install/upgrade.crds: CreateReplace` | Helm v4: `helm upgrade --server-side` | kubectl: `kubectl apply --server-side -f crds/` (pass `--server-side-apply` if already enabled).
+
+verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
+<p>This is a warning, so the result is not blocked. Whether the deployment fails depends on how you deploy, which Stageproof cannot see from a chart directory.</p>
+
+<h2>What to do</h2>
+<p>First, change how the tool that deploys the chart applies CRDs.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>You deploy with</th><th>Setting</th></tr></thead>
+  <tbody>
+    <tr><td>Argo CD</td><td>Add <code>ServerSideApply=true</code> to <code>spec.syncPolicy.syncOptions</code> in the Application.</td></tr>
+    <tr><td>Flux</td><td>Set <code>install.crds</code> and <code>upgrade.crds</code> to <code>CreateReplace</code>.</td></tr>
+    <tr><td>Helm 4</td><td>Run <code>helm upgrade --server-side</code>.</td></tr>
+    <tr><td>kubectl</td><td>Run <code>kubectl apply --server-side -f crds/</code>.</td></tr>
+  </tbody>
+</table></div>
+<p>Then tell Stageproof, so that it stops warning:</p>
+<ul>
+  <li>For a chart directory, add <code>--server-side-apply</code> to the command, or set <code>serverSideApply: true</code> in the <a href="#config">configuration file</a>.</li>
+  <li>For an Argo CD Application, do nothing. Stageproof reads <code>ServerSideApply=true</code> from the file.</li>
+</ul>
+  </template>
+
+  <!-- ================================================================ CI -->
+
+  <template data-topic="ci-gitlab" data-group="Run in CI" data-title="GitLab CI">
+<p class="docs-lede">Run Stageproof on every merge request that changes a chart. The pipeline fails when the upgrade is blocked, and the report is posted as a comment on the merge request.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>Your repository is on GitLab and you want a failed check to stop a merge.</dd></div>
+  <div><dt>Runs</dt><dd><a href="#pull-request"><code>stageproof check-pr</code></a> against the target branch of the merge request.</dd></div>
+  <div><dt>Needs</dt><dd>A runner that can run the <code>golang</code> image. No cluster.</dd></div>
+</dl>
+
+<h2>The job</h2>
+<p>This job is based on the one that runs on the repository where Stageproof is developed. It expects the Stageproof source in <code>stageproof/</code> in your repository. Change those two paths if you keep it somewhere else, and change the paths under <code>changes</code> to where your charts and Application files are.</p>
+<pre data-kind="file" data-label=".gitlab-ci.yml">
+stageproof:
+  stage: test
+  image: golang:bookworm
+  variables:
+    GIT_DEPTH: "50"
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - charts/**/*
+        - apps/**/*
+  script:
+    - |
+      set -euo pipefail
+
+      # Helm renders the charts.
+      curl -fsSL -o /tmp/helm.tgz https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz
+      tar -xzf /tmp/helm.tgz -C /tmp
+      mv /tmp/linux-amd64/helm /usr/local/bin/helm
+
+      # Build Stageproof from source.
+      (cd stageproof/cli &amp;&amp; go build -o /usr/local/bin/stageproof ./cmd/stageproof)
+
+      # The commit this merge request will merge into.
+      git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=50
+      BASE="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME}"
+
+      set +e
+      stageproof check-pr \
+        --current-git "$BASE" \
+        --current-k8s 1.35 \
+        --comment-file stageproof-comment.md \
+        --out stageproof-report.json
+      RESULT=$?
+      set -e
+
+      # Post the report on the merge request.
+      if [ -f stageproof-comment.md ] &amp;&amp; [ -n "${STAGEPROOF_GITLAB_TOKEN:-}" ]; then
+        python3 stageproof/ci/post_gitlab_mr_note.py stageproof-comment.md
+      fi
+
+      # 0 is PASSED or PROVEN. 1 is BLOCKED. 2 is NOT CHECKED.
+      if [ "$RESULT" -ne 0 ]; then
+        exit "$RESULT"
+      fi
+  artifacts:
+    when: always
+    paths:
+      - stageproof-report.json
+      - stageproof-comment.md</pre>
+
+<h2>What the job prints</h2>
+<p>The job log contains the same report you get on your own machine, in color. In CI the current version is labelled with the commit hash of the target branch. Set <code>--current-k8s</code> to the Kubernetes version of the cluster you deploy to.</p>
+<pre data-kind="out">
+stageproof  PASSED  exit 0
+compare  argo-cd@10.9.6 (483f04ab675afc42575124fe013935041e5028c8) -> argo-cd@10.18.0 (apps/argo-cd.yaml)
+values  helm.values in apps/argo-cd.yaml
+k8s  1.35  ·  checked: files
+
+  ✓ PASS  helm template            rendered 60 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35 (SSA mode)
+
+verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
+
+<h2>How each part works</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Part</th><th>Why it is there</th></tr></thead>
+  <tbody>
+    <tr><td><code>rules</code></td><td>The job runs only in merge request pipelines, and only when a chart or Application file changed.</td></tr>
+    <tr><td><code>GIT_DEPTH</code> and <code>git fetch</code></td><td>Stageproof reads the chart from the target branch, so that commit must be in the clone. A clone with depth 1 does not contain it.</td></tr>
+    <tr><td><code>set +e</code> around the command</td><td>The job must keep running after a non-zero exit code, so that it can post the comment before it fails.</td></tr>
+    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code> and the job stays green. Exit code <code>1</code> (<code>BLOCKED</code>) and <code>2</code> (<code>NOT CHECKED</code>) fail the job. The comment is posted before that exit.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>The comment on the merge request</h2>
+<p>The script <code>ci/post_gitlab_mr_note.py</code> in the Stageproof source posts the Markdown report as a comment. When the job runs again, it updates that comment and does not add a second one. A merge request that changes several charts gets one comment that covers all of them.</p>
+<p>It needs a CI/CD variable named <code>STAGEPROOF_GITLAB_TOKEN</code> that holds a GitLab access token with the <code>api</code> scope. Mark the variable as masked. Without the variable, the job still checks the merge request and skips the comment.</p>
+
+<h2>Stop a blocked merge request from merging</h2>
+<p>A failed job does not stop a merge by default. In the project, open <strong>Settings</strong>, then <strong>Merge requests</strong>, and turn on <strong>Pipelines must succeed</strong>.</p>
+<p>GitLab applies that setting to every merge request in the project. It cannot be limited to some branches. Make sure every merge request gets a pipeline, including the ones that change no chart, or those can no longer be merged.</p>
+
+<h2>Add the live rehearsal</h2>
+<p>The job above does not use <code>--live</code>. The live rehearsal needs Docker on the runner to start the temporary cluster. See <a href="#live">Rehearse the upgrade in a temporary cluster</a>.</p>
+  </template>
+
+  <template data-topic="ci-github" data-group="Run in CI" data-title="GitHub Actions">
+<p class="docs-lede">Run Stageproof on every pull request that changes a chart. The workflow fails when the upgrade is blocked, and the report appears in the workflow summary.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>Your repository is on GitHub and you want a failed check to stop a merge.</dd></div>
+  <div><dt>Runs</dt><dd><a href="#pull-request"><code>stageproof check-pr</code></a> against the base branch of the pull request.</dd></div>
+  <div><dt>Needs</dt><dd>A GitHub-hosted Ubuntu runner. Helm is already installed on it. No cluster.</dd></div>
+</dl>
+
+<div class="doc-callout is-info">
+  <div class="doc-callout-title">Status of this workflow</div>
+  <p>Stageproof is tested daily with the <a href="#ci-gitlab">GitLab job</a>. This workflow follows the same steps. Treat it as a starting point and confirm it on your repository.</p>
+</div>
+
+<h2>The workflow</h2>
+<p>The workflow expects the Stageproof source in <code>stageproof/</code> in your repository. Change <code>working-directory</code> if you keep it somewhere else, and change <code>paths</code> to where your charts and Application files are.</p>
+<pre data-kind="file" data-label=".github/workflows/stageproof.yml">
+name: stageproof
+
+on:
+  pull_request:
+    paths:
+      - "charts/**"
+      - "apps/**"
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23"
+
+      - name: Build Stageproof
+        working-directory: stageproof/cli
+        run: go build -o "$RUNNER_TEMP/stageproof" ./cmd/stageproof
+
+      - name: Check the pull request
+        run: |
+          set +e
+          "$RUNNER_TEMP/stageproof" check-pr \
+            --current-git "origin/${{ github.base_ref }}" \
+            --current-k8s 1.35 \
+            --comment-file stageproof-comment.md \
+            --out stageproof-report.json
+          result=$?
+          set -e
+
+          # Show the report on the workflow summary page.
+          if [ -f stageproof-comment.md ]; then
+            cat stageproof-comment.md &gt;&gt; "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # 0 is PASSED or PROVEN. 1 is BLOCKED. 2 is NOT CHECKED.
+          if [ "$result" -ne 0 ]; then
+            exit "$result"
+          fi</pre>
+
+<h2>How each part works</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Part</th><th>Why it is there</th></tr></thead>
+  <tbody>
+    <tr><td><code>paths</code></td><td>The workflow runs only when a chart or Application file changed.</td></tr>
+    <tr><td><code>fetch-depth: 0</code></td><td>Stageproof reads the chart from the base branch, so that branch must be in the clone. The default checkout does not contain it.</td></tr>
+    <tr><td><code>origin/${{ github.base_ref }}</code></td><td>The branch the pull request will merge into.</td></tr>
+    <tr><td><code>GITHUB_STEP_SUMMARY</code></td><td>The Markdown report is added to the summary page of the workflow run.</td></tr>
+    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code>. Exit code <code>1</code> and <code>2</code> fail the workflow. The summary is written before that exit.</td></tr>
+  </tbody>
+</table></div>
+<p>Set <code>--current-k8s</code> to the Kubernetes version of the cluster you deploy to.</p>
+
+<h2>Stop a blocked pull request from merging</h2>
+<p>Add a branch protection rule, or a ruleset, for your default branch. Require status checks to pass, and select the <code>check</code> job of this workflow.</p>
+  </template>
+
+  <template data-topic="renovate" data-group="Run in CI" data-title="Use with Renovate">
+<p class="docs-lede">Renovate opens pull requests that bump chart versions. Stageproof checks each of those pull requests. The two tools do not talk to each other, and neither needs to know about the other.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>Renovate, or a similar bot, opens version bump pull requests in a repository with charts.</dd></div>
+  <div><dt>How it fits</dt><dd>Renovate changes a file and opens a pull request. Your pipeline starts. Stageproof reads the diff.</dd></div>
+  <div><dt>Needs</dt><dd>Stageproof in your pipeline: <a href="#ci-gitlab">GitLab CI</a> or <a href="#ci-github">GitHub Actions</a>.</dd></div>
+</dl>
+
+<h2>1. Let Renovate find your chart versions</h2>
+<p>Renovate updates a version only when it knows where the version is written. For Argo CD Application files, turn on the <code>argocd</code> manager and tell it which files to read.</p>
+<pre data-kind="file" data-label="renovate.json">
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "enabledManagers": ["argocd"],
+  "argocd": {
+    "managerFilePatterns": ["/^apps/.+\\.yaml$/"]
+  },
+  "automerge": false
+}</pre>
+<p>With this file, Renovate opens a pull request when a chart has a newer version. The pull request changes <code>targetRevision</code> in the Application file. Stageproof then compares the two versions, as shown in <a href="#argocd">Check an Argo CD Application</a>.</p>
+
+<h2>2. Do not merge before the check has run</h2>
+<p>Keep <code>automerge</code> off, or protect your default branch so that a pull request cannot merge while the Stageproof job is failing. The CI pages show the setting for each platform.</p>
+
+<h2>3. On GitLab, avoid a second pipeline for each branch</h2>
+<p>Renovate pushes a branch and then opens a merge request. GitLab can start one pipeline for the push and another for the merge request. Only the merge request pipeline runs Stageproof. This rule in the root <code>.gitlab-ci.yml</code> skips the other one.</p>
+<pre data-kind="file" data-label=".gitlab-ci.yml">
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "push" &amp;&amp; $CI_COMMIT_BRANCH =~ /^renovate\//
+      when: never
+    - if: $CI_COMMIT_BRANCH
+    - if: $CI_COMMIT_TAG</pre>
+
+<h2>What Stageproof can and cannot say about an image update</h2>
+<p>Renovate also bumps container image tags in <code>values.yaml</code>. For such a pull request, Stageproof renders the chart with the new tag and runs the file checks. It does not download the image, so it cannot tell whether the new image starts.</p>
+<p>The result for an image update is therefore <code>PASSED</code>. The files are fine. To have the new image started in a cluster, use the <a href="#live">live rehearsal</a>.</p>
+  </template>
+
+  <!-- ================================================================ REFERENCE -->
+
+  <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
+<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.0.</p>
+
+<h2>Commands</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Command</th><th>What it does</th></tr></thead>
+  <tbody>
+    <tr><td><code>stageproof check</code></td><td>Checks one chart, or one Argo CD Application.</td></tr>
+    <tr><td><code>stageproof check-pr</code></td><td>Finds the charts and Applications that a branch changed, and checks each one.</td></tr>
+    <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
+    <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
+    <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check</code>: what to compare</h2>
+<p>Give <code>--new-chart</code> or <code>--argocd-file</code>. Without one of them the command ends with exit code <code>3</code>.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--new-chart &lt;dir&gt;</code></td><td>The chart you want to deploy.</td></tr>
+    <tr><td><code>--current-chart &lt;dir&gt;</code></td><td>The chart you run today. Leave it out to check the new chart on its own.</td></tr>
+    <tr><td><code>--current-git &lt;ref&gt;</code></td><td>Read the current chart, or the current Application file, from this branch, tag, or commit.</td></tr>
+    <tr><td><code>--argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you want to deploy.</td></tr>
+    <tr><td><code>--current-argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you run today. Use it when the old file is not in Git.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check</code>: values</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>-f &lt;file&gt;</code>, <code>--values &lt;file&gt;</code></td><td>A values file you deploy with. Repeat it for several files.</td></tr>
+    <tr><td><code>--base-values &lt;file&gt;</code></td><td>A values file for the current chart, when it differs from the one for the new chart. By default both charts use the <code>-f</code> files.</td></tr>
+    <tr><td><code>--set &lt;key=value&gt;</code></td><td>A single value, the same as in Helm. Repeat it for several values.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check</code>: Kubernetes</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--current-k8s &lt;version&gt;</code></td><td><code>currentKubernetes</code> from the configuration file, else <code>1.33</code></td><td>The Kubernetes version your cluster runs. See <a href="#cluster-version">Check against your Kubernetes version</a>.</td></tr>
+    <tr><td><code>--next-k8s &lt;version&gt;</code></td><td>Not set</td><td>The Kubernetes version you plan to upgrade the cluster to. See <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</td></tr>
+    <tr><td><code>--server-side-apply</code></td><td>Off</td><td>You deploy with server-side apply. Turns off the <a href="#large-crds">large CRD warning</a>.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check</code>: live rehearsal</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--live</code></td><td>Off</td><td>Rehearse the upgrade in a temporary cluster. See <a href="#live">Rehearse the upgrade in a temporary cluster</a>.</td></tr>
+    <tr><td><code>--timeout &lt;duration&gt;</code></td><td><code>90s</code></td><td>How long to wait for pods at each step.</td></tr>
+    <tr><td><code>--crd-file &lt;file or URL&gt;</code></td><td>None</td><td>A CRD to install before the rehearsal. Repeat it for several.</td></tr>
+    <tr><td><code>--helm-test</code></td><td>Off</td><td>Run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
+    <tr><td><code>--keep-cluster</code></td><td>Off</td><td>Do not delete the cluster at the end.</td></tr>
+    <tr><td><code>--cluster-name &lt;name&gt;</code></td><td><code>stageproof-ephemeral</code></td><td>The name of the temporary cluster.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check</code>: output</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--format &lt;name&gt;</code></td><td><code>text</code></td><td>What is printed: <code>text</code>, <code>markdown</code>, or <code>json</code>.</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>Also write the JSON report to this file.</td></tr>
+    <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>Also write the Markdown report to this file.</td></tr>
+  </tbody>
+</table></div>
+
+<h2><code>stageproof check-pr</code></h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--current-git &lt;ref&gt;</code></td><td><code>origin/main</code></td><td>The branch or commit the pull request will merge into.</td></tr>
+    <tr><td><code>--new-git &lt;ref&gt;</code></td><td><code>HEAD</code></td><td>The end of the pull request branch. It is used to list the changed files. The chart files are read from your working directory.</td></tr>
+    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
+    <tr><td><code>--format</code></td><td><code>text</code></td><td>The same as for <code>stageproof check</code>.</td></tr>
+    <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
+  </tbody>
+</table></div>
+<p>Which values files a chart is checked with comes from the <a href="#config">configuration file</a>. See <a href="#values-files">Check each values file of a chart</a>.</p>
+
+<h2><code>stageproof init</code></h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--dir &lt;dir&gt;</code></td><td><code>.</code></td><td>The directory to scan for charts.</td></tr>
+    <tr><td><code>--out &lt;file&gt;</code></td><td><code>.stageproof.yaml</code></td><td>The file to write.</td></tr>
+  </tbody>
+</table></div>
+<p>See <a href="#config">Configuration file</a> for what the file contains.</p>
+
+<h2>Environment variables</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Variable</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td><code>STAGEPROOF_COLOR</code></td><td><code>always</code> turns colored output on. <code>never</code> turns it off.</td></tr>
+    <tr><td><code>NO_COLOR</code></td><td>Any value turns colored output off.</td></tr>
+  </tbody>
+</table></div>
+<p>Without these variables, output is colored in a terminal and when <code>CI</code> or <code>GITLAB_CI</code> is <code>true</code>.</p>
+
+<h2>Exit codes</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Exit code</th><th>Result</th></tr></thead>
+  <tbody>
+    <tr><td><code>0</code></td><td><code>PROVEN</code> or <code>PASSED</code></td></tr>
+    <tr><td><code>1</code></td><td><code>BLOCKED</code></td></tr>
+    <tr><td><code>2</code></td><td><code>NOT CHECKED</code>. Also used when the command line is wrong or a chart cannot be downloaded.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Older flag names</h2>
+<p>These names from earlier versions still work.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Current name</th><th>Older names</th></tr></thead>
+  <tbody>
+    <tr><td><code>--new-chart</code></td><td><code>--to</code>, <code>--chart</code></td></tr>
+    <tr><td><code>--current-chart</code></td><td><code>--from</code>, <code>--base-chart</code></td></tr>
+    <tr><td><code>--current-git</code></td><td><code>--from-git</code>, <code>--git-base</code></td></tr>
+    <tr><td><code>--base-values</code></td><td><code>--from-values</code></td></tr>
+    <tr><td><code>--current-k8s</code></td><td><code>--current-kubernetes</code>, <code>--target-k8s</code>, <code>--k8s-version</code></td></tr>
+    <tr><td><code>--next-k8s</code></td><td><code>--next-kubernetes</code>, <code>--k8s-next</code></td></tr>
+    <tr><td><code>--server-side-apply</code></td><td><code>--apply-mode ssa</code></td></tr>
+    <tr><td><code>--live</code></td><td><code>--rehearse</code></td></tr>
+    <tr><td><code>--require-rehearsal</code></td><td>none</td></tr>
+    <tr><td><code>--crd-file</code></td><td><code>--crd-bundle</code></td></tr>
+    <tr><td><code>check-pr</code></td><td><code>check-mr</code></td></tr>
+  </tbody>
+</table></div>
+  </template>
+
+  <template data-topic="config" data-group="Reference" data-title="Configuration file">
+<p class="docs-lede">Settings that should apply to every check can go in a file named <code>.stageproof.yaml</code>. The file is optional.</p>
+
+<h2>Where the file goes</h2>
+<p>Stageproof reads <code>.stageproof.yaml</code> from the directory in which you run the command. In a repository, put it in the top directory and run Stageproof from there. Both <code>stageproof check</code> and <code>stageproof check-pr</code> read it.</p>
+
+<h2>The settings</h2>
+<pre data-kind="file" data-label=".stageproof.yaml">
+currentKubernetes: "1.35"
+nextKubernetes: "1.36"
+serverSideApply: true
+liveTest: false
+crdFiles:
+  - https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.crds.yaml
+charts:
+  - name: webapp
+    path: charts/webapp
+    valuesFiles:
+      - charts/webapp/values-prod.yaml
+      - charts/webapp/values.yaml</pre>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Setting</th><th>Meaning</th><th>How file and flag combine</th></tr></thead>
+  <tbody>
+    <tr><td><code>currentKubernetes</code></td><td>The Kubernetes version your cluster runs. Same as <code>--current-k8s</code>.</td><td>The file is used when the flag is not given.</td></tr>
+    <tr><td><code>nextKubernetes</code></td><td>The Kubernetes version you plan to upgrade the cluster to. Same as <code>--next-k8s</code>.</td><td>The file is used when the flag is not given.</td></tr>
+    <tr><td><code>serverSideApply</code></td><td>You deploy with server-side apply. Same as <code>--server-side-apply</code>.</td><td><code>true</code> in the file turns it on. A flag cannot turn it off.</td></tr>
+    <tr><td><code>liveTest</code></td><td>Rehearse every check in a temporary cluster. Same as <code>--live</code>.</td><td><code>true</code> in the file turns it on. A flag cannot turn it off.</td></tr>
+    <tr><td><code>requireRehearsal</code></td><td>A check that was not rehearsed is <code>NOT CHECKED</code> (exit 2) instead of <code>PASSED</code>. Same as <code>--require-rehearsal</code>.</td><td><code>true</code> in the file turns it on. Passing the flag does the same.</td></tr>
+    <tr><td><code>crdFiles</code></td><td>CRDs to install before a live rehearsal. Same as <code>--crd-file</code>.</td><td>The file is used when the flag is not given.</td></tr>
+    <tr><td><code>charts</code></td><td>The values files of each chart. Used by <code>stageproof check-pr</code>. See <a href="#values-files">Check each values file of a chart</a>.</td><td>There is no flag for it.</td></tr>
+  </tbody>
+</table></div>
+<p>Every setting is optional. Leave out the ones you do not need.</p>
+
+<h2>Create a starter file</h2>
+<p>Run this in the top directory of the repository.</p>
+<pre data-kind="cmd">
+stageproof init</pre>
+<pre data-kind="out">
+Wrote .stageproof.yaml (discovered 2 Helm charts, currentKubernetes=1.33, nextKubernetes=1.34)</pre>
+<p>The command finds every chart in the repository and the values files next to it, and writes them to <code>.stageproof.yaml</code>:</p>
+<pre data-kind="file" data-label=".stageproof.yaml written by stageproof init">
+# Written by `stageproof init`. Settings for `stageproof check` and `stageproof check-pr`.
+currentKubernetes: "1.33"
+nextKubernetes: "1.34"
+liveTest: false
+charts:
+    - name: billing
+      path: charts/billing
+      valuesFiles:
+        - charts/billing/values.yaml
+    - name: webapp
+      path: charts/webapp
+      valuesFiles:
+        - charts/webapp/values-prod.yaml
+        - charts/webapp/values.yaml</pre>
+<p>The two Kubernetes versions are placeholders. Change <code>currentKubernetes</code> to the version your cluster runs, and <code>nextKubernetes</code> to the version you plan to move to, or delete that line.</p>
+<p>Subcharts inside a chart's own <code>charts</code> directory are not listed. They are checked as part of their parent chart.</p>
+  </template>
+
+  <template data-topic="findings" data-group="Reference" data-title="Findings">
+<p class="docs-lede">Every rule that can appear in a report, what it means, and what to do about it. An <code>ERROR</code> makes the result <code>BLOCKED</code>. A <code>WARN</code> does not change the result.</p>
+
+<h2>Values</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>helm.values.silently_dropped</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A key in your values file was used by the current chart and is not used by the new chart. When you check a chart on its own, it means the chart does not use the key at all.</td><td>Rename the key to what the new chart uses, or remove it.</td></tr>
+    <tr><td><code>helm.values.preexisting_orphan</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A key in your values file is not used by the current chart and not by the new one.</td><td>Remove the key when convenient. The upgrade did not cause this.</td></tr>
+    <tr><td><code>helm.values.new_required_unset</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart requires a value that the current chart did not require, and you do not set it.</td><td>Set the value in your values file or with <code>--set</code>.</td></tr>
+    <tr><td><code>helm.values.parse_error</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A values file or a chart could not be read.</td><td>Fix the file that the message names.</td></tr>
+  </tbody>
+</table></div>
+<p>A value that the current chart already required, and that you set at deploy time and not in a file, does not block the check. Stageproof fills in a placeholder for it and reports that on a <code>WARN</code> line named <code>required values shim</code>.</p>
+
+<h2>Rendering</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>helm.template.render_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm template</code> failed on the new chart with your values.</td><td>Read the Helm error in the report and fix the chart or the values.</td></tr>
+    <tr><td><code>helm.template.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart rendered, and the output is not valid YAML.</td><td>Fix the template that produces the invalid output.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Kubernetes</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>k8s.api.removed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A resource uses an API version that the Kubernetes version in <code>--current-k8s</code> has removed.</td><td>Move the resource to the API version named in the report.</td></tr>
+    <tr><td><code>k8s.api.eol_blocker</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A resource uses an API version that works today and is removed in the version in <code>--next-k8s</code>.</td><td>Migrate the resource before you upgrade the cluster.</td></tr>
+    <tr><td><code>k8s.api.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A resource uses an API version that is deprecated on the version in <code>--current-k8s</code>.</td><td>Plan the migration. The report names the version in which the API is removed.</td></tr>
+    <tr><td><code>k8s.upgrade.immutable_selector_changed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The label selector of a Deployment, StatefulSet, or DaemonSet differs between the current and the new chart. Kubernetes does not allow that change on an existing workload.</td><td>Keep the selector as it was, or plan to delete and recreate the workload.</td></tr>
+    <tr><td><code>k8s.crd.oversized_annotation_limit</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A CRD in the chart is larger than 256 KiB.</td><td>See <a href="#large-crds">Large CRDs and server-side apply</a>.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Live rehearsal</h2>
+<p>These appear only with <code>--live</code>.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>helm.runtime.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The current chart was healthy, and <code>helm upgrade</code> to the new chart failed.</td></tr>
+    <tr><td><code>helm.runtime.pod_restarts</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The upgrade finished, and afterwards a pod was not ready or a container had restarted.</td></tr>
+    <tr><td><code>helm.runtime.rollback_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm rollback</code> to the first revision failed.</td></tr>
+    <tr><td><code>helm.runtime.helm_test_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The chart's <code>helm test</code> hooks failed after the upgrade. Only with <code>--helm-test</code>.</td></tr>
+    <tr><td><code>helm.crd.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The CRDs in the new chart's <code>crds</code> directory could not be applied to the cluster.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>When a live rehearsal does not finish</h2>
+<p>A check you run without <code>--live</code> does not warn about that. The result is <code>PASSED</code> and the report says <code>checked: files</code>. These reasons appear only when <code>--live</code> was set and the rehearsal stopped before it could judge the upgrade. The result stays <code>PASSED</code> unless you also set <code>--require-rehearsal</code>, which makes it <code>NOT CHECKED</code>.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Reason</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>rehearsal_required</code></td><td><code>--require-rehearsal</code> is set and no rehearsal ran.</td><td>Add <code>--live</code>, or remove the requirement.</td></tr>
+    <tr><td><code>missing_external_crds</code></td><td>The chart needs a CRD that Stageproof could not install.</td><td>Pass the CRD with <code>--crd-file</code>.</td></tr>
+    <tr><td><code>baseline_requires_external_dependency</code></td><td>The current chart cannot start in an empty cluster, because it needs something from outside it.</td><td>Check with values that work in an empty cluster, for example a public image and no external database.</td></tr>
+    <tr><td><code>head_requires_external_dependency</code></td><td>The same, when you check a new chart on its own.</td><td>The same.</td></tr>
+  </tbody>
+</table></div>
+  </template>
+
+  <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
+<p class="docs-lede">What Stageproof 0.1.0 covers, what it leaves out, and where a passing result says less than you might expect.</p>
+
+<h2>What is not supported</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Not supported</th><th>What that means for you</th></tr></thead>
+  <tbody>
+    <tr><td>Terraform providers and modules</td><td>A change to a provider version or a module version is not checked.</td></tr>
+    <tr><td>Container image contents</td><td>Stageproof does not inspect an image. A new image is started only in the <a href="#live">live rehearsal</a>.</td></tr>
+    <tr><td>Kustomize, Helmfile, Flux <code>HelmRelease</code>, plain manifests</td><td>These files are ignored.</td></tr>
+    <tr><td>Argo CD Applications with several sources, <code>valuesObject</code>, <code>valueFiles</code>, or a Git path as the source</td><td>Only a single chart source with inline <code>helm.values</code> is read. See <a href="#argocd">Check an Argo CD Application</a>.</td></tr>
+    <tr><td>Application dependencies, for example npm or Maven packages</td><td>Not checked.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>What a passing result does not cover</h2>
+<ul>
+  <li><strong><code>PASSED</code> is about files.</strong> Nothing was started. The chart renders, your values are still used, and no rule found a problem. Whether the new version runs is not known.</li>
+  <li><strong><code>PROVEN</code> is about an empty cluster.</strong> The temporary cluster has no production data, no traffic, and none of the other workloads in your real cluster. The rehearsal shows that the upgrade and the rollback work mechanically.</li>
+  <li><strong>The temporary cluster may run another Kubernetes version than yours.</strong> That happens when kind has no image for your version. The report then says which version the rehearsal ran on.</li>
+  <li><strong>The API check uses a fixed list.</strong> It covers the removals listed in <a href="#cluster-version">Check against your Kubernetes version</a>. APIs added by CRDs are not judged.</li>
+  <li><strong>The values check follows references.</strong> It knows whether a chart reads a key. It does not know whether the chart does something sensible with the value.</li>
+  <li><strong>A pull request check covers the values files it knows about.</strong> Without a <code>charts</code> list in the configuration file, a chart in your repository is checked with its own <code>values.yaml</code> only. See <a href="#values-files">Check each values file of a chart</a>.</li>
+</ul>
+  </template>
+</body>
+</html>
