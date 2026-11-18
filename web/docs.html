@@ -1336,6 +1336,19 @@ charts:
   </tbody>
 </table></div>
 
+<h2>What changed between the two charts</h2>
+<p>These are warnings. The result stays <code>PASSED</code> when nothing else is blocked. They name the change. They do not decide that the project forbids it, and they do not contact a registry.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>helm.release.version_span</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart version skips more than one minor version, or moves to a new major version.</td><td>Read that project's upgrade notes before merging.</td></tr>
+    <tr><td><code>helm.release.app_version_changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td><code>appVersion</code> in <code>Chart.yaml</code> changed. The image the chart runs often changes with it.</td><td>Confirm the application version is the one you meant to run.</td></tr>
+    <tr><td><code>helm.image.changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A container image in the render changed. A tag that only gains or loses a leading <code>v</code> is named, because a registry treats those as different tags.</td><td>Confirm the tag exists and is the tag you intended.</td></tr>
+    <tr><td><code>helm.dependency.not_updated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>Chart.yaml</code> dependency constraint changed, and the packaged chart under <code>charts/</code> did not.</td><td>Run <code>helm dependency update</code> so the render uses the new chart.</td></tr>
+  </tbody>
+</table></div>
+<p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
+
 <h2>Kubernetes</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>

@@ -346,6 +346,17 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	if len(baseVals) == 0 {
 		baseVals = effectiveValues
 	}
+	if yml, yErr := helm.AssignmentsYAML(setValues); yErr == nil && strings.TrimSpace(yml) != "" {
+		dir, dErr := os.MkdirTemp("", "stageproof-set-*")
+		if dErr == nil {
+			defer os.RemoveAll(dir)
+			setPath := filepath.Join(dir, "parameters.yaml")
+			if wErr := os.WriteFile(setPath, []byte(yml), 0o644); wErr == nil {
+				effectiveValues = append(effectiveValues, setPath)
+				valuesLabel[setPath] = "helm.parameters"
+			}
+		}
+	}
 
 	rep := &verdict.Report{
 		Adapter:     "helm",
@@ -505,6 +516,17 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	compatFindings := k8sschema.CheckCompatibility(headObjs, effK8s, effNextK8s, effSSA)
 	if len(baseObjs) > 0 {
 		compatFindings = append(compatFindings, k8sschema.DiffUpgradeSafety(baseObjs, headObjs)...)
+	}
+	if resolvedBaseDir != "" {
+		signals := helm.UpgradeSignals(resolvedBaseDir, headDir, baseObjs, headObjs)
+		if len(signals) > 0 {
+			rep.Findings = append(rep.Findings, signals...)
+			rep.Checks = append(rep.Checks, verdict.CheckResult{
+				Name:    "upgrade signals",
+				Status:  "warn",
+				Summary: counted(len(signals), "named change", "named changes"),
+			})
+		}
 	}
 	rep.Findings = append(rep.Findings, compatFindings...)
 	k8sBlockers := countBlockers(compatFindings)
