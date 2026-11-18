@@ -31,7 +31,7 @@ brew install stageproof/stageproof/stageproof
 **Container image.** The image contains Stageproof, Helm, and Git. It does not run `--live`, because that needs a Docker daemon.
 
 ```bash
-docker run --rm -v "$PWD:/work" -w /work ghcr.io/stageproof/stageproof:v0.1.0 version
+docker run --rm -v "$PWD:/work" -w /work ghcr.io/stageproof/stageproof:v0.1.1 version
 ```
 
 **GitHub release.** Download the archive for your OS from the [releases](https://github.com/stageproof/stageproof/releases), then check the signature. The commands are in [Verify a download](#verify-a-download).
@@ -39,7 +39,7 @@ docker run --rm -v "$PWD:/work" -w /work ghcr.io/stageproof/stageproof:v0.1.0 ve
 **From source**
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.0
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.1
 ```
 
 ## Results
@@ -96,7 +96,7 @@ The release signs `checksums.txt` with the GitHub Actions identity. No maintaine
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature checksums.txt.sig \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.0" \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 ```
@@ -104,8 +104,8 @@ cosign verify-blob \
 The container image is signed the same way:
 
 ```bash
-cosign verify ghcr.io/stageproof/stageproof:v0.1.0 \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.0" \
+cosign verify ghcr.io/stageproof/stageproof:v0.1.1 \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 

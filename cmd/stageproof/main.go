@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.0"
+var version = "v0.1.1"
 
 type multiFlag []string
 
