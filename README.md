@@ -92,14 +92,14 @@ The image contains Stageproof, Helm 3.17.1, Git, kind 0.27.0, kubectl 1.35.0, an
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.1.7 \
+  ghcr.io/stageproof/stageproof:v0.1.8 \
   check-pr --current-git "$BASE" --current-k8s 1.35
 ```
 
 To print the version:
 
 ```bash
-docker run --rm ghcr.io/stageproof/stageproof:v0.1.7 version
+docker run --rm ghcr.io/stageproof/stageproof:v0.1.8 version
 ```
 
 `--live` uses that same image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
@@ -109,11 +109,11 @@ docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.1.7 \
+  ghcr.io/stageproof/stageproof:v0.1.8 \
   check-pr --current-git "$BASE" --current-k8s 1.35 --live
 ```
 
-`--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag. The published `v0.1.7` image was built before kind, kubectl, and the Docker client were added. Build this Dockerfile to run the command above until the next release.
+`--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag.
 
 A CI runner that cannot start Docker stays on the file check. The report then says `NOT TESTED LIVE`.
 
@@ -132,7 +132,7 @@ Download the archive for your OS from the [releases](https://github.com/stagepro
 ### From source
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.7
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.8
 ```
 
 ## What it leaves alone
@@ -151,7 +151,7 @@ The release signs `checksums.txt` with the GitHub Actions identity. No maintaine
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature checksums.txt.sig \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.7" \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.8" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 ```
@@ -159,8 +159,8 @@ cosign verify-blob \
 The container image is signed the same way:
 
 ```bash
-cosign verify ghcr.io/stageproof/stageproof:v0.1.7 \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.7" \
+cosign verify ghcr.io/stageproof/stageproof:v0.1.8 \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.8" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
 ```
 
