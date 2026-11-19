@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.6"
+var version = "v0.1.7"
 
 type multiFlag []string
 
@@ -988,7 +988,17 @@ func runCheckPR(args []string) int {
 	if extra, err := report.LoadSavedLive(*savedLive, mergeRequestSHAs(*currentGit, *newGit, headSHA)); err == nil {
 		for _, r := range extra {
 			reports = append(reports, r)
-			note(r.Verdict)
+			// A rehearsal that could not run is shown. It does not fail the job.
+			// A blocker in that report still does.
+			if r.Verdict == verdict.Blocked {
+				note(r.Verdict)
+			}
+		}
+		if len(extra) > 0 && strings.EqualFold(*format, "text") {
+			fmt.Println()
+			for _, r := range extra {
+				report.WriteTerminal(os.Stdout, r)
+			}
 		}
 	}
 

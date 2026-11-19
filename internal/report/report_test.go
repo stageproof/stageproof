@@ -35,6 +35,23 @@ func sampleReport() *verdict.Report {
 	}
 }
 
+func TestFileCheckSaysItWasNotTestedLive(t *testing.T) {
+	var buf bytes.Buffer
+	writeTerminal(&buf, sampleReport(), true)
+	out := buf.String()
+	if !strings.Contains(out, ansiRed+"NOT TESTED LIVE") {
+		t.Fatalf("a file check must say so in red:\n%s", out)
+	}
+	if !strings.Contains(out, ansiGreen+"PASSED") {
+		t.Fatalf("the passing verdict stays green:\n%s", out)
+	}
+	var md bytes.Buffer
+	WriteMarkdown(&md, sampleReport())
+	if !strings.Contains(md.String(), "> NOT TESTED LIVE. This job did not rehearse the upgrade.") {
+		t.Fatalf("the comment must carry the same sentence:\n%s", md.String())
+	}
+}
+
 func TestTerminalColors(t *testing.T) {
 	var buf bytes.Buffer
 	writeTerminal(&buf, sampleReport(), true)

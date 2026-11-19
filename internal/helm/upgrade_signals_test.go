@@ -277,3 +277,32 @@ func TestOperatorSignal_NamesExistingCustomResources(t *testing.T) {
 		t.Fatal("no application change should stay quiet")
 	}
 }
+
+func TestPostgresPrimarySignal_SameDatabaseImage(t *testing.T) {
+	root := t.TempDir()
+	body := "apiVersion: postgresql.cnpg.io/v1\nimage: ghcr.io/cloudnative-pg/postgresql:17.2\n"
+	for _, side := range []string{"base", "head"} {
+		dir := filepath.Join(root, side)
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "cluster.yaml"), []byte(body), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	prior := []verdict.Finding{{RuleID: "helm.image.changed", Severity: verdict.SeverityWarning}}
+	got := postgresPrimarySignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil, nil, prior)
+	if len(got) != 1 || got[0].RuleID != "helm.operator.primary_restart" {
+		t.Fatalf("got %+v", got)
+	}
+	if !strings.Contains(got[0].Message, "without a switchover") || !strings.Contains(got[0].Message, "no Cluster") {
+		t.Fatalf("message: %s", got[0].Message)
+	}
+	changed := "apiVersion: postgresql.cnpg.io/v1\nimage: ghcr.io/cloudnative-pg/postgresql:17.5\n"
+	if err := os.WriteFile(filepath.Join(root, "head", "cluster.yaml"), []byte(changed), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if postgresPrimarySignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil, nil, prior) != nil {
+		t.Fatal("a changed postgres tag is not this finding")
+	}
+}

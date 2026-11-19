@@ -8,6 +8,23 @@ import (
 	"testing"
 )
 
+func TestBaselineTimeoutDetailKeepsTheDeadline(t *testing.T) {
+	diag := "level=warning msg=\"unrecognized format \\\"int64\\\"\"\nError: INSTALLATION FAILED: context deadline exceeded"
+	if got := baselineTimeoutDetail(diag); got != "context deadline exceeded" {
+		t.Fatalf("got %q", got)
+	}
+	summary := baselineSlowSummary("600s", diag)
+	if !strings.Contains(summary, "baseline slow:") || !strings.Contains(summary, "Detail: context deadline exceeded.") {
+		t.Fatalf("summary: %s", summary)
+	}
+	if strings.Contains(summary, "int64") {
+		t.Fatalf("int64 warning leaked into the summary: %s", summary)
+	}
+	if !strings.Contains(upgradeSummary(0, true), "had not become ready") {
+		t.Fatal(upgradeSummary(0, true))
+	}
+}
+
 func TestLatestPatchTagPicksHighestPatchOfThatMinor(t *testing.T) {
 	tags := []string{"v1.33.0", "v1.33.1", "v1.33.12", "v1.33.2", "v1.33.7", "v1.3.9", "v1.34.1", "v1.33.4-rc1", "latest"}
 	if got := latestPatchTag(tags, "1.33"); got != "v1.33.12" {

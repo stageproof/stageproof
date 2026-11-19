@@ -77,6 +77,7 @@ func UpgradeSignals(baseDir, headDir string, baseObjs, headObjs []k8sschema.Mani
 	out = append(out, dependencySignals(baseDir, headDir, baseChart, headChart)...)
 	out = append(out, imageSignals(baseObjs, headObjs)...)
 	out = append(out, operatorSignal(baseDir, headDir, baseObjs, headObjs, out)...)
+	out = append(out, postgresPrimarySignal(baseDir, headDir, baseObjs, headObjs, out)...)
 	return out
 }
 
@@ -284,8 +285,83 @@ func operatorSignal(baseDir, headDir string, baseObjs, headObjs []k8sschema.Mani
 		RuleID:   "helm.operator.existing_custom_resources",
 		Severity: verdict.SeverityWarning,
 		Message:  "This chart ships custom resource definitions, and the application it runs is changing. Custom resources that already exist on a real cluster are not in this check.",
-		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data that is already there. An operator upgrade can restart the primary even when the database image tag does not change. An empty-cluster result of 0 restarts does not mean that primary stayed up.",
+		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data that is already there. An empty-cluster result of 0 restarts does not mean an existing workload stayed up.",
 	}}
+}
+
+// postgresPrimarySignal is the operator case where the database image tag
+// stays put while the operator image moves. The rehearsal has no Cluster
+// resource, so it cannot see the primary restart that follows.
+func postgresPrimarySignal(baseDir, headDir string, baseObjs, headObjs []k8sschema.ManifestObject, prior []verdict.Finding) []verdict.Finding {
+	changed := false
+	for _, f := range prior {
+		if f.RuleID == "helm.image.changed" || f.RuleID == "helm.release.app_version_changed" {
+			changed = true
+			break
+		}
+	}
+	if !changed || !chartMentions(baseDir, headDir, baseObjs, headObjs, "postgresql.cnpg.io") {
+		return nil
+	}
+	baseRefs := postgresImageRefs(baseDir, baseObjs)
+	headRefs := postgresImageRefs(headDir, headObjs)
+	if len(baseRefs) == 0 || len(baseRefs) != len(headRefs) {
+		return nil
+	}
+	for ref := range baseRefs {
+		if !headRefs[ref] {
+			return nil
+		}
+	}
+	return []verdict.Finding{{
+		RuleID:   "helm.operator.primary_restart",
+		Severity: verdict.SeverityWarning,
+		Message:  "An operator image change can restart the current primary without a switchover even when the Postgres image tag does not change. This rehearsal had no Cluster.",
+		Detail:   "The database image ref is the same in both charts. The rehearsal installs the operator into an empty cluster, so it has no primary to watch.",
+	}}
+}
+
+var postgresImageRefRe = regexp.MustCompile(`(?i)[a-z0-9][a-z0-9._/-]*postgres[a-z0-9._/-]*:[A-Za-z0-9][A-Za-z0-9._-]{0,80}`)
+
+func postgresImageRefs(dir string, objs []k8sschema.ManifestObject) map[string]bool {
+	text := chartText(dir, objs)
+	out := map[string]bool{}
+	for _, ref := range postgresImageRefRe.FindAllString(text, -1) {
+		out[ref] = true
+	}
+	return out
+}
+
+func chartMentions(baseDir, headDir string, baseObjs, headObjs []k8sschema.ManifestObject, needle string) bool {
+	return strings.Contains(chartText(baseDir, baseObjs), needle) || strings.Contains(chartText(headDir, headObjs), needle)
+}
+
+func chartText(dir string, objs []k8sschema.ManifestObject) string {
+	var b strings.Builder
+	for _, obj := range objs {
+		b.WriteString(obj.RawYAML)
+		b.WriteByte('\n')
+	}
+	if dir == "" {
+		return b.String()
+	}
+	_ = filepath.WalkDir(dir, func(path string, d os.DirEntry, err error) error {
+		if err != nil || d.IsDir() {
+			return nil
+		}
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".yaml", ".yml", ".tpl":
+		default:
+			return nil
+		}
+		raw, rErr := os.ReadFile(path)
+		if rErr == nil {
+			b.Write(raw)
+			b.WriteByte('\n')
+		}
+		return nil
+	})
+	return b.String()
 }
 
 func rendersCRD(objs []k8sschema.ManifestObject) bool {

@@ -75,7 +75,11 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 		verdictColor = ansiGreen
 	}
 	for _, line := range verdictHeadlines(r) {
-		fmt.Fprintf(w, "%s  %s\n", paint(color, ansiYellow, "!"), line)
+		mark := ansiYellow
+		if strings.HasPrefix(line, "NOT TESTED LIVE") {
+			mark = ansiRed
+		}
+		fmt.Fprintf(w, "%s  %s\n", paint(color, mark, "!"), paint(color, mark, line))
 	}
 	fmt.Fprintf(w, "%s  %s  %s\n",
 		paint(color, ansiDim, "stageproof"),
@@ -225,13 +229,28 @@ func verdictHeadlines(r *verdict.Report) []string {
 	if r.Cluster != "" {
 		lines = append([]string{"kind cluster " + r.Cluster}, lines...)
 	}
+	if r.Verdict == verdict.Passed && (r.Checked == "" || r.Checked == verdict.CheckedFiles) {
+		lines = append(lines, "NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.")
+	}
 	if r.Verdict == verdict.Proven {
 		lines = append(lines, "This rehearsal used an empty cluster. No existing data was in it.")
-		if r.HasRule("helm.operator.existing_custom_resources") {
-			lines = append(lines, "An operator upgrade can restart the current primary even when the database image tag does not change.")
+		if baselineWasSlow(r) {
+			lines = append(lines, "The current release had not become ready. The upgrade used that release and the same values.")
+		}
+		if r.HasRule("helm.operator.primary_restart") {
+			lines = append(lines, "An operator image change can restart the current primary without a switchover even when the Postgres image tag does not change. This rehearsal had no Cluster.")
 		}
 	}
 	return lines
+}
+
+func baselineWasSlow(r *verdict.Report) bool {
+	for _, ck := range r.Checks {
+		if ck.Name == "baseline install" && ck.Status == "warn" && strings.Contains(ck.Summary, "baseline slow") {
+			return true
+		}
+	}
+	return false
 }
 
 func minorMismatch(r *verdict.Report) bool {

@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.6</span>
+        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.7</span>
       </div>
     </div>
   </footer>
@@ -123,7 +123,7 @@
   <thead><tr><th>Result</th><th>Exit code</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><span class="verdict-badge ok">PROVEN</span></td><td><code>0</code></td><td>The checks passed and the upgrade was rehearsed in a temporary cluster.</td></tr>
-    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>The checks on the chart files passed. The upgrade was not rehearsed in a cluster.</td></tr>
+    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>The checks on the chart files passed. The upgrade was not rehearsed. The job log prints <code>NOT TESTED LIVE</code> in red, and the comment repeats it. The pipeline stays green.</td></tr>
     <tr><td><span class="verdict-badge bad">BLOCKED</span></td><td><code>1</code></td><td>The upgrade has a problem. The report names it.</td></tr>
     <tr><td><span class="verdict-badge warn">NOT CHECKED</span></td><td><code>2</code></td><td>Stageproof could not finish the check, or <code>--require-rehearsal</code> was set and no rehearsal ran.</td></tr>
   </tbody>
@@ -189,7 +189,7 @@ sudo mv stageproof /usr/local/bin/</pre>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.1.6 (Apache-2.0)</pre>
+stageproof v0.1.7 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
@@ -264,7 +264,7 @@ verdict  PASSED (exit 0)  · 1910ms · 0 AI calls</pre>
   <thead><tr><th>Result</th><th>Exit code</th><th>What happened</th><th>What to do</th></tr></thead>
   <tbody>
     <tr><td><span class="verdict-badge ok">PROVEN</span></td><td><code>0</code></td><td>Every check passed, and the upgrade and the rollback both worked in a temporary cluster.</td><td>Merge.</td></tr>
-    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>Every check on the chart files passed. No cluster was used, or the rehearsal stopped for a reason outside the chart.</td><td>Merge when a file-level check is enough. Use <a href="#live"><code>--live</code></a> when you want the upgrade exercised. <code>--require-rehearsal</code> turns this case into <code>NOT CHECKED</code>.</td></tr>
+    <tr><td><span class="verdict-badge ok">PASSED</span></td><td><code>0</code></td><td>Every check on the chart files passed. No cluster was used. The report says <code>NOT TESTED LIVE</code>.</td><td>The job stays green. Use <a href="#live"><code>--live</code></a> when you want the upgrade exercised. <code>--require-rehearsal</code> turns this case into <code>NOT CHECKED</code>.</td></tr>
     <tr><td><span class="verdict-badge bad">BLOCKED</span></td><td><code>1</code></td><td>At least one <code>ERROR</code> was found.</td><td>Fix what the report names, then run again. <a href="#findings">Findings</a> lists every rule.</td></tr>
     <tr><td><span class="verdict-badge warn">NOT CHECKED</span></td><td><code>2</code></td><td>Stageproof could not complete the check. Typical causes are a wrong flag, a git ref that does not exist, a chart that could not be downloaded, or <code>--require-rehearsal</code> without a completed rehearsal.</td><td>Read the error message, fix the cause, and run again. It says nothing about whether the upgrade is safe.</td></tr>
   </tbody>
@@ -1118,7 +1118,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.6.</p>
+<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.7.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1391,7 +1391,7 @@ charts:
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What Stageproof 0.1.6 covers, what it leaves out, and where a passing result says less than you might expect.</p>
+<p class="docs-lede">What Stageproof 0.1.7 covers, what it leaves out, and where a passing result says less than you might expect.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">

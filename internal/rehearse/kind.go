@@ -161,6 +161,9 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 	relName := "sp-rel"
 	waitTimeout := fmt.Sprintf("%ds", int(opts.Timeout.Seconds()))
+	// The baseline hit the deadline, but the release is still there.
+	// The next step upgrades that release instead of installing the new chart alone.
+	upgradedUnready := false
 
 	// Step 1: Baseline installation (with fast-fail pod watcher so broken pulls/crashes abort in ~4s instead of 60s!)
 	if opts.BaseChartDir != "" {
@@ -200,55 +203,61 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 			}
 
 			if readinessTimedOut(bErr.Error()) {
-				// The current chart never became ready, so this cannot be an
-				// upgrade. Install the new chart by itself so the report still
-				// says whether that chart can start.
-				_, _ = runCmd(ctx, kubeconfig, "helm", "uninstall", relName, "--namespace", ns, "--wait", "--timeout", "2m", "--ignore-not-found")
-				headArgs := helmInstallArgs(relName, opts.HeadChartDir, ns, waitTimeout, opts.HeadValues, opts.SetValues, opts.SetStrings)
-				cErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, headArgs)
 				out.Checks = append(out.Checks, verdict.CheckResult{
 					Name:    "baseline install",
 					Status:  "warn",
-					Summary: fmt.Sprintf("baseline slow: the current chart did not become ready within %s. This is the empty-cluster install hitting the deadline, not a verdict that the chart is broken. %s", waitTimeout, truncateOneLine(dropHelmNoise(diag), 240)),
+					Summary: baselineSlowSummary(waitTimeout, diag),
 				})
-				if cErr != nil {
-					cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, cErr.Error())
-					out.Inconclusive = true
+				// A release that exists can be upgraded with the same values.
+				// Uninstalling it and installing the new chart alone runs hooks
+				// an upgrade does not run.
+				if helmReleasePresent(ctx, kubeconfig, ns, relName) {
+					upgradedUnready = true
+				} else {
+					_, _ = runCmd(ctx, kubeconfig, "helm", "uninstall", relName, "--namespace", ns, "--wait", "--timeout", "2m", "--ignore-not-found")
+					headArgs := helmInstallArgs(relName, opts.HeadChartDir, ns, waitTimeout, opts.HeadValues, opts.SetValues, opts.SetStrings)
+					cErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, headArgs)
+					if cErr != nil {
+						cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, cErr.Error())
+						out.Inconclusive = true
+						out.Checks = append(out.Checks, verdict.CheckResult{
+							Name:    "candidate install",
+							Status:  "fail",
+							Summary: "The new chart's own install failed. This was not an upgrade of the current release. " + cdiag,
+						})
+						return out, nil
+					}
+					out.Degraded = append(out.Degraded, verdict.DegradedNotice{
+						Code:        "baseline_not_ready",
+						Reason:      "The current chart did not become ready, so this was not an upgrade rehearsal. The new chart was installed on its own and became ready.",
+						Remediation: "Pass a larger --timeout, or a values file that lets the current chart become ready, to rehearse the upgrade itself.",
+					})
+					out.ExcludedChecks = append(out.ExcludedChecks, "kind.upgrade_rollback")
 					out.Checks = append(out.Checks, verdict.CheckResult{
 						Name:    "candidate install",
-						Status:  "fail",
-						Summary: "The new chart's own install failed. This was not an upgrade of the current release. " + cdiag,
+						Status:  "pass",
+						Summary: "new chart became ready on its own. Existing data was not upgraded.",
 					})
 					return out, nil
 				}
-				out.Degraded = append(out.Degraded, verdict.DegradedNotice{
-					Code:        "baseline_not_ready",
-					Reason:      "The current chart did not become ready, so this was not an upgrade rehearsal. The new chart was installed on its own and became ready.",
-					Remediation: "Pass a larger --timeout, or a values file that lets the current chart become ready, to rehearse the upgrade itself.",
-				})
-				out.ExcludedChecks = append(out.ExcludedChecks, "kind.upgrade_rollback")
+			}
+
+			if !upgradedUnready {
+				out.Inconclusive = true
 				out.Checks = append(out.Checks, verdict.CheckResult{
-					Name:    "candidate install",
-					Status:  "pass",
-					Summary: "new chart became ready on its own. Existing data was not upgraded.",
+					Name:    "baseline install",
+					Status:  "fail",
+					Summary: fmt.Sprintf("baseline itself failed before upgrade (%s)", diag),
 				})
 				return out, nil
 			}
-
-			out.Inconclusive = true
+		} else {
 			out.Checks = append(out.Checks, verdict.CheckResult{
 				Name:    "baseline install",
-				Status:  "fail",
-				Summary: fmt.Sprintf("baseline itself failed before upgrade (%s)", diag),
+				Status:  "pass",
+				Summary: fmt.Sprintf("baseline revision 1 healthy in %s", time.Since(t0).Round(100*time.Millisecond)),
 			})
-			return out, nil
 		}
-
-		out.Checks = append(out.Checks, verdict.CheckResult{
-			Name:    "baseline install",
-			Status:  "pass",
-			Summary: fmt.Sprintf("baseline revision 1 healthy in %s", time.Since(t0).Round(100*time.Millisecond)),
-		})
 	}
 
 	// From here the candidate chart is exercised in the temporary cluster.
@@ -378,7 +387,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	out.Checks = append(out.Checks, verdict.CheckResult{
 		Name:    "in-place helm upgrade",
 		Status:  "pass",
-		Summary: fmt.Sprintf("empty cluster upgraded in %s, 0 restarts. No existing data was in this cluster.", time.Since(tUpg).Round(100*time.Millisecond)),
+		Summary: upgradeSummary(time.Since(tUpg), upgradedUnready),
 	})
 
 	if opts.RunHelmTest {
@@ -555,6 +564,41 @@ func failingPodsFromJSON(rawPods []byte) map[string]string {
 
 // newFailure returns one pod that is failing now and was not failing before
 // the step started, as "name: reason". It returns "" when there is none.
+func baselineSlowSummary(waitTimeout, diag string) string {
+	summary := fmt.Sprintf("baseline slow: the current chart did not become ready within %s. This is the empty-cluster install hitting the deadline, not a verdict that the chart is broken.", waitTimeout)
+	if detail := baselineTimeoutDetail(diag); detail != "" {
+		summary += " Detail: " + detail + "."
+	}
+	return summary
+}
+
+// baselineTimeoutDetail keeps the Helm deadline and drops the int64 warning
+// that Helm prints on the same failure.
+func baselineTimeoutDetail(diag string) string {
+	low := strings.ToLower(diag)
+	switch {
+	case strings.Contains(low, "context deadline exceeded"):
+		return "context deadline exceeded"
+	case strings.Contains(low, "timed out"):
+		return "timed out"
+	default:
+		return truncateOneLine(dropHelmNoise(diag), 240)
+	}
+}
+
+func upgradeSummary(elapsed time.Duration, unready bool) string {
+	took := elapsed.Round(100 * time.Millisecond)
+	if unready {
+		return fmt.Sprintf("upgraded the release that had not become ready in %s, 0 restarts. The same values were used.", took)
+	}
+	return fmt.Sprintf("empty cluster upgraded in %s, 0 restarts. No existing data was in this cluster.", took)
+}
+
+func helmReleasePresent(ctx context.Context, kubeconfig, ns, name string) bool {
+	_, err := runCmd(ctx, kubeconfig, "helm", "status", name, "--namespace", ns)
+	return err == nil
+}
+
 func dropHelmNoise(s string) string {
 	var kept []string
 	for _, ln := range strings.Split(s, "\n") {
