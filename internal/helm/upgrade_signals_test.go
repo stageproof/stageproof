@@ -269,11 +269,11 @@ func TestOperatorSignal_NamesExistingCustomResources(t *testing.T) {
 		}
 	}
 	prior := []verdict.Finding{{RuleID: "helm.release.app_version_changed", Severity: verdict.SeverityWarning}}
-	got := operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), prior)
+	got := operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil, nil, prior)
 	if len(got) != 1 || got[0].RuleID != "helm.operator.existing_custom_resources" {
 		t.Fatalf("got %+v", got)
 	}
-	if operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil) != nil {
+	if operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil, nil, nil) != nil {
 		t.Fatal("no application change should stay quiet")
 	}
 }
