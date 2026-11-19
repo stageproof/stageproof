@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.5"
+var version = "v0.1.6"
 
 type multiFlag []string
 
@@ -614,6 +614,30 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	return rep.ExitCode
 }
 
+// mergeRequestSHAs is the head plus the commits this merge request adds.
+// A saved live report records the chart commit. The file that carries it is
+// often committed on top of that, so the gate has to recognize both.
+func mergeRequestSHAs(base, head, headSHA string) map[string]bool {
+	accept := map[string]bool{}
+	if headSHA != "" {
+		accept[headSHA] = true
+	}
+	if strings.TrimSpace(base) == "" || strings.TrimSpace(head) == "" {
+		return accept
+	}
+	out, err := gitCommand("rev-list", "--max-count=30", head, "--not", base).Output()
+	if err != nil {
+		return accept
+	}
+	for _, line := range strings.Split(string(out), "\n") {
+		line = strings.TrimSpace(line)
+		if line != "" {
+			accept[line] = true
+		}
+	}
+	return accept
+}
+
 func counted(n int, singular, plural string) string {
 	if n == 1 {
 		return "1 " + singular
@@ -703,12 +727,12 @@ func emitReport(rep *verdict.Report, format, outPath, commentPath string) {
 	}
 }
 
-// gitCommand runs git in a checkout this process may not own.
-// A container user and a runner-owned clone otherwise fail with "dubious ownership".
 func defaultClusterName() string {
 	return fmt.Sprintf("stageproof-%d", os.Getpid())
 }
 
+// gitCommand runs git in a checkout this process may not own.
+// A container user and a runner-owned clone otherwise fail with "dubious ownership".
 func gitCommand(args ...string) *exec.Cmd {
 	full := make([]string, 0, len(args)+2)
 	full = append(full, "-c", "safe.directory=*")
@@ -796,7 +820,7 @@ func runCheckPR(args []string) int {
 	format := fs.String("format", "text", "Output format: text | markdown | json")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
-	savedLive := fs.String("saved-live", "stageproof-live", "Directory of a live report CI cannot run. Reads <dir>/<head sha>/report.json.")
+	savedLive := fs.String("saved-live", "stageproof-live", "Directory of a live report CI cannot run. A report.json whose head_git is a commit on this merge request changes the gate verdict.")
 
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -961,7 +985,7 @@ func runCheckPR(args []string) int {
 			r.HeadGit = headSHA
 		}
 	}
-	if extra, err := report.LoadSavedLive(*savedLive, headSHA); err == nil {
+	if extra, err := report.LoadSavedLive(*savedLive, mergeRequestSHAs(*currentGit, *newGit, headSHA)); err == nil {
 		for _, r := range extra {
 			reports = append(reports, r)
 			note(r.Verdict)

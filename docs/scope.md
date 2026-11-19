@@ -1,6 +1,6 @@
 # What Stageproof does and does not do
 
-Last updated: 2026-11-17.
+Last updated: 2026-11-19.
 
 This page is the scope of the command line tool.
 
@@ -49,7 +49,7 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | Does the chart use an API your Kubernetes version has removed? | Yes, from a table we maintain | `--current-k8s` | This is not a live API server. Unknown fields and CRD validation rules are not judged. A real API server is planned. |
 | Will the next Kubernetes version remove an API the chart still uses? | Yes, as a warning | `--next-k8s` | It does not block the chart upgrade. It does not upgrade the cluster. |
 | Can the upgrade be applied on top of the old release? | Partly | Label selectors that Kubernetes refuses to change are `BLOCKED`. CRDs larger than 256 KiB are a warning, because client-side apply will fail. | Deletes, restarts, new privileges, and CRD schema breaks are not classified yet. |
-| Does the new release start, and can you roll it back? | Only if you pass `--live` | Temporary kind cluster on the machine running the command. Each step waits up to 10 minutes. Install, upgrade, roll back, delete. If the current chart does not become ready, the new chart is installed on its own and the result says that was not an upgrade. A call to the cluster's own API is not an outside service. | Your real data, traffic, secrets, and private images. An empty cluster that cannot start the old chart is not a failed upgrade. |
+| Does the new release start, and can you roll it back? | Only if you pass `--live` | Temporary kind cluster on the machine running the command. Each step waits up to 10 minutes. Install, upgrade, roll back, delete. If the current chart does not become ready, the result says the baseline was slow and then installs the new chart on its own. That install is not called an upgrade. A call to the cluster's own API is not an outside service. | Your real data, traffic, secrets, and private images. A slow empty-cluster install is not a broken chart. |
 
 ## What a result means
 
@@ -58,4 +58,6 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | `PROVEN` | 0 | The files passed, and the temporary cluster installed the old chart, upgraded, and rolled back. |
 | `PASSED` | 0 | The files passed. No cluster was used, or the rehearsal stopped because of something outside the chart (missing CRD, private image, missing Secret). The report says `checked: files`. |
 | `BLOCKED` | 1 | The upgrade has a problem the report names. CI should fail. |
-| `NOT CHECKED` | 2 | Stageproof did not finish, `--live` was set and the chart did not come up, a saved live report for this commit is `NOT CHECKED`, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. A file check that did not attempt `--live` can still be `PASSED`. |
+| `NOT CHECKED` | 2 | Stageproof did not finish, `--live` was set and the chart did not come up, a saved live report for a commit on this merge request is `NOT CHECKED`, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. A file check that did not attempt `--live` can still be `PASSED`. |
+
+`check-pr` reads `stageproof-live/**/report.json` (`--saved-live` changes the directory). The file counts when its `head_git` is a commit on the merge request, including the chart commit under a later commit that only adds the report. The gate comment then includes that rehearsal, and a `NOT CHECKED` live result fails the job. A pipeline that never sees the file cannot invent the live verdict.

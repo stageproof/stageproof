@@ -8,9 +8,10 @@ import (
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
-func TestLoadSavedLiveMatchesHeadSHA(t *testing.T) {
+func TestLoadSavedLiveMatchesMergeRequestSHA(t *testing.T) {
 	dir := t.TempDir()
 	sha := "c7e324b1df967b119ade3a8c56becab53c688ab2"
+	parent := "6a38e547aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 	if err := os.MkdirAll(filepath.Join(dir, sha), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -24,20 +25,21 @@ func TestLoadSavedLiveMatchesHeadSHA(t *testing.T) {
 	    "base_ref": "longhorn@1.10.2",
 	    "head_ref": "longhorn@1.11.3",
 	    "cluster": "spmr50",
-	    "checked": "files"
+	    "checked": "files+live"
 	  }]
 	}`
 	if err := os.WriteFile(filepath.Join(dir, sha, "report.json"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	got, err := LoadSavedLive(dir, sha)
+	// The report commit is newer than the chart commit the rehearsal recorded.
+	got, err := LoadSavedLive(dir, map[string]bool{parent: true, sha: true})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(got) != 1 || got[0].Verdict != verdict.NotChecked || got[0].Cluster != "spmr50" {
 		t.Fatalf("got %+v", got)
 	}
-	other, err := LoadSavedLive(dir, "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+	other, err := LoadSavedLive(dir, map[string]bool{"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa": true})
 	if err != nil {
 		t.Fatal(err)
 	}

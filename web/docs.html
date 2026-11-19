@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.5</span>
+        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.6</span>
       </div>
     </div>
   </footer>
@@ -189,7 +189,7 @@ sudo mv stageproof /usr/local/bin/</pre>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.1.5 (Apache-2.0)</pre>
+stageproof v0.1.6 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
@@ -829,7 +829,7 @@ verdict  BLOCKED (exit 1)  · 7180ms · 0 AI calls</pre>
     <tr><td><code>--helm-test</code></td><td>Also run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
     <tr><td><code>--require-rehearsal</code></td><td>If the rehearsal does not run and pass, the result is <code>NOT CHECKED</code> (exit 2) instead of <code>PASSED</code> (exit 0).</td></tr>
         <tr><td><code>--keep-cluster</code></td><td>Do not delete the cluster at the end. The next run reuses it and starts faster.</td></tr>
-    <tr><td><code>--cluster-name</code></td><td>Use another name for the cluster. The default is <code>stageproof-ephemeral</code>.</td></tr>
+    <tr><td><code>--cluster-name</code></td><td>Use another name for the cluster. The default is <code>stageproof-</code> plus the process id, so two rehearsals can run at once. The name is the first line of the verdict.</td></tr>
   </tbody>
 </table></div>
 <p>If you give only <code>--new-chart</code>, there is nothing to upgrade from. The rehearsal installs the new chart once and skips the rollback.</p>
@@ -1118,7 +1118,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.5.</p>
+<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.6.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1174,7 +1174,7 @@ workflow:
     <tr><td><code>--crd-file &lt;file or URL&gt;</code></td><td>None</td><td>A CRD to install before the rehearsal. Repeat it for several.</td></tr>
     <tr><td><code>--helm-test</code></td><td>Off</td><td>Run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
     <tr><td><code>--keep-cluster</code></td><td>Off</td><td>Do not delete the cluster at the end.</td></tr>
-    <tr><td><code>--cluster-name &lt;name&gt;</code></td><td><code>stageproof-ephemeral</code></td><td>The name of the temporary cluster.</td></tr>
+    <tr><td><code>--cluster-name &lt;name&gt;</code></td><td><code>stageproof-</code> plus the process id</td><td>The name of the temporary cluster. It is the first line of the verdict.</td></tr>
   </tbody>
 </table></div>
 
@@ -1198,6 +1198,8 @@ workflow:
     <tr><td><code>--format</code></td><td><code>text</code></td><td>The same as for <code>stageproof check</code>.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
+    <tr><td><code>--cluster-name</code>, <code>--timeout</code></td><td>Same as <code>check</code></td><td>Passed through when this command also runs <code>--live</code>.</td></tr>
+    <tr><td><code>--saved-live &lt;dir&gt;</code></td><td><code>stageproof-live</code></td><td>A directory of <code>report.json</code> files from a rehearsal CI cannot run. A file counts when its <code>head_git</code> is a commit on this merge request. A <code>NOT CHECKED</code> live result fails the job and is included in the comment.</td></tr>
   </tbody>
 </table></div>
 <p>Which values files a chart is checked with comes from the <a href="#config">configuration file</a>. See <a href="#values-files">Check each values file of a chart</a>.</p>
@@ -1389,7 +1391,7 @@ charts:
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What Stageproof 0.1.5 covers, what it leaves out, and where a passing result says less than you might expect.</p>
+<p class="docs-lede">What Stageproof 0.1.6 covers, what it leaves out, and where a passing result says less than you might expect.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">
