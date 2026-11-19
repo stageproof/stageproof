@@ -84,11 +84,11 @@ stageproof check \
 
 ## Install
 
-Helm 3 is required for every check. Git is required for a pull request. Docker, kind, and kubectl are required only for `--live`.
+Helm 3 is required for every check. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The container image includes the first three. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
 
 ### Container image
 
-The image contains Stageproof, Helm 3.17.1, and Git. A file check from a checkout:
+The image contains Stageproof, Helm 3.17.1, Git, kind 0.27.0, kubectl 1.35.0, and the Docker 29.9.2 client. A file check from a checkout:
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
@@ -102,22 +102,18 @@ To print the version:
 docker run --rm ghcr.io/stageproof/stageproof:v0.1.7 version
 ```
 
-`--live` runs from this same image. Docker, kind, and kubectl are not inside it, so you pass the copies from the machine, plus the Docker socket. kind keeps cluster files in `/tmp`, so that directory is mounted too. The image runs as uid 65532; `--user 0` lets it use the Docker socket. `--network host` lets it reach the temporary cluster.
+`--live` uses that same image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
 
 ```bash
 docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /tmp:/tmp \
-  -v "$(command -v docker)":/usr/local/bin/docker:ro \
-  -v "$(command -v kind)":/usr/local/bin/kind:ro \
-  -v "$(command -v kubectl)":/usr/local/bin/kubectl:ro \
   -v "$PWD:/work" -w /work \
   ghcr.io/stageproof/stageproof:v0.1.7 \
   check-pr --current-git "$BASE" --current-k8s 1.35 --live
 ```
 
-`--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag.
+`--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag. The published `v0.1.7` image was built before kind, kubectl, and the Docker client were added. Build this Dockerfile to run the command above until the next release.
 
 A CI runner that cannot start Docker stays on the file check. The report then says `NOT TESTED LIVE`.
 
@@ -126,6 +122,8 @@ A CI runner that cannot start Docker stays on the file check. The report then sa
 ```bash
 brew install stageproof/stageproof/stageproof
 ```
+
+`--live` with this binary uses kind, kubectl, and Docker installed on the machine.
 
 ### GitHub release
 
