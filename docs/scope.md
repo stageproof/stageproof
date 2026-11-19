@@ -21,6 +21,8 @@ People say "Kubernetes update" for two different jobs. Stageproof only does the 
 
 `--live` does not rehearse a cluster upgrade. It starts a temporary empty kind cluster at the current Kubernetes version, installs the old chart, upgrades to the new chart, rolls back, and deletes that temporary cluster. The cluster you deploy to is never contacted.
 
+`--live` starts a real Kubernetes node. That node is a container, and it has to set up its own networking and start more containers. An unprivileged container is blocked from doing those things, so kind has nothing to run the node with. A CI job that cannot start containers stays on the file check.
+
 ## Argo CD and Flux
 
 Argo CD is in the product now. Flux is not built. Flux was not rejected.

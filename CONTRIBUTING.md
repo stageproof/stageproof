@@ -10,7 +10,7 @@ go build -o stageproof ./cmd/stageproof
 ./stageproof version
 ```
 
-Helm is required for the checks. The live rehearsal also needs kind, kubectl, and Docker. That test stays off unless you set `STAGEPROOF_KIND_E2E=1`.
+Helm is required for the checks. The live test also needs kind, kubectl, and Docker, because it starts a real Kubernetes node. An unprivileged CI job cannot do that. The test stays off unless you set `STAGEPROOF_KIND_E2E=1`.
 
 ## Pull requests
 

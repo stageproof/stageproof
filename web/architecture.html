@@ -132,7 +132,7 @@ kind cluster on this machine
             <tr>
               <td>Live rehearsal</td>
               <td><code>kind</code> starts a cluster on the requested minor version when Docker Hub has a node image. Helm installs, upgrades, and rolls back. Pods that crash stop the wait early.</td>
-              <td>The cluster is empty. A private image, a missing Secret, or a missing CRD stops the rehearsal. That is <code>PASSED</code> with a reason, or <code>NOT CHECKED</code> when <code>--require-rehearsal</code> is set. It is not <code>BLOCKED</code>.</td>
+              <td>kind starts a real node container. An unprivileged CI job cannot do that, and the check stays on the files. The cluster is empty. A private image, a missing Secret, or a missing CRD stops the rehearsal. That is <code>PASSED</code> with a reason, or <code>NOT CHECKED</code> when <code>--require-rehearsal</code> is set. It is not <code>BLOCKED</code>.</td>
             </tr>
           </tbody>
         </table>

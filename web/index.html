@@ -234,7 +234,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
           </article>
           <article class="doc-card">
             <h3>What <code>--live</code> does</h3>
-            <p>It starts a temporary kind cluster on the machine running the command, installs the current chart, upgrades to the new chart, rolls back, and deletes the cluster. It does not commit, and it does not change a cluster you already have. The same command on a CI runner does the same thing there.</p>
+            <p>It starts a temporary kind cluster on the machine running the command, installs the current chart, upgrades to the new chart, rolls back, and deletes the cluster. It does not commit, and it does not change a cluster you already have. The node is itself a container, so an unprivileged CI job cannot start it. That job stays on the file check.</p>
           </article>
         </div>
         <p style="margin-top:22px;"><a class="btn btn-ghost" href="roadmap.html">See what is planned</a></p>
