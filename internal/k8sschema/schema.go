@@ -15,6 +15,7 @@ type ManifestObject struct {
 	Metadata   ObjectMetadata `yaml:"metadata"`
 	Spec       map[string]any `yaml:"spec"`
 	RawBytes   int            `yaml:"-"`
+	RawYAML    string         `yaml:"-"`
 }
 
 type ObjectMetadata struct {
@@ -115,6 +116,7 @@ func ParseManifestStream(renderedYAML string) ([]ManifestObject, error) {
 			continue
 		}
 		obj.RawBytes = len(rawDoc)
+		obj.RawYAML = string(rawDoc)
 		out = append(out, obj)
 	}
 	return out, nil

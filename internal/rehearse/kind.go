@@ -62,7 +62,7 @@ type Outcome struct {
 // DefaultReadinessTimeout is how long one helm install, upgrade, or rollback
 // waits for pods. Harbor and Longhorn do not become ready in 90s on an empty
 // cluster, and a short wait then hides the candidate chart.
-const DefaultReadinessTimeout = 5 * time.Minute
+const DefaultReadinessTimeout = 10 * time.Minute
 
 type failCategory int
 
@@ -197,15 +197,47 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 				return out, nil
 			}
 
-			out.Inconclusive = true
-			summary := fmt.Sprintf("baseline itself failed before upgrade (%s)", diag)
 			if readinessTimedOut(bErr.Error()) {
-				summary = fmt.Sprintf("current chart did not become ready within %s, so the new chart was not installed (%s)", waitTimeout, diag)
+				// The current chart never became ready, so this cannot be an
+				// upgrade. Install the new chart by itself so the report still
+				// says whether that chart can start.
+				_, _ = runCmd(ctx, kubeconfig, "helm", "uninstall", relName, "--namespace", ns, "--wait", "--timeout", "2m", "--ignore-not-found")
+				headArgs := helmInstallArgs(relName, opts.HeadChartDir, ns, waitTimeout, opts.HeadValues, opts.SetValues, opts.SetStrings)
+				cErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, headArgs)
+				out.Checks = append(out.Checks, verdict.CheckResult{
+					Name:    "baseline install",
+					Status:  "warn",
+					Summary: fmt.Sprintf("current chart did not become ready within %s (%s)", waitTimeout, diag),
+				})
+				if cErr != nil {
+					cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, cErr.Error())
+					out.Inconclusive = true
+					out.Checks = append(out.Checks, verdict.CheckResult{
+						Name:    "candidate install",
+						Status:  "fail",
+						Summary: cdiag,
+					})
+					return out, nil
+				}
+				out.Degraded = append(out.Degraded, verdict.DegradedNotice{
+					Code:        "baseline_not_ready",
+					Reason:      "The current chart did not become ready, so this was not an upgrade rehearsal. The new chart was installed on its own and became ready.",
+					Remediation: "Pass a larger --timeout, or a values file that lets the current chart become ready, to rehearse the upgrade itself.",
+				})
+				out.ExcludedChecks = append(out.ExcludedChecks, "kind.upgrade_rollback")
+				out.Checks = append(out.Checks, verdict.CheckResult{
+					Name:    "candidate install",
+					Status:  "pass",
+					Summary: "new chart became ready on its own. Existing data was not upgraded.",
+				})
+				return out, nil
 			}
+
+			out.Inconclusive = true
 			out.Checks = append(out.Checks, verdict.CheckResult{
 				Name:    "baseline install",
 				Status:  "fail",
-				Summary: summary,
+				Summary: fmt.Sprintf("baseline itself failed before upgrade (%s)", diag),
 			})
 			return out, nil
 		}
@@ -396,6 +428,20 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 	out.RuntimeSucceeded = true
 	return out, nil
+}
+
+func helmInstallArgs(rel, chart, ns, timeout string, values, sets, setStrings []string) []string {
+	args := []string{"install", rel, chart, "--namespace", ns, "--wait", "--timeout", timeout}
+	for _, vf := range values {
+		args = append(args, "-f", vf)
+	}
+	for _, sv := range sets {
+		args = append(args, "--set", sv)
+	}
+	for _, ss := range setStrings {
+		args = append(args, "--set-string", ss)
+	}
+	return args
 }
 
 // runHelmWaitWithFastFail executes `helm <args...>` while polling pods every 1.2s so
@@ -600,12 +646,13 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 						}
 					}
 					if cs.State.Terminated != nil && cs.State.Terminated.ExitCode != 0 {
-						if extReason := checkContainerLogsForExternalService(ctx, kubeconfig, ns, p.Metadata.Name, cs.Name); extReason != "" {
+						logTail := tailContainerLog(ctx, kubeconfig, ns, p.Metadata.Name, cs.Name)
+						if extReason := externalServiceLine(logTail); extReason != "" {
 							return fmt.Sprintf("pod `%s` waiting on unmocked external service (%s)", p.Metadata.Name, extReason),
 								failExternalEnvGap,
 								externalServiceHint
 						}
-						return fmt.Sprintf("pod `%s` exited code %d (%s)", p.Metadata.Name, cs.State.Terminated.ExitCode, cs.State.Terminated.Reason),
+						return fmt.Sprintf("pod `%s` container `%s` exited %d (%s). log: %s", p.Metadata.Name, cs.Name, cs.State.Terminated.ExitCode, cs.State.Terminated.Reason, truncateOneLine(logTail, 400)),
 							failRegression, defaultRem
 					}
 				}
@@ -641,23 +688,46 @@ var externalConnIndicators = []string{
 	"unable to connect to the database",
 }
 
-func checkContainerLogsForExternalService(ctx context.Context, kubeconfig, ns, podName, containerName string) string {
-	logs, err := runCmd(ctx, kubeconfig, "kubectl", "logs", podName, "-n", ns, "-c", containerName, "--tail=30")
+func tailContainerLog(ctx context.Context, kubeconfig, ns, podName, containerName string) string {
+	logs, err := runCmd(ctx, kubeconfig, "kubectl", "logs", podName, "-n", ns, "-c", containerName, "--tail=40")
 	if err != nil || strings.TrimSpace(logs) == "" {
-		logs, _ = runCmd(ctx, kubeconfig, "kubectl", "logs", podName, "-n", ns, "-c", containerName, "--previous", "--tail=30")
+		logs, _ = runCmd(ctx, kubeconfig, "kubectl", "logs", podName, "-n", ns, "-c", containerName, "--previous", "--tail=40")
 	}
+	return strings.TrimSpace(logs)
+}
+
+func checkContainerLogsForExternalService(ctx context.Context, kubeconfig, ns, podName, containerName string) string {
+	return externalServiceLine(tailContainerLog(ctx, kubeconfig, ns, podName, containerName))
+}
+
+func externalServiceLine(logs string) string {
 	lower := strings.ToLower(logs)
 	for _, indicator := range externalConnIndicators {
-		if strings.Contains(lower, indicator) {
-			for _, line := range strings.Split(logs, "\n") {
-				if strings.Contains(strings.ToLower(line), indicator) {
-					return truncateOneLine(line, 95)
-				}
+		if !strings.Contains(lower, indicator) {
+			continue
+		}
+		for _, line := range strings.Split(logs, "\n") {
+			if !strings.Contains(strings.ToLower(line), indicator) {
+				continue
 			}
-			return indicator
+			// The cluster's own API is not an outside service. An admission
+			// job that calls it is part of installing the chart.
+			if inClusterAPI(line) {
+				continue
+			}
+			return truncateOneLine(line, 95)
 		}
 	}
 	return ""
+}
+
+func inClusterAPI(line string) bool {
+	l := strings.ToLower(line)
+	return strings.Contains(l, "kubernetes.default") ||
+		strings.Contains(l, "kube-apiserver") ||
+		strings.Contains(l, "serviceaccount") ||
+		strings.Contains(l, "apiserver") ||
+		strings.Contains(l, "/api/")
 }
 
 // ensureKindCluster returns a running cluster. A new cluster is created on the

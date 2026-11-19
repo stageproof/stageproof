@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -212,6 +213,7 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 	}
 	sort.Strings(keys)
 	var msgs []string
+	seenMove := map[string]bool{}
 	for _, k := range keys {
 		old, ok := base[k]
 		if !ok || old.image == head[k].image {
@@ -221,6 +223,11 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		if vPrefixOnly(old.image, head[k].image) {
 			msg += " The tags differ by a leading v. A registry treats them as different tags."
 		}
+		move := old.image + " -> " + head[k].image
+		if seenMove[move] {
+			continue
+		}
+		seenMove[move] = true
 		msgs = append(msgs, msg)
 	}
 	if len(msgs) == 0 {
@@ -313,12 +320,39 @@ func imageTag(ref string) string {
 	return ref[colon+1:]
 }
 
+// renderedImageRe finds repo/name:tag refs wherever a chart prints them:
+// a container image, a custom resource field, or a container argument.
+var renderedImageRe = regexp.MustCompile(`(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?::[0-9]+)?/)?[a-z0-9][a-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*:[A-Za-z0-9][A-Za-z0-9._-]{0,127}(?:@sha256:[a-f0-9]{64})?`)
+
 func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
 	out := map[string]imageRef{}
 	for _, obj := range objs {
 		walkImages(obj.Spec, obj.ID(), out)
+		for i, ref := range renderedImageRe.FindAllString(obj.RawYAML, -1) {
+			if !looksLikeImage(ref) {
+				continue
+			}
+			key := obj.ID() + "/raw/" + imageRepo(ref)
+			if prev, ok := out[key]; ok && prev.image != ref {
+				key = fmt.Sprintf("%s#%d", key, i)
+			}
+			if _, ok := out[key]; ok {
+				continue
+			}
+			out[key] = imageRef{where: obj.ID() + " " + imageRepo(ref), image: ref}
+		}
 	}
 	return out
+}
+
+func imageRepo(ref string) string {
+	ref = strings.SplitN(ref, "@", 2)[0]
+	slash := strings.LastIndex(ref, "/")
+	colon := strings.LastIndex(ref, ":")
+	if colon > slash {
+		return ref[:colon]
+	}
+	return ref
 }
 
 func walkImages(v any, path string, out map[string]imageRef) {

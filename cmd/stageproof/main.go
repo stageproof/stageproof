@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.2"
+var version = "v0.1.3"
 
 type multiFlag []string
 
@@ -96,10 +96,10 @@ Live Cluster Test (temporary kind cluster on this machine):
   --live                   Install the current chart, upgrade to the new chart, then roll back. Nothing is committed. No existing cluster is changed.
   --require-rehearsal      Exit 2 (NOT CHECKED) unless that rehearsal ran and passed
   --keep-cluster           Keep kind cluster running after check for fast repeat runs
-  --cluster-name <name>    Name of kind cluster (default "stageproof-ephemeral")
+  --cluster-name <name>    Name of kind cluster (default is unique per process)
   --crd-file <path/url>    Extra CRD YAML file or URL to pre-install in kind (repeatable)
   --helm-test              Also run 'helm test' hooks after upgrade
-  --timeout <dur>          Readiness wait timeout per step (default 5m)
+  --timeout <dur>          Readiness wait timeout per step (default 10m)
 
 Output:
   --format <fmt>           text | markdown | json (default "text")
@@ -175,7 +175,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	live := fs.Bool("live", false, "Run live install -> upgrade -> rollback in ephemeral kind cluster")
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
 	keepCluster := fs.Bool("keep-cluster", false, "Keep kind cluster after run")
-	clusterName := fs.String("cluster-name", "stageproof-ephemeral", "kind cluster name")
+	clusterName := fs.String("cluster-name", defaultClusterName(), "kind cluster name. Default is unique to this process so parallel rehearsals do not collide.")
 	runHelmTest := fs.Bool("helm-test", false, "Run helm test hook after upgrade")
 	timeout := fs.Duration("timeout", rehearse.DefaultReadinessTimeout, "Readiness wait per step. Heavy charts need several minutes.")
 	format := fs.String("format", "text", "Output format: text | markdown | json")
@@ -684,6 +684,10 @@ func emitReport(rep *verdict.Report, format, outPath, commentPath string) {
 
 // gitCommand runs git in a checkout this process may not own.
 // A container user and a runner-owned clone otherwise fail with "dubious ownership".
+func defaultClusterName() string {
+	return fmt.Sprintf("stageproof-%d", os.Getpid())
+}
+
 func gitCommand(args ...string) *exec.Cmd {
 	full := make([]string, 0, len(args)+2)
 	full = append(full, "-c", "safe.directory=*")
@@ -766,6 +770,8 @@ func runCheckPR(args []string) int {
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply enabled")
 	live := fs.Bool("live", false, "Run live kind upgrade/rollback")
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
+	clusterName := fs.String("cluster-name", "", "kind cluster name. Default is unique per process.")
+	timeout := fs.Duration("timeout", 0, "Readiness wait per step. Default is 10m.")
 	format := fs.String("format", "text", "Output format: text | markdown | json")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
@@ -866,6 +872,12 @@ func runCheckPR(args []string) int {
 	}
 	if *requireRehearsal {
 		shared = append(shared, "--require-rehearsal")
+	}
+	if *clusterName != "" {
+		shared = append(shared, "--cluster-name", *clusterName)
+	}
+	if *timeout > 0 {
+		shared = append(shared, "--timeout", timeout.String())
 	}
 
 	// Every check adds its report here. The file outputs are written once at the

@@ -161,6 +161,57 @@ func TestImageSignals_CustomResourceFieldAndArgument(t *testing.T) {
 	}
 }
 
+func TestImageSignals_RawYAMLFindsCustomResourceAndArgument(t *testing.T) {
+	rawBase := `
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: kps
+  namespace: mon
+spec:
+  image: quay.io/prometheus/prometheus:v2.35.0
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: operator
+  namespace: mon
+spec:
+  template:
+    spec:
+      containers:
+      - name: operator
+        image: quay.io/prometheus-operator/prometheus-operator:v0.60.0
+        args:
+        - --thanos-default-base-image=quay.io/thanos/thanos:v0.25.2
+      - name: patch
+        image: registry.k8s.io/ingress-nginx/kube-webhook-certgen:v1.1.1
+      - name: curl
+        image: curlimages/curl:7.88.1
+`
+	rawHead := strings.ReplaceAll(rawBase, "v2.35.0", "v2.55.1")
+	rawHead = strings.ReplaceAll(rawHead, "v0.25.2", "v0.42.5")
+	rawHead = strings.ReplaceAll(rawHead, "v1.1.1", "v1.6.9")
+	rawHead = strings.ReplaceAll(rawHead, "7.88.1", "8.23.0")
+	base, err := k8sschema.ParseManifestStream(rawBase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := k8sschema.ParseManifestStream(rawHead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := imageSignals(base, head)
+	if len(got) != 1 {
+		t.Fatalf("got %+v", got)
+	}
+	for _, want := range []string{"prometheus:v2.35.0", "prometheus:v2.55.1", "thanos:v0.25.2", "thanos:v0.42.5", "kube-webhook-certgen:v1.1.1", "kube-webhook-certgen:v1.6.9", "curl:7.88.1", "curl:8.23.0"} {
+		if !strings.Contains(got[0].Message, want) {
+			t.Fatalf("missing %s in %s", want, got[0].Message)
+		}
+	}
+}
+
 func TestOperatorSignal_NamesExistingCustomResources(t *testing.T) {
 	root := t.TempDir()
 	for _, side := range []string{"base", "head"} {

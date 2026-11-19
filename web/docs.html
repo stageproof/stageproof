@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.2</span>
+        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.3</span>
       </div>
     </div>
   </footer>
@@ -189,7 +189,7 @@ sudo mv stageproof /usr/local/bin/</pre>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.1.2 (Apache-2.0)</pre>
+stageproof v0.1.3 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
@@ -242,7 +242,7 @@ k8s  1.33  ·  checked: files
   ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
-verdict  PASSED (exit 0)  · 195ms · 0 AI calls</pre>
+verdict  PASSED (exit 0)  · 1910ms · 0 AI calls</pre>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Line</th><th>What it tells you</th></tr></thead>
   <tbody>
@@ -622,7 +622,7 @@ k8s  1.32  ·  checked: files
          API `flowcontrol.apiserver.k8s.io/v1beta3` (FlowSchema) was removed in Kubernetes 1.32 (target is 1.32).
          Migrate resource to `flowcontrol.apiserver.k8s.io/v1`.
 
-verdict  BLOCKED (exit 1)  · 55ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 510ms · 0 AI calls</pre>
 
 <h2>What the result means</h2>
 <p>A cluster on Kubernetes 1.32 rejects this resource. The report names the resource, the API version it uses, and the version to move to.</p>
@@ -825,7 +825,7 @@ verdict  BLOCKED (exit 1)  · 7180ms · 0 AI calls</pre>
   <thead><tr><th>Flag</th><th>Effect</th></tr></thead>
   <tbody>
     <tr><td><code>--crd-file</code></td><td>A CRD file or URL to install before the rehearsal. Repeat it for several.</td></tr>
-    <tr><td><code>--timeout</code></td><td>How long to wait for pods at each step. The default is <code>5m</code>.</td></tr>
+    <tr><td><code>--timeout</code></td><td>How long to wait for pods at each step. The default is <code>10m</code>.</td></tr>
     <tr><td><code>--helm-test</code></td><td>Also run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
     <tr><td><code>--require-rehearsal</code></td><td>If the rehearsal does not run and pass, the result is <code>NOT CHECKED</code> (exit 2) instead of <code>PASSED</code> (exit 0).</td></tr>
         <tr><td><code>--keep-cluster</code></td><td>Do not delete the cluster at the end. The next run reuses it and starts faster.</td></tr>
@@ -1118,7 +1118,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.2.</p>
+<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.3.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1170,7 +1170,7 @@ workflow:
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><code>--live</code></td><td>Off</td><td>Rehearse the upgrade in a temporary cluster. See <a href="#live">Rehearse the upgrade in a temporary cluster</a>.</td></tr>
-    <tr><td><code>--timeout &lt;duration&gt;</code></td><td><code>5m</code></td><td>How long to wait for pods at each step.</td></tr>
+    <tr><td><code>--timeout &lt;duration&gt;</code></td><td><code>10m</code></td><td>How long to wait for pods at each step.</td></tr>
     <tr><td><code>--crd-file &lt;file or URL&gt;</code></td><td>None</td><td>A CRD to install before the rehearsal. Repeat it for several.</td></tr>
     <tr><td><code>--helm-test</code></td><td>Off</td><td>Run the chart's <code>helm test</code> hooks after the upgrade.</td></tr>
     <tr><td><code>--keep-cluster</code></td><td>Off</td><td>Do not delete the cluster at the end.</td></tr>
@@ -1389,7 +1389,7 @@ charts:
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What Stageproof 0.1.2 covers, what it leaves out, and where a passing result says less than you might expect.</p>
+<p class="docs-lede">What Stageproof 0.1.3 covers, what it leaves out, and where a passing result says less than you might expect.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">
