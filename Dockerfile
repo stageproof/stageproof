@@ -14,6 +14,7 @@ RUN apt-get update \
  && curl -fsSL "https://get.helm.sh/helm-v3.17.1-linux-${TARGETARCH}.tar.gz" | tar -xz -C /tmp \
  && mv "/tmp/linux-${TARGETARCH}/helm" /usr/local/bin/helm \
  && rm -rf /var/lib/apt/lists/* /tmp/linux-* \
+ && git config --system --add safe.directory '*' \
  && useradd --create-home --uid 65532 stageproof
 COPY --from=build /out/stageproof /usr/local/bin/stageproof
 USER stageproof

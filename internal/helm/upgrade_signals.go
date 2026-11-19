@@ -75,6 +75,7 @@ func UpgradeSignals(baseDir, headDir string, baseObjs, headObjs []k8sschema.Mani
 	out = append(out, versionSignals(baseChart, headChart)...)
 	out = append(out, dependencySignals(baseDir, headDir, baseChart, headChart)...)
 	out = append(out, imageSignals(baseObjs, headObjs)...)
+	out = append(out, operatorSignal(baseDir, headDir, out)...)
 	return out
 }
 
@@ -194,10 +195,9 @@ func packagedVersion(chartDir, name string) string {
 	return strings.TrimSpace(readChartDoc(filepath.Join(chartDir, "charts", name)).Version)
 }
 
-type containerImage struct {
-	workload  string
-	container string
-	image     string
+type imageRef struct {
+	where string
+	image string
 }
 
 func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Finding {
@@ -217,7 +217,7 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		if !ok || old.image == head[k].image {
 			continue
 		}
-		msg := fmt.Sprintf("%s container %s moves from %s to %s.", head[k].workload, head[k].container, old.image, head[k].image)
+		msg := fmt.Sprintf("%s %s moves from %s to %s.", head[k].where, labelKind(k), old.image, head[k].image)
 		if vPrefixOnly(old.image, head[k].image) {
 			msg += " The tags differ by a leading v. A registry treats them as different tags."
 		}
@@ -226,7 +226,7 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 	if len(msgs) == 0 {
 		return nil
 	}
-	const maxShown = 6
+	const maxShown = 8
 	shown := msgs
 	extra := ""
 	if len(msgs) > maxShown {
@@ -237,8 +237,61 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		RuleID:   "helm.image.changed",
 		Severity: verdict.SeverityWarning,
 		Message:  strings.Join(shown, " ") + extra,
-		Detail:   "The render names a different image. This check does not ask the registry whether the tag exists.",
+		Detail:   "The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.",
 	}}
+}
+
+// labelKind keeps the sentence readable. The map key ends with /container, /field, or /arg.
+func labelKind(key string) string {
+	switch {
+	case strings.HasSuffix(key, "/container"):
+		return "container"
+	case strings.HasSuffix(key, "/field"):
+		return "field"
+	case strings.HasSuffix(key, "/arg"):
+		return "argument"
+	default:
+		return "image"
+	}
+}
+
+func operatorSignal(baseDir, headDir string, prior []verdict.Finding) []verdict.Finding {
+	if !chartShipsCRDs(baseDir) && !chartShipsCRDs(headDir) {
+		return nil
+	}
+	relevant := false
+	for _, f := range prior {
+		if f.RuleID == "helm.image.changed" || f.RuleID == "helm.release.app_version_changed" {
+			relevant = true
+			break
+		}
+	}
+	if !relevant {
+		return nil
+	}
+	return []verdict.Finding{{
+		RuleID:   "helm.operator.existing_custom_resources",
+		Severity: verdict.SeverityWarning,
+		Message:  "This chart ships custom resource definitions, and the application it runs is changing. Custom resources that already exist on a real cluster are not in this check.",
+		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data or custom resources that were already there. An empty-cluster result of 0 restarts does not mean an existing database or volume stayed up.",
+	}}
+}
+
+func chartShipsCRDs(dir string) bool {
+	entries, err := os.ReadDir(filepath.Join(dir, "crds"))
+	if err != nil {
+		return false
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		switch strings.ToLower(filepath.Ext(e.Name())) {
+		case ".yaml", ".yml":
+			return true
+		}
+	}
+	return false
 }
 
 func vPrefixOnly(a, b string) bool {
@@ -260,73 +313,70 @@ func imageTag(ref string) string {
 	return ref[colon+1:]
 }
 
-func indexImages(objs []k8sschema.ManifestObject) map[string]containerImage {
-	out := map[string]containerImage{}
+func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
+	out := map[string]imageRef{}
 	for _, obj := range objs {
-		for _, spec := range podSpecs(obj) {
-			for _, c := range containersOf(spec) {
-				if c.image == "" {
+		walkImages(obj.Spec, obj.ID(), out)
+	}
+	return out
+}
+
+func walkImages(v any, path string, out map[string]imageRef) {
+	switch t := v.(type) {
+	case map[string]any:
+		if img, ok := t["image"].(string); ok && looksLikeImage(img) {
+			name, _ := t["name"].(string)
+			where := path
+			key := path + "/field"
+			if name != "" {
+				where = path + " " + name
+				key = path + "/" + name + "/container"
+			}
+			out[key] = imageRef{where: where, image: img}
+		}
+		if args, ok := t["args"].([]any); ok {
+			for _, item := range args {
+				s, ok := item.(string)
+				if !ok {
 					continue
 				}
-				key := obj.ID() + "\x00" + c.name
-				out[key] = containerImage{workload: obj.ID(), container: c.name, image: c.image}
+				img, flag := imageFromArg(s)
+				if img == "" {
+					continue
+				}
+				out[path+"/args/"+flag+"/arg"] = imageRef{where: path + " " + flag, image: img}
 			}
 		}
-	}
-	return out
-}
-
-func podSpecs(obj k8sschema.ManifestObject) []map[string]any {
-	spec := obj.Spec
-	if spec == nil {
-		return nil
-	}
-	var out []map[string]any
-	if ps := nestedMap(spec, "template", "spec"); ps != nil {
-		out = append(out, ps)
-	}
-	if ps := nestedMap(spec, "jobTemplate", "spec", "template", "spec"); ps != nil {
-		out = append(out, ps)
-	}
-	if _, ok := spec["containers"]; ok {
-		out = append(out, spec)
-	}
-	return out
-}
-
-func nestedMap(root map[string]any, path ...string) map[string]any {
-	cur := root
-	for _, p := range path {
-		next, ok := cur[p].(map[string]any)
-		if !ok {
-			return nil
+		for k, child := range t {
+			walkImages(child, path+"."+k, out)
 		}
-		cur = next
-	}
-	return cur
-}
-
-type namedImage struct {
-	name  string
-	image string
-}
-
-func containersOf(spec map[string]any) []namedImage {
-	var out []namedImage
-	for _, key := range []string{"containers", "initContainers"} {
-		items, _ := spec[key].([]any)
-		for _, item := range items {
-			m, ok := item.(map[string]any)
-			if !ok {
-				continue
-			}
-			name, _ := m["name"].(string)
-			image, _ := m["image"].(string)
-			if name == "" {
-				name = key
-			}
-			out = append(out, namedImage{name: name, image: image})
+	case []any:
+		for i, child := range t {
+			walkImages(child, fmt.Sprintf("%s[%d]", path, i), out)
 		}
 	}
-	return out
+}
+
+func looksLikeImage(s string) bool {
+	s = strings.TrimSpace(s)
+	if s == "" || len(s) > 400 || strings.ContainsAny(s, " \t\n{}") {
+		return false
+	}
+	if strings.Contains(s, "://") {
+		return false
+	}
+	return strings.Contains(s, "/") || strings.Contains(s, ":")
+}
+
+func imageFromArg(s string) (img, flag string) {
+	eq := strings.LastIndex(s, "=")
+	if eq <= 0 {
+		return "", ""
+	}
+	flag = strings.TrimLeft(s[:eq], "-")
+	img = strings.TrimSpace(s[eq+1:])
+	if flag == "" || !strings.Contains(img, "/") || !looksLikeImage(img) {
+		return "", ""
+	}
+	return img, flag
 }

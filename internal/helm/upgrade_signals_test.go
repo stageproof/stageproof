@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stageproof/stageproof/internal/k8sschema"
+	"github.com/stageproof/stageproof/internal/verdict"
 	"gopkg.in/yaml.v3"
 )
 
@@ -74,7 +75,7 @@ func TestDependencySignals_VendoredChartUnchanged(t *testing.T) {
 
 func TestImageSignals_TagChangeAndVPrefix(t *testing.T) {
 	base := []k8sschema.ManifestObject{{
-		Kind: "Deployment",
+		Kind:     "Deployment",
 		Metadata: k8sschema.ObjectMetadata{Name: "web", Namespace: "sites"},
 		Spec: map[string]any{
 			"template": map[string]any{
@@ -85,7 +86,7 @@ func TestImageSignals_TagChangeAndVPrefix(t *testing.T) {
 		},
 	}}
 	head := []k8sschema.ManifestObject{{
-		Kind: "Deployment",
+		Kind:     "Deployment",
 		Metadata: k8sschema.ObjectMetadata{Name: "web", Namespace: "sites"},
 		Spec: map[string]any{
 			"template": map[string]any{
@@ -109,5 +110,74 @@ func TestImageSignals_TagChangeAndVPrefix(t *testing.T) {
 	got = imageSignals(base, head)
 	if len(got) != 1 || !strings.Contains(got[0].Message, "leading v") {
 		t.Fatalf("v prefix note missing: %+v", got)
+	}
+}
+
+func TestImageSignals_CustomResourceFieldAndArgument(t *testing.T) {
+	base := []k8sschema.ManifestObject{
+		{
+			Kind:     "Alertmanager",
+			Metadata: k8sschema.ObjectMetadata{Name: "am", Namespace: "mon"},
+			Spec:     map[string]any{"image": "quay.io/prometheus/alertmanager:v0.34.0"},
+		},
+		{
+			Kind:     "Deployment",
+			Metadata: k8sschema.ObjectMetadata{Name: "op", Namespace: "mon"},
+			Spec: map[string]any{"template": map[string]any{"spec": map[string]any{
+				"containers": []any{map[string]any{
+					"name":  "operator",
+					"image": "quay.io/prometheus-operator/prometheus-operator:v0.70.0",
+					"args":  []any{"--prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.70.0"},
+				}},
+			}}},
+		},
+	}
+	head := []k8sschema.ManifestObject{
+		{
+			Kind:     "Alertmanager",
+			Metadata: k8sschema.ObjectMetadata{Name: "am", Namespace: "mon"},
+			Spec:     map[string]any{"image": "quay.io/prometheus/alertmanager:v0.35.0"},
+		},
+		{
+			Kind:     "Deployment",
+			Metadata: k8sschema.ObjectMetadata{Name: "op", Namespace: "mon"},
+			Spec: map[string]any{"template": map[string]any{"spec": map[string]any{
+				"containers": []any{map[string]any{
+					"name":  "operator",
+					"image": "quay.io/prometheus-operator/prometheus-operator:v0.95.2",
+					"args":  []any{"--prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.95.2"},
+				}},
+			}}},
+		},
+	}
+	got := imageSignals(base, head)
+	if len(got) != 1 {
+		t.Fatalf("got %+v", got)
+	}
+	for _, want := range []string{"alertmanager:v0.34.0", "alertmanager:v0.35.0", "prometheus-operator:v0.70.0", "prometheus-operator:v0.95.2", "prometheus-config-reloader:v0.70.0", "prometheus-config-reloader:v0.95.2"} {
+		if !strings.Contains(got[0].Message, want) {
+			t.Fatalf("missing %s in %s", want, got[0].Message)
+		}
+	}
+}
+
+func TestOperatorSignal_NamesExistingCustomResources(t *testing.T) {
+	root := t.TempDir()
+	for _, side := range []string{"base", "head"} {
+		dir := filepath.Join(root, side, "crds")
+		if err := os.MkdirAll(dir, 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "cluster.yaml"), []byte("kind: CustomResourceDefinition\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	prior := []verdict.Finding{{RuleID: "helm.release.app_version_changed", Severity: verdict.SeverityWarning}}
+	got := operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), prior)
+	if len(got) != 1 || got[0].RuleID != "helm.operator.existing_custom_resources" {
+		t.Fatalf("got %+v", got)
+	}
+	if operatorSignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil) != nil {
+		t.Fatal("no application change should stay quiet")
 	}
 }

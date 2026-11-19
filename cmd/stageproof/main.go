@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.1"
+var version = "v0.1.2"
 
 type multiFlag []string
 
@@ -99,7 +99,7 @@ Live Cluster Test (temporary kind cluster on this machine):
   --cluster-name <name>    Name of kind cluster (default "stageproof-ephemeral")
   --crd-file <path/url>    Extra CRD YAML file or URL to pre-install in kind (repeatable)
   --helm-test              Also run 'helm test' hooks after upgrade
-  --timeout <dur>          Readiness wait timeout per step (default 90s)
+  --timeout <dur>          Readiness wait timeout per step (default 5m)
 
 Output:
   --format <fmt>           text | markdown | json (default "text")
@@ -177,7 +177,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	keepCluster := fs.Bool("keep-cluster", false, "Keep kind cluster after run")
 	clusterName := fs.String("cluster-name", "stageproof-ephemeral", "kind cluster name")
 	runHelmTest := fs.Bool("helm-test", false, "Run helm test hook after upgrade")
-	timeout := fs.Duration("timeout", 90*time.Second, "Readiness wait timeout")
+	timeout := fs.Duration("timeout", rehearse.DefaultReadinessTimeout, "Readiness wait per step. Heavy charts need several minutes.")
 	format := fs.String("format", "text", "Output format: text | markdown | json")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
@@ -682,8 +682,17 @@ func emitReport(rep *verdict.Report, format, outPath, commentPath string) {
 	}
 }
 
+// gitCommand runs git in a checkout this process may not own.
+// A container user and a runner-owned clone otherwise fail with "dubious ownership".
+func gitCommand(args ...string) *exec.Cmd {
+	full := make([]string, 0, len(args)+2)
+	full = append(full, "-c", "safe.directory=*")
+	full = append(full, args...)
+	return exec.Command("git", full...)
+}
+
 func extractChartFromGitRef(ref, chartDir string) (string, func(), error) {
-	repoRootBytes, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	repoRootBytes, err := gitCommand("rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		return "", nil, fmt.Errorf("not inside a git repository: %w", err)
 	}
@@ -703,7 +712,7 @@ func extractChartFromGitRef(ref, chartDir string) (string, func(), error) {
 	}
 	cleanup := func() { _ = os.RemoveAll(tmpDir) }
 
-	gitCmd := exec.Command("git", "-C", repoRoot, "archive", "--format=tar", ref, relChart)
+	gitCmd := gitCommand("-C", repoRoot, "archive", "--format=tar", ref, relChart)
 	tarCmd := exec.Command("tar", "-x", "-C", tmpDir)
 	pipe, err := gitCmd.StdoutPipe()
 	if err != nil {
@@ -727,7 +736,7 @@ func extractChartFromGitRef(ref, chartDir string) (string, func(), error) {
 }
 
 func readFileFromGitRef(ref, filePath string) ([]byte, error) {
-	repoRootBytes, err := exec.Command("git", "rev-parse", "--show-toplevel").Output()
+	repoRootBytes, err := gitCommand("rev-parse", "--show-toplevel").Output()
 	if err != nil {
 		return nil, err
 	}
@@ -740,7 +749,7 @@ func readFileFromGitRef(ref, filePath string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return exec.Command("git", "-C", repoRoot, "show", fmt.Sprintf("%s:%s", ref, filepath.ToSlash(relFile))).Output()
+	return gitCommand("-C", repoRoot, "show", fmt.Sprintf("%s:%s", ref, filepath.ToSlash(relFile))).Output()
 }
 
 // runCheckPR inspects `git diff --name-only <current-git>...<new-git>` to automatically find
@@ -768,9 +777,9 @@ func runCheckPR(args []string) int {
 		return 2
 	}
 
-	diffBytes, err := exec.Command("git", "diff", "--name-only", *currentGit+"..."+*newGit).Output()
+	diffBytes, err := gitCommand("diff", "--name-only", *currentGit+"..."+*newGit).Output()
 	if err != nil {
-		diffBytes, err = exec.Command("git", "diff", "--name-only", *currentGit, *newGit).Output()
+		diffBytes, err = gitCommand("diff", "--name-only", *currentGit, *newGit).Output()
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "stageproof check-pr: git diff %s..%s failed: %v\n", *currentGit, *newGit, err)
 			return 2

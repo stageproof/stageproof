@@ -59,6 +59,11 @@ type Outcome struct {
 	ExcludedChecks []string
 }
 
+// DefaultReadinessTimeout is how long one helm install, upgrade, or rollback
+// waits for pods. Harbor and Longhorn do not become ready in 90s on an empty
+// cluster, and a short wait then hides the candidate chart.
+const DefaultReadinessTimeout = 5 * time.Minute
+
 type failCategory int
 
 const (
@@ -73,7 +78,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 		opts.ClusterName = "stageproof-ephemeral"
 	}
 	if opts.Timeout == 0 {
-		opts.Timeout = 90 * time.Second
+		opts.Timeout = DefaultReadinessTimeout
 	}
 
 	kubeconfigFile, err := os.CreateTemp("", "stageproof-kubeconfig-*.yaml")
@@ -193,10 +198,14 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 			}
 
 			out.Inconclusive = true
+			summary := fmt.Sprintf("baseline itself failed before upgrade (%s)", diag)
+			if readinessTimedOut(bErr.Error()) {
+				summary = fmt.Sprintf("current chart did not become ready within %s, so the new chart was not installed (%s)", waitTimeout, diag)
+			}
 			out.Checks = append(out.Checks, verdict.CheckResult{
 				Name:    "baseline install",
 				Status:  "fail",
-				Summary: fmt.Sprintf("baseline itself failed before upgrade (%s)", diag),
+				Summary: summary,
 			})
 			return out, nil
 		}
@@ -335,7 +344,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	out.Checks = append(out.Checks, verdict.CheckResult{
 		Name:    "in-place helm upgrade",
 		Status:  "pass",
-		Summary: fmt.Sprintf("upgraded cleanly in %s (0 restarts)", time.Since(tUpg).Round(100*time.Millisecond)),
+		Summary: fmt.Sprintf("empty cluster upgraded in %s, 0 restarts. No existing data was in this cluster.", time.Since(tUpg).Round(100*time.Millisecond)),
 	})
 
 	if opts.RunHelmTest {
@@ -497,6 +506,11 @@ func failingPodsFromJSON(rawPods []byte) map[string]string {
 
 // newFailure returns one pod that is failing now and was not failing before
 // the step started, as "name: reason". It returns "" when there is none.
+func readinessTimedOut(errText string) bool {
+	l := strings.ToLower(errText)
+	return strings.Contains(l, "timed out") || strings.Contains(l, "deadline exceeded")
+}
+
 func newFailure(now, before map[string]string) string {
 	names := make([]string, 0, len(now))
 	for name := range now {
