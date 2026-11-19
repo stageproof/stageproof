@@ -97,6 +97,8 @@ type Report struct {
 	HeadRef        string        `json:"head_ref"`
 	ValuesFiles    []string      `json:"values_files,omitempty"`
 	Checked        string        `json:"checked"`
+	HeadGit        string        `json:"head_git,omitempty"`
+	Cluster        string        `json:"cluster,omitempty"`
 	DurationMs     int64         `json:"duration_ms"`
 	Timestamp      time.Time     `json:"timestamp"`
 	Checks         []CheckResult `json:"checks"`
@@ -112,7 +114,7 @@ type Report struct {
 //  3. File checks plus a completed rehearsal are PROVEN.
 //  4. File checks without a rehearsal are PASSED, unless requireRehearsal
 //     is set, which makes that NOT CHECKED.
-func (r *Report) hasRule(id string) bool {
+func (r *Report) HasRule(id string) bool {
 	for _, f := range r.Findings {
 		if f.RuleID == id {
 			return true
@@ -143,7 +145,7 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 		r.Checked = CheckedFilesAndLive
 		// A green rehearsal of the chart on disk is not proof of a dependency
 		// constraint that was never packaged under charts/.
-		if r.hasRule("helm.dependency.not_updated") {
+		if r.HasRule("helm.dependency.not_updated") {
 			r.Verdict = Passed
 		} else {
 			r.Verdict = Proven

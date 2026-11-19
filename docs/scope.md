@@ -58,4 +58,4 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | `PROVEN` | 0 | The files passed, and the temporary cluster installed the old chart, upgraded, and rolled back. |
 | `PASSED` | 0 | The files passed. No cluster was used, or the rehearsal stopped because of something outside the chart (missing CRD, private image, missing Secret). The report says `checked: files`. |
 | `BLOCKED` | 1 | The upgrade has a problem the report names. CI should fail. |
-| `NOT CHECKED` | 2 | Stageproof did not finish, `--live` was set and the chart did not come up, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. |
+| `NOT CHECKED` | 2 | Stageproof did not finish, `--live` was set and the chart did not come up, a saved live report for this commit is `NOT CHECKED`, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. A file check that did not attempt `--live` can still be `PASSED`. |

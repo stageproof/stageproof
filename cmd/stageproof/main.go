@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.4"
+var version = "v0.1.5"
 
 type multiFlag []string
 
@@ -597,6 +597,9 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 			rep.ExcludedChecks = append(rep.ExcludedChecks, outcome.ExcludedChecks...)
 			runtimeOK = outcome.RuntimeSucceeded
 			inconclusive = outcome.Inconclusive
+			if outcome.ClusterName != "" {
+				rep.Cluster = outcome.ClusterName
+			}
 		}
 	}
 	// --live was asked for. A file check that passed while the chart never
@@ -793,6 +796,7 @@ func runCheckPR(args []string) int {
 	format := fs.String("format", "text", "Output format: text | markdown | json")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
+	savedLive := fs.String("saved-live", "stageproof-live", "Directory of a live report CI cannot run. Reads <dir>/<head sha>/report.json.")
 
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -948,7 +952,23 @@ func runCheckPR(args []string) int {
 		runTarget(af, []string{"--argocd-file", af, "--current-git", *currentGit})
 	}
 
-	combined := &report.Combined{Verdict: worst, ExitCode: worst.ExitCode(), Reports: reports}
+	headSHA := ""
+	if out, err := gitCommand("rev-parse", *newGit).Output(); err == nil {
+		headSHA = strings.TrimSpace(string(out))
+	}
+	for _, r := range reports {
+		if r.HeadGit == "" {
+			r.HeadGit = headSHA
+		}
+	}
+	if extra, err := report.LoadSavedLive(*savedLive, headSHA); err == nil {
+		for _, r := range extra {
+			reports = append(reports, r)
+			note(r.Verdict)
+		}
+	}
+
+	combined := &report.Combined{Verdict: worst, ExitCode: worst.ExitCode(), HeadGit: headSHA, Reports: reports}
 	if *outPath != "" {
 		if f, cErr := os.Create(*outPath); cErr == nil {
 			_ = report.WriteCombinedJSON(f, combined)

@@ -76,7 +76,7 @@ func UpgradeSignals(baseDir, headDir string, baseObjs, headObjs []k8sschema.Mani
 	out = append(out, versionSignals(baseChart, headChart)...)
 	out = append(out, dependencySignals(baseDir, headDir, baseChart, headChart)...)
 	out = append(out, imageSignals(baseObjs, headObjs)...)
-	out = append(out, operatorSignal(baseDir, headDir, out)...)
+	out = append(out, operatorSignal(baseDir, headDir, baseObjs, headObjs, out)...)
 	return out
 }
 
@@ -233,17 +233,21 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 	if len(msgs) == 0 {
 		return nil
 	}
-	const maxShown = 8
+	const maxShown = 12
 	shown := msgs
-	extra := ""
+	noun := "container images"
+	if len(msgs) == 1 {
+		noun = "container image"
+	}
+	headLine := fmt.Sprintf("%d %s changed.", len(msgs), noun)
 	if len(msgs) > maxShown {
 		shown = msgs[:maxShown]
-		extra = fmt.Sprintf(" %d more container images also changed.", len(msgs)-maxShown)
+		headLine = fmt.Sprintf("%d %s changed. Showing %d.", len(msgs), noun, maxShown)
 	}
 	return []verdict.Finding{{
 		RuleID:   "helm.image.changed",
 		Severity: verdict.SeverityWarning,
-		Message:  strings.Join(shown, " ") + extra,
+		Message:  headLine + " " + strings.Join(shown, " "),
 		Detail:   "The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.",
 	}}
 }
@@ -262,8 +266,8 @@ func labelKind(key string) string {
 	}
 }
 
-func operatorSignal(baseDir, headDir string, prior []verdict.Finding) []verdict.Finding {
-	if !chartShipsCRDs(baseDir) && !chartShipsCRDs(headDir) {
+func operatorSignal(baseDir, headDir string, baseObjs, headObjs []k8sschema.ManifestObject, prior []verdict.Finding) []verdict.Finding {
+	if !chartShipsCRDs(baseDir) && !chartShipsCRDs(headDir) && !rendersCRD(baseObjs) && !rendersCRD(headObjs) {
 		return nil
 	}
 	relevant := false
@@ -282,6 +286,15 @@ func operatorSignal(baseDir, headDir string, prior []verdict.Finding) []verdict.
 		Message:  "This chart ships custom resource definitions, and the application it runs is changing. Custom resources that already exist on a real cluster are not in this check.",
 		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data that is already there. An operator upgrade can restart the primary even when the database image tag does not change. An empty-cluster result of 0 restarts does not mean that primary stayed up.",
 	}}
+}
+
+func rendersCRD(objs []k8sschema.ManifestObject) bool {
+	for _, obj := range objs {
+		if obj.Kind == "CustomResourceDefinition" {
+			return true
+		}
+	}
+	return false
 }
 
 func chartShipsCRDs(dir string) bool {

@@ -50,6 +50,7 @@ type KindOptions struct {
 type Outcome struct {
 	RuntimeSucceeded bool
 	Inconclusive     bool
+	ClusterName      string
 	// Rehearsed is true once the candidate chart was installed or upgraded
 	// in the temporary cluster. A skip before that point leaves it false.
 	Rehearsed      bool
@@ -73,9 +74,10 @@ const (
 )
 
 func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
-	out := &Outcome{}
+	out := &Outcome{ClusterName: opts.ClusterName}
 	if opts.ClusterName == "" {
 		opts.ClusterName = "stageproof-ephemeral"
+		out.ClusterName = opts.ClusterName
 	}
 	if opts.Timeout == 0 {
 		opts.Timeout = DefaultReadinessTimeout
@@ -207,7 +209,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 				out.Checks = append(out.Checks, verdict.CheckResult{
 					Name:    "baseline install",
 					Status:  "warn",
-					Summary: fmt.Sprintf("current chart did not become ready within %s (%s)", waitTimeout, diag),
+					Summary: fmt.Sprintf("baseline slow: the current chart did not become ready within %s. This is the empty-cluster install hitting the deadline, not a verdict that the chart is broken. %s", waitTimeout, truncateOneLine(dropHelmNoise(diag), 240)),
 				})
 				if cErr != nil {
 					cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, cErr.Error())
@@ -553,6 +555,20 @@ func failingPodsFromJSON(rawPods []byte) map[string]string {
 
 // newFailure returns one pod that is failing now and was not failing before
 // the step started, as "name: reason". It returns "" when there is none.
+func dropHelmNoise(s string) string {
+	var kept []string
+	for _, ln := range strings.Split(s, "\n") {
+		if strings.Contains(ln, `unrecognized format "int64"`) {
+			continue
+		}
+		ln = strings.TrimSpace(ln)
+		if ln != "" {
+			kept = append(kept, ln)
+		}
+	}
+	return strings.Join(kept, " ")
+}
+
 func readinessTimedOut(errText string) bool {
 	l := strings.ToLower(errText)
 	return strings.Contains(l, "timed out") || strings.Contains(l, "deadline exceeded")

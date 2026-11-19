@@ -178,6 +178,7 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 type Combined struct {
 	Verdict  verdict.State     `json:"verdict"`
 	ExitCode int               `json:"exit_code"`
+	HeadGit  string            `json:"head_git,omitempty"`
 	Reports  []*verdict.Report `json:"reports"`
 }
 
@@ -221,8 +222,14 @@ func verdictHeadlines(r *verdict.Report) []string {
 			break
 		}
 	}
+	if r.Cluster != "" {
+		lines = append([]string{"kind cluster " + r.Cluster}, lines...)
+	}
 	if r.Verdict == verdict.Proven {
 		lines = append(lines, "This rehearsal used an empty cluster. No existing data was in it.")
+		if r.HasRule("helm.operator.existing_custom_resources") {
+			lines = append(lines, "An operator upgrade can restart the current primary even when the database image tag does not change.")
+		}
 	}
 	return lines
 }
