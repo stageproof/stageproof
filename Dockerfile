@@ -1,5 +1,6 @@
-# Image for file checks. Helm and Git are included.
-# --live is not supported here: it needs a Docker daemon on the host.
+# Stageproof, Helm, and Git. Enough for a file check.
+# --live uses this image too. Docker, kind, and kubectl stay on the host
+# and are mounted in, with the Docker socket and /tmp. See the README.
 FROM golang:1.23-bookworm AS build
 WORKDIR /src
 COPY go.mod go.sum ./
