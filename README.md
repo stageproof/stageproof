@@ -56,6 +56,8 @@ stageproof check-pr --current-git "$BASE" --current-k8s 1.35 --live
 
 `--live` creates a temporary [kind](https://kind.sigs.k8s.io/) cluster on the machine running the command, installs the chart you run today, upgrades it, rolls it back, and deletes the cluster. Nothing is committed. Two checks can run at the same time. Pass `--cluster-name` to choose the name.
 
+`--live` starts a real Kubernetes node. That node is a container, and it has to set up its own networking and start more containers. An unprivileged container is blocked from doing those things, so kind has nothing to run the node with. A CI job that cannot start containers stays on the file check, and the report says `NOT TESTED LIVE`.
+
 The temporary cluster is empty. It has none of your data, secrets, or private images. A chart that is already healthy in production can sit there until the 10 minute wait and still be a good chart. The report says when that happened.
 
 Same flags on two chart directories, when there is no pull request:
@@ -115,7 +117,7 @@ docker run --rm --network host --user 0 \
 
 `--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag.
 
-A CI runner that cannot start Docker stays on the file check. The report then says `NOT TESTED LIVE`.
+A CI job that is not allowed to start containers stays on the file check. The report says `NOT TESTED LIVE`.
 
 ### Homebrew
 

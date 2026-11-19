@@ -88,7 +88,7 @@
           </article>
           <article class="doc-card">
             <h3>CI is the same command</h3>
-            <p>On a runner, the temporary cluster is created on the runner. A passing job does not merge code and does not upgrade the cluster you deploy to. The report is the only output.</p>
+            <p><code>--live</code> starts a real Kubernetes node, and that node has to set up networking and start more containers. An unprivileged CI job cannot do that, so it stays on the file check. A passing job does not merge code and does not upgrade the cluster you deploy to.</p>
           </article>
           <article class="doc-card">
             <h3>Charts can use the network</h3>

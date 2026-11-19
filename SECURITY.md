@@ -14,6 +14,8 @@ A file check runs `helm template`. Helm executes chart templates. Treat a chart 
 
 `--live` starts a temporary kind cluster on that same machine, pulls the chart's images, and runs its hooks. It does not contact a cluster you already have. Run it on a machine you trust with that chart.
 
+The node is a container that sets up its own networking and starts more containers. An unprivileged container is blocked from doing that, so a normal CI job cannot run `--live`.
+
 ## Supported versions
 
 Security fixes apply to the latest released tag only.

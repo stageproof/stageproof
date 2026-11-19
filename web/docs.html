@@ -719,9 +719,12 @@ verdict  PASSED (exit 0)  · 46ms · 0 AI calls</pre>
   <div><dt>Needs</dt><dd>Helm, kind, kubectl, and Docker on the machine that runs the command.</dd></div>
 </dl>
 
+<h2>Why a normal CI job skips this</h2>
+<p><code>--live</code> starts a real Kubernetes node. That node is a container, and it has to set up its own networking and start more containers. An unprivileged container is blocked from doing those things, so kind has nothing to run the node with. The file check still runs, and the report says <code>NOT TESTED LIVE</code>.</p>
+
 <h2>What <code>--live</code> does not do</h2>
 <ul>
-  <li><strong>It does not fix anything.</strong> It reports a result. It does not edit files, commit, or push. It behaves the same on your laptop and on a CI runner.</li>
+  <li><strong>It does not fix anything.</strong> It reports a result. It does not edit files, commit, or push.</li>
   <li><strong>It does not connect to your real cluster.</strong> It creates its own cluster and uses a separate, temporary kubeconfig. Your kubeconfig is not changed.</li>
 </ul>
 
@@ -988,7 +991,7 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 <p>GitLab applies that setting to every merge request in the project. It cannot be limited to some branches. Make sure every merge request gets a pipeline, including the ones that change no chart, or those can no longer be merged.</p>
 
 <h2>Add the live rehearsal</h2>
-<p>The job above does not use <code>--live</code>. The live rehearsal needs Docker on the runner to start the temporary cluster. See <a href="#live">Rehearse the upgrade in a temporary cluster</a>.</p>
+<p>The job above does not use <code>--live</code>. <code>--live</code> starts a real Kubernetes node, and that node is a container that has to set up its own networking and start more containers. An unprivileged CI job is blocked from doing that, so the report says <code>NOT TESTED LIVE</code>. See <a href="#live">Rehearse the upgrade in a temporary cluster</a>.</p>
   </template>
 
   <template data-topic="ci-github" data-group="Run in CI" data-title="GitHub Actions">
