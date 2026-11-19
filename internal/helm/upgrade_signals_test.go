@@ -161,6 +161,51 @@ func TestImageSignals_CustomResourceFieldAndArgument(t *testing.T) {
 	}
 }
 
+func TestImageSignals_OfficialImageAndSplitTag(t *testing.T) {
+	rawBase := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: izbirai
+spec:
+  template:
+    spec:
+      containers:
+      - name: redis
+        image: "redis:7-alpine"
+---
+apiVersion: monitoring.coreos.com/v1
+kind: Prometheus
+metadata:
+  name: kps
+  namespace: mon
+spec:
+  image:
+    repository: quay.io/prometheus/prometheus
+    tag: v2.55.1
+`
+	rawHead := strings.ReplaceAll(rawBase, "redis:7-alpine", "redis:8-alpine")
+	rawHead = strings.ReplaceAll(rawHead, "v2.55.1", "v3.16.0")
+	base, err := k8sschema.ParseManifestStream(rawBase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := k8sschema.ParseManifestStream(rawHead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := imageSignals(base, head)
+	if len(got) != 1 {
+		t.Fatalf("got %+v", got)
+	}
+	for _, want := range []string{"redis:7-alpine", "redis:8-alpine", "prometheus:v2.55.1", "prometheus:v3.16.0"} {
+		if !strings.Contains(got[0].Message, want) {
+			t.Fatalf("missing %s in %s", want, got[0].Message)
+		}
+	}
+}
+
 func TestImageSignals_RawYAMLFindsCustomResourceAndArgument(t *testing.T) {
 	rawBase := `
 apiVersion: monitoring.coreos.com/v1

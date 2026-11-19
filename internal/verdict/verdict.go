@@ -112,6 +112,15 @@ type Report struct {
 //  3. File checks plus a completed rehearsal are PROVEN.
 //  4. File checks without a rehearsal are PASSED, unless requireRehearsal
 //     is set, which makes that NOT CHECKED.
+func (r *Report) hasRule(id string) bool {
+	for _, f := range r.Findings {
+		if f.RuleID == id {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool) {
 	if r.Checked == "" {
 		r.Checked = CheckedFiles
@@ -131,8 +140,14 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 	case couldNotCheck:
 		r.Verdict = NotChecked
 	case runtimeSucceeded && len(r.Skipped) == 0:
-		r.Verdict = Proven
 		r.Checked = CheckedFilesAndLive
+		// A green rehearsal of the chart on disk is not proof of a dependency
+		// constraint that was never packaged under charts/.
+		if r.hasRule("helm.dependency.not_updated") {
+			r.Verdict = Passed
+		} else {
+			r.Verdict = Proven
+		}
 	case requireRehearsal:
 		r.Verdict = NotChecked
 		if len(r.Skipped) == 0 {

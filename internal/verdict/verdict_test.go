@@ -37,6 +37,25 @@ func TestFinalizeFileCheckIsPassed(t *testing.T) {
 	}
 }
 
+func TestFinalizeLiveThatDidNotStartIsNotChecked(t *testing.T) {
+	r := &Report{Checked: CheckedFiles}
+	r.Finalize(false, true, false)
+	if r.Verdict != NotChecked || r.ExitCode != 2 {
+		t.Fatalf("live that did not bring the chart up: got %s exit %d", r.Verdict, r.ExitCode)
+	}
+}
+
+func TestFinalizeDependencyIsNotProven(t *testing.T) {
+	r := &Report{
+		Checked:  CheckedFiles,
+		Findings: []Finding{{RuleID: "helm.dependency.not_updated", Severity: SeverityWarning}},
+	}
+	r.Finalize(true, false, false)
+	if r.Verdict != Passed || r.Checked != CheckedFilesAndLive {
+		t.Fatalf("packaged chart unchanged: got %s checked %s", r.Verdict, r.Checked)
+	}
+}
+
 func TestFinalizeRequireRehearsal(t *testing.T) {
 	r := &Report{}
 	r.Finalize(false, false, true)

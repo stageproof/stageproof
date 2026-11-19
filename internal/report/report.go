@@ -74,6 +74,9 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 	case verdict.Passed:
 		verdictColor = ansiGreen
 	}
+	for _, line := range verdictHeadlines(r) {
+		fmt.Fprintf(w, "%s  %s\n", paint(color, ansiYellow, "!"), line)
+	}
 	fmt.Fprintf(w, "%s  %s  %s\n",
 		paint(color, ansiDim, "stageproof"),
 		paint(color, verdictColor, string(r.Verdict)),
@@ -207,9 +210,38 @@ func WriteCombinedMarkdown(w io.Writer, c *Combined) {
 	}
 }
 
+func verdictHeadlines(r *verdict.Report) []string {
+	var lines []string
+	if r.Checked == verdict.CheckedFilesAndLive && minorMismatch(r) {
+		lines = append(lines, "Rehearsed on a different Kubernetes version than the one requested. This proves less.")
+	}
+	for _, f := range r.Findings {
+		if f.RuleID == "helm.dependency.not_updated" {
+			lines = append(lines, "The packaged chart under charts/ did not change. This is not proof of the new dependency version.")
+			break
+		}
+	}
+	if r.Verdict == verdict.Proven {
+		lines = append(lines, "This rehearsal used an empty cluster. No existing data was in it.")
+	}
+	return lines
+}
+
+func minorMismatch(r *verdict.Report) bool {
+	for _, ck := range r.Checks {
+		if ck.Name == "rehearsal version" && ck.Status == "warn" {
+			return true
+		}
+	}
+	return false
+}
+
 func WriteMarkdown(w io.Writer, r *verdict.Report) {
 	badge := string(r.Verdict)
 	fmt.Fprintf(w, "## Stageproof Upgrade Gate: `%s` (exit `%d`)\n\n", badge, r.ExitCode)
+	for _, line := range verdictHeadlines(r) {
+		fmt.Fprintf(w, "> %s\n\n", line)
+	}
 	fmt.Fprintf(w, "- **Compare:** `%s` → `%s`\n", r.BaseRef, r.HeadRef)
 	if r.TargetK8s != "" {
 		fmt.Fprintf(w, "- **Target Kubernetes:** `%s`", r.TargetK8s)

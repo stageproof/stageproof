@@ -20,7 +20,7 @@ import (
 )
 
 // version is the release tag. The release build replaces it.
-var version = "v0.1.3"
+var version = "v0.1.4"
 
 type multiFlag []string
 
@@ -384,6 +384,19 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		return rep.ExitCode
 	}
 	if len(placeholders) > 0 {
+		// A template can mention required on a path the current values never
+		// reach. If the chart renders without a placeholder, the key is not a
+		// secret the chart refuses to start without.
+		if _, trialErr := helm.RenderChart(ctx, helm.RenderOptions{
+			ChartDir:    headDir,
+			ValuesFiles: effectiveValues,
+			SetValues:   setValues,
+			KubeVersion: effK8s,
+		}); trialErr == nil {
+			placeholders = nil
+		}
+	}
+	if len(placeholders) > 0 {
 		var keysOnly []string
 		for _, kv := range placeholders {
 			keysOnly = append(keysOnly, strings.SplitN(kv, "=", 2)[0])
@@ -391,7 +404,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		rep.Checks = append(rep.Checks, verdict.CheckResult{
 			Name:    "required values shim",
 			Status:  "warn",
-			Summary: fmt.Sprintf("placeholder for %s supplied outside the values file: %s", counted(len(keysOnly), "a required key", "required keys"), strings.Join(keysOnly, ", ")),
+			Summary: fmt.Sprintf("the chart does not render unless %s is set: %s", counted(len(keysOnly), "this value", "these values"), strings.Join(keysOnly, ", ")),
 		})
 	}
 
@@ -585,6 +598,11 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 			runtimeOK = outcome.RuntimeSucceeded
 			inconclusive = outcome.Inconclusive
 		}
+	}
+	// --live was asked for. A file check that passed while the chart never
+	// came up is not PASSED. PASSED stays for a run that did not attempt --live.
+	if effLive && !runtimeOK {
+		inconclusive = true
 	}
 
 	rep.DurationMs = time.Since(tStart).Milliseconds()

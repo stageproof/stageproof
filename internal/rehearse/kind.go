@@ -215,7 +215,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 					out.Checks = append(out.Checks, verdict.CheckResult{
 						Name:    "candidate install",
 						Status:  "fail",
-						Summary: cdiag,
+						Summary: "The new chart's own install failed. This was not an upgrade of the current release. " + cdiag,
 					})
 					return out, nil
 				}
@@ -526,12 +526,13 @@ func failingPodsFromJSON(rawPods []byte) map[string]string {
 				r := cs.State.Waiting.Reason
 				msg := strings.ToLower(cs.State.Waiting.Message)
 				switch r {
-				case "ImagePullBackOff", "InvalidImageName", "CreateContainerConfigError", "CreateContainerError":
+				case "InvalidImageName", "CreateContainerConfigError", "CreateContainerError":
 					reason = fmt.Sprintf("%s (%s)", r, cs.State.Waiting.Message)
-				case "ErrImagePull":
-					if strings.Contains(msg, "not found") || strings.Contains(msg, "manifest unknown") ||
-						strings.Contains(msg, "unauthorized") || strings.Contains(msg, "authentication") ||
-						strings.Contains(msg, "no such host") || strings.Contains(msg, "connection refused") {
+				case "ImagePullBackOff", "ErrImagePull":
+					// A missing tag or a denied registry will not recover.
+					// A timeout, a reset, or a rate limit often recovers if the
+					// pull is left to retry, so those are not a fast failure.
+					if hardImageFailure(msg) {
 						reason = fmt.Sprintf("%s (%s)", r, cs.State.Waiting.Message)
 					}
 				case "CrashLoopBackOff":
@@ -652,7 +653,7 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 								failExternalEnvGap,
 								externalServiceHint
 						}
-						return fmt.Sprintf("pod `%s` container `%s` exited %d (%s). log: %s", p.Metadata.Name, cs.Name, cs.State.Terminated.ExitCode, cs.State.Terminated.Reason, truncateOneLine(logTail, 400)),
+						return fmt.Sprintf("pod `%s` container `%s` exited %d (%s). log: %s", p.Metadata.Name, cs.Name, cs.State.Terminated.ExitCode, cs.State.Terminated.Reason, lastLines(logTail, 12, 800)),
 							failRegression, defaultRem
 					}
 				}
@@ -667,7 +668,7 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 			"Check with a values file (`-f`) that uses the storage class `standard`, the only one in the temporary cluster."
 	}
 
-	return truncateOneLine(helmErr, 140), failRegression, defaultRem
+	return truncateOneLine(helmErr, 800), failRegression, defaultRem
 }
 
 var externalConnIndicators = []string{
@@ -773,23 +774,38 @@ var nodeImageTagsURL = "https://hub.docker.com/v2/repositories/kindest/node/tags
 // patch of that minor version is looked up. It returns "" when the lookup fails
 // or nothing is published for that version, and kind then uses its default.
 func resolveNodeImage(ctx context.Context, k8sVersion string) string {
+	for attempt := 0; attempt < 3; attempt++ {
+		img, retry := resolveNodeImageOnce(ctx, k8sVersion)
+		if img != "" || !retry {
+			return img
+		}
+		select {
+		case <-ctx.Done():
+			return ""
+		case <-time.After(time.Duration(attempt+1) * 200 * time.Millisecond):
+		}
+	}
+	return ""
+}
+
+func resolveNodeImageOnce(ctx context.Context, k8sVersion string) (string, bool) {
 	minor := minorOf(k8sVersion)
 	if minor == "" {
-		return ""
+		return "", false
 	}
 	reqCtx, cancel := context.WithTimeout(ctx, 8*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(reqCtx, http.MethodGet, nodeImageTagsURL+"?page_size=100&name=v"+minor+".", nil)
 	if err != nil {
-		return ""
+		return "", false
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return ""
+		return "", true
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		return ""
+		return "", true
 	}
 	var page struct {
 		Results []struct {
@@ -797,16 +813,43 @@ func resolveNodeImage(ctx context.Context, k8sVersion string) string {
 		} `json:"results"`
 	}
 	if json.NewDecoder(resp.Body).Decode(&page) != nil {
-		return ""
+		return "", true
 	}
 	names := make([]string, 0, len(page.Results))
 	for _, r := range page.Results {
 		names = append(names, r.Name)
 	}
 	if tag := latestPatchTag(names, minor); tag != "" {
-		return "kindest/node:" + tag
+		return "kindest/node:" + tag, false
 	}
-	return ""
+	return "", false
+}
+
+func hardImageFailure(msg string) bool {
+	return strings.Contains(msg, "not found") ||
+		strings.Contains(msg, "manifest unknown") ||
+		strings.Contains(msg, "no such manifest") ||
+		strings.Contains(msg, "unauthorized") ||
+		strings.Contains(msg, "authentication") ||
+		strings.Contains(msg, "no such host")
+}
+
+func lastLines(s string, n, max int) string {
+	var kept []string
+	for _, ln := range strings.Split(s, "\n") {
+		ln = strings.TrimSpace(ln)
+		if ln != "" {
+			kept = append(kept, ln)
+		}
+	}
+	if len(kept) > n {
+		kept = kept[len(kept)-n:]
+	}
+	out := strings.Join(kept, " | ")
+	if len(out) > max && max > 0 {
+		return out[len(out)-max:]
+	}
+	return out
 }
 
 // latestPatchTag picks the highest patch release of minor ("1.35") from image

@@ -280,7 +280,7 @@ func operatorSignal(baseDir, headDir string, prior []verdict.Finding) []verdict.
 		RuleID:   "helm.operator.existing_custom_resources",
 		Severity: verdict.SeverityWarning,
 		Message:  "This chart ships custom resource definitions, and the application it runs is changing. Custom resources that already exist on a real cluster are not in this check.",
-		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data or custom resources that were already there. An empty-cluster result of 0 restarts does not mean an existing database or volume stayed up.",
+		Detail:   "A rehearsal installs the chart into an empty cluster. It does not upgrade data that is already there. An operator upgrade can restart the primary even when the database image tag does not change. An empty-cluster result of 0 restarts does not mean that primary stayed up.",
 	}}
 }
 
@@ -320,9 +320,9 @@ func imageTag(ref string) string {
 	return ref[colon+1:]
 }
 
-// renderedImageRe finds repo/name:tag refs wherever a chart prints them:
-// a container image, a custom resource field, or a container argument.
-var renderedImageRe = regexp.MustCompile(`(?:[A-Za-z0-9](?:[A-Za-z0-9._-]*[A-Za-z0-9])?(?::[0-9]+)?/)?[a-z0-9][a-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*:[A-Za-z0-9][A-Za-z0-9._-]{0,127}(?:@sha256:[a-f0-9]{64})?`)
+// renderedImageRe finds an image after "image:" or "=".
+// Official images such as redis:8-alpine have no slash. Registry images do.
+var renderedImageRe = regexp.MustCompile(`(?i)(?:image:\s*|=\s*)["']?([A-Za-z0-9][A-Za-z0-9._:@/-]{2,220})`)
 
 func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
 	out := map[string]imageRef{}
@@ -358,7 +358,7 @@ func imageRepo(ref string) string {
 func walkImages(v any, path string, out map[string]imageRef) {
 	switch t := v.(type) {
 	case map[string]any:
-		if img, ok := t["image"].(string); ok && looksLikeImage(img) {
+		if ref, ok := imageFromValue(t["image"]); ok {
 			name, _ := t["name"].(string)
 			where := path
 			key := path + "/field"
@@ -366,7 +366,7 @@ func walkImages(v any, path string, out map[string]imageRef) {
 				where = path + " " + name
 				key = path + "/" + name + "/container"
 			}
-			out[key] = imageRef{where: where, image: img}
+			out[key] = imageRef{where: where, image: ref}
 		}
 		if args, ok := t["args"].([]any); ok {
 			for _, item := range args {
@@ -389,6 +389,33 @@ func walkImages(v any, path string, out map[string]imageRef) {
 			walkImages(child, fmt.Sprintf("%s[%d]", path, i), out)
 		}
 	}
+}
+
+func imageFromValue(v any) (string, bool) {
+	switch t := v.(type) {
+	case string:
+		s := cleanImageToken(t)
+		if looksLikeImage(s) {
+			return s, true
+		}
+	case map[string]any:
+		repo, _ := t["repository"].(string)
+		tag, _ := t["tag"].(string)
+		if strings.TrimSpace(repo) != "" && strings.TrimSpace(tag) != "" {
+			return strings.TrimSpace(repo) + ":" + strings.TrimSpace(tag), true
+		}
+		if base, _ := t["baseImage"].(string); strings.TrimSpace(base) != "" {
+			if ver, _ := t["version"].(string); strings.TrimSpace(ver) != "" {
+				return strings.TrimSpace(base) + ":" + strings.TrimSpace(ver), true
+			}
+		}
+	}
+	return "", false
+}
+
+func cleanImageToken(s string) string {
+	s = strings.Trim(strings.TrimSpace(s), `"'`)
+	return strings.TrimRight(s, `",'`)
 }
 
 func looksLikeImage(s string) bool {

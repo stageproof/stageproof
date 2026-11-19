@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -83,5 +84,22 @@ func TestResolveNodeImageFallsBackWhenLookupFails(t *testing.T) {
 
 	if got := resolveNodeImage(context.Background(), "1.35"); got != "" {
 		t.Fatalf("a failed lookup must not stop the rehearsal, got %q", got)
+	}
+}
+
+func TestLastLinesKeepsTheEndOfTheLog(t *testing.T) {
+	log := "Waiting for caches to sync\nv1 Endpoints is deprecated in v1.33+\nlonghorn-uninstall: connection to the local volume manager failed\n"
+	got := lastLines(log, 2, 800)
+	if !strings.Contains(got, "longhorn-uninstall") || strings.Contains(got, "Waiting for caches") {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestHardImageFailureLeavesTransientPullsAlone(t *testing.T) {
+	if hardImageFailure("failed to pull image: net/http: request canceled") {
+		t.Fatal("a canceled pull can succeed on retry")
+	}
+	if !hardImageFailure("manifest unknown: not found") {
+		t.Fatal("a deleted tag must stay a hard failure")
 	}
 }
