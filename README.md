@@ -2,7 +2,22 @@
 
 Stageproof checks a Helm chart upgrade before you merge it.
 
-It compares the chart you run today with the chart in the pull request, using your values and the Kubernetes version your cluster runs. It prints one result and exits 0, 1, or 2. It does not edit the pull request, and it does not change a cluster you already have.
+You give it the chart you run today and the chart in the pull request. It uses your values and the Kubernetes version your cluster already runs. It prints one word and an exit code. The pull request is only read. The cluster you deploy to is never contacted.
+
+## Check a pull request
+
+```bash
+stageproof check-pr \
+  --current-git "$BASE" \
+  --current-k8s 1.35 \
+  --next-k8s 1.36 \
+  --comment-file stageproof-comment.md \
+  --out stageproof-report.json
+```
+
+`$BASE` is the branch the pull request starts from (`origin/main`, or the base SHA your CI already exports). The commit being checked is `HEAD`.
+
+This reads the files. It usually finishes in a few seconds. The report says `NOT TESTED LIVE`, which means the upgrade was not started.
 
 ```text
 stageproof  PASSED  exit 0
@@ -16,79 +31,121 @@ k8s  1.33  ·  checked: files
 verdict  PASSED (exit 0)  · 87ms · 0 AI calls
 ```
 
-That run is metrics-server 3.12.2 to 3.13.0. `checked: files` means nothing was started.
+That sample is metrics-server 3.12.2 to 3.13.0. `values.yaml AST` is the check that your values keys are still read. `checked: files` means the upgrade was not started.
 
-## Install
+Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions and GitLab CI examples are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
-Helm 3 is required for every check. Git is required for pull requests. kind, kubectl, and Docker are required only for `--live`.
+### The four words
 
-**Homebrew**
-
-```bash
-brew install stageproof/stageproof/stageproof
-```
-
-**Container image.** The image contains Stageproof, Helm, and Git. It does not run `--live`, because that needs a Docker daemon.
-
-```bash
-docker run --rm -v "$PWD:/work" -w /work ghcr.io/stageproof/stageproof:v0.1.7 version
-```
-
-**GitHub release.** Download the archive for your OS from the [releases](https://github.com/stageproof/stageproof/releases), then check the signature. The commands are in [Verify a download](#verify-a-download).
-
-**From source**
-
-```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.7
-```
-
-## Results
-
-| Result | Exit | Meaning |
+| Word | Exit | What happened |
 |---|---|---|
-| `PROVEN` | 0 | The files passed, and a temporary cluster installed the old chart, upgraded, and rolled back. |
-| `PASSED` | 0 | The files passed. No cluster was used, or the rehearsal stopped because of something outside the chart. |
-| `BLOCKED` | 1 | The upgrade has a problem the report names. |
-| `NOT CHECKED` | 2 | The check did not finish, or `--require-rehearsal` was set and no rehearsal passed. |
+| `PASSED` | 0 | The files are fine. No temporary cluster was used, or the try stopped because of something outside the chart. The job stays green. The report says which. |
+| `PROVEN` | 0 | The files are fine, and a temporary cluster installed the old chart, upgraded, and rolled back. |
+| `BLOCKED` | 1 | The report names a problem with this upgrade. The job fails. |
+| `NOT CHECKED` | 2 | The check did not finish. The job fails. This says nothing about whether the upgrade is safe. |
 
-A CI script that fails on any non-zero status does the right thing. `PASSED` is green on purpose.
+A CI script that fails on any non-zero exit does the right thing. `PASSED` is green on purpose: the files were checked, and the report says the upgrade itself was not started.
 
-## What it checks
+`--require-rehearsal` means "fail unless the temporary cluster actually ran the upgrade." With that flag, a file-only check becomes `NOT CHECKED` (exit 2).
+
+## Try the upgrade on a temporary cluster
+
+```bash
+stageproof check-pr --current-git "$BASE" --current-k8s 1.35 --live
+```
+
+`--live` creates a temporary [kind](https://kind.sigs.k8s.io/) cluster on the machine running the command, installs the chart you run today, upgrades it, rolls it back, and deletes the cluster. Nothing is committed. Two checks can run at the same time. Pass `--cluster-name` to choose the name.
+
+The temporary cluster is empty. It has none of your data, secrets, or private images. A chart that is already healthy in production can sit there until the 10 minute wait and still be a good chart. The report says when that happened.
+
+Same flags on two chart directories, when there is no pull request:
+
+```bash
+stageproof check \
+  --current-chart ./chart-v1 \
+  --new-chart ./chart-v2 \
+  -f values-prod.yaml \
+  --current-k8s 1.35 \
+  --live
+```
+
+## What it looks at
 
 | Question | How |
 |---|---|
 | Does the new chart render with your values? | `helm template` |
 | Does a values key you set still get read? | The chart templates. A key the old chart reads and the new chart does not is `BLOCKED`. |
 | Does the chart use an API your Kubernetes version removed? | A table of removed APIs, at `--current-k8s`. |
-| Will the next Kubernetes version remove an API the chart still uses? | `--next-k8s` prints a warning. It does not block, and it does not upgrade the cluster. |
+| Will the next Kubernetes version remove an API the chart still uses? | `--next-k8s` prints a warning. The pull request can still merge. The cluster is not upgraded. |
 | Can the upgrade be applied on top of the old release? | Label selectors that Kubernetes refuses to change are `BLOCKED`. |
-| Does the new release start, and can it roll back? | Only with `--live`. |
+| Does the new release start, and can it roll back? | `--live`, on the temporary cluster above. |
 
-`--live` creates a temporary kind cluster on the machine running the command, installs the old chart, upgrades, rolls back, and deletes that cluster.
+`check-pr` finds every changed chart, and every changed Argo CD Application that names one chart, by reading `git diff`. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`.
 
-An Argo CD Application that names one Helm chart is checked with `--argocd-file`. `stageproof check-pr` finds every changed chart and Application from `git diff`. It does not call Renovate or GitHub to ask what changed.
+## Install
 
-## What it does not do
+Helm 3 is required for every check. Git is required for a pull request. Docker, kind, and kubectl are required only for `--live`.
 
-It does not upgrade a Kubernetes cluster. You tell it the version the cluster runs.
+### Container image
 
-It does not read Flux, Kustomize, Helmfile, or plain manifests. It does not check Terraform providers, container image contents, or language packages. It does not send your charts anywhere.
-
-The values check reads templates. A key that is mentioned and then ignored can still look used. The API check is a table, not a live API server. Both limits are stated in [the documentation](https://stageproof.github.io/stageproof/docs.html).
-
-## A pull request
+The image contains Stageproof, Helm 3.17.1, and Git. A file check from a checkout:
 
 ```bash
-stageproof check-pr \
-  --current-git "$BASE" \
-  --current-k8s 1.35 \
-  --comment-file stageproof-comment.md \
-  --out stageproof-report.json
+docker run --rm -v "$PWD:/work" -w /work \
+  ghcr.io/stageproof/stageproof:v0.1.7 \
+  check-pr --current-git "$BASE" --current-k8s 1.35
 ```
 
-Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions and GitLab CI examples are in the documentation.
+To print the version:
 
-## Verify a download
+```bash
+docker run --rm ghcr.io/stageproof/stageproof:v0.1.7 version
+```
+
+`--live` runs from this same image. Docker, kind, and kubectl are not inside it, so you pass the copies from the machine, plus the Docker socket. kind keeps cluster files in `/tmp`, so that directory is mounted too. The image runs as uid 65532; `--user 0` lets it use the Docker socket. `--network host` lets it reach the temporary cluster.
+
+```bash
+docker run --rm --network host --user 0 \
+  --security-opt label=disable \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -v /tmp:/tmp \
+  -v "$(command -v docker)":/usr/local/bin/docker:ro \
+  -v "$(command -v kind)":/usr/local/bin/kind:ro \
+  -v "$(command -v kubectl)":/usr/local/bin/kubectl:ro \
+  -v "$PWD:/work" -w /work \
+  ghcr.io/stageproof/stageproof:v0.1.7 \
+  check-pr --current-git "$BASE" --current-k8s 1.35 --live
+```
+
+`--security-opt label=disable` is what a machine with SELinux enforcing needs. Other machines accept the flag.
+
+A CI runner that cannot start Docker stays on the file check. The report then says `NOT TESTED LIVE`.
+
+### Homebrew
+
+```bash
+brew install stageproof/stageproof/stageproof
+```
+
+### GitHub release
+
+Download the archive for your OS from the [releases](https://github.com/stageproof/stageproof/releases), then check the signature. The commands are in [Check a download](#check-a-download).
+
+### From source
+
+```bash
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.7
+```
+
+## What it leaves alone
+
+Your cluster stays as it is. You pass the Kubernetes version it runs.
+
+Flux, Kustomize, Helmfile, and plain manifests are skipped. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
+
+The values check reads the templates. A key that is mentioned and then ignored can still look used. The API check is a table, not a live API server. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
+
+## Check a download
 
 The release signs `checksums.txt` with the GitHub Actions identity. No maintainer key is stored.
 
