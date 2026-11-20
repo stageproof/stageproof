@@ -300,6 +300,7 @@ func TestE2E_UnreadyBaselineThenUpgrade(t *testing.T) {
 	cmd.Env = append(os.Environ(), "NO_COLOR=1")
 	out, _ := cmd.CombinedOutput()
 	text := string(out)
+	t.Log(text)
 	for _, name := range []string{"baseline install", "in-place helm upgrade", "rollback rehearsal"} {
 		if !strings.Contains(text, name) {
 			t.Fatalf("missing check %q:\n%s", name, text)
