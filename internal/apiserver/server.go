@@ -8,9 +8,8 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"regexp"
+	"runtime"
 	"strings"
 	"sync"
 
@@ -117,14 +116,16 @@ func Start(ctx context.Context, version, binDir string) (*Server, error) {
 		_ = env.Stop()
 		return nil, err
 	}
-	bin, binDirectory := findBinary(env.BinaryAssetsDirectory, "kube-apiserver")
-	patch := version
-	if bin != "" {
-		patch = binaryVersion(bin)
-		if patch == "" {
-			patch = version
-		}
+	info, err := disc.ServerVersion()
+	if err != nil {
+		_ = env.Stop()
+		return nil, err
 	}
+	patch := versionFromGit(info.GitVersion)
+	if patch == "" {
+		patch = version
+	}
+	binDirectory := startedBinDir(env, binDir, patch)
 	s := &Server{
 		env: env, cfg: cfg, dyn: dyn, mapper: mapper, discovery: disc, http: httpClient,
 		version: patch, binDir: binDirectory,
@@ -201,35 +202,28 @@ func copyFile(src, dst string) error {
 	return out.Close()
 }
 
-func findBinary(root, name string) (string, string) {
-	direct := filepath.Join(root, name)
-	if st, err := os.Stat(direct); err == nil && !st.IsDir() {
-		return direct, root
+// versionFromGit trims the leading v and the +build suffix from a GitVersion.
+func versionFromGit(git string) string {
+	v := strings.TrimPrefix(strings.TrimSpace(git), "v")
+	if i := strings.Index(v, "+"); i >= 0 {
+		v = v[:i]
 	}
-	matches, _ := filepath.Glob(filepath.Join(root, "*", name))
-	if len(matches) == 0 {
-		return "", root
-	}
-	// The cache root holds one directory per patch. Prefer the newest name.
-	best := matches[0]
-	for _, m := range matches[1:] {
-		if m > best {
-			best = m
-		}
-	}
-	return best, filepath.Dir(best)
+	return v
 }
 
-var versionRE = regexp.MustCompile(`v?(\d+\.\d+\.\d+)`)
-
-func binaryVersion(path string) string {
-	out, err := exec.Command(path, "--version").Output()
-	if err != nil {
+// startedBinDir is the directory of the kube-apiserver process envtest started.
+// A cache that also holds a newer patch must not win.
+func startedBinDir(env *envtest.Environment, explicit, patch string) string {
+	if env != nil {
+		if p := env.ControlPlane.GetAPIServer().Path; p != "" {
+			return filepath.Dir(p)
+		}
+	}
+	if explicit != "" {
+		return explicit
+	}
+	if env == nil || patch == "" {
 		return ""
 	}
-	m := versionRE.FindStringSubmatch(string(out))
-	if m == nil {
-		return ""
-	}
-	return m[1]
+	return filepath.Join(env.BinaryAssetsDirectory, patch+"-"+runtime.GOOS+"-"+runtime.GOARCH)
 }

@@ -18,7 +18,7 @@ This directory measures Stageproof. A case is a small chart pair, or a public ch
 
 A label in `labels/` is `{case, truth, evidence, by, date}`. `truth` is `clean` or `breaks`. The evidence is an upstream page or a `helm template` diff, not a Stageproof report. A same-major adjacent minor is labeled `clean`. A major boundary is labeled `breaks`.
 
-`go run ./cmd/corpus compare results.json corpus/baseline.json` exits non-zero when an active incident is missed, a control is blocked, or a labeled-clean pair is blocked and was not blocked in the baseline.
+`go run ./cmd/corpus compare results.json corpus/baseline.json` exits non-zero when an active incident is missed, a control is blocked, or a labeled-clean pair is blocked and was not blocked in the baseline. The corpus workflow runs that compare on the incident results and on the pair results.
 
 ## Run
 

@@ -10,7 +10,8 @@ import (
 
 func exposure(before, after map[string]obj) []verdict.Finding {
 	var findings []verdict.Finding
-	for k, neu := range after {
+	for _, k := range orderedKeys(after) {
+		neu := after[k]
 		old, ok := before[k]
 		switch neu.Kind {
 		case "Service":
@@ -37,7 +38,8 @@ func exposure(before, after map[string]obj) []verdict.Finding {
 			findings = append(findings, hostExposure(old, neu)...)
 		}
 	}
-	for k, old := range before {
+	for _, k := range orderedKeys(before) {
+		old := before[k]
 		if old.Kind != "NetworkPolicy" {
 			continue
 		}

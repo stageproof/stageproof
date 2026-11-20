@@ -71,8 +71,8 @@ func ValidateSources() error {
 
 // Findings returns the documented note, and its alias, when the chart text
 // mentions the CRD group and the database image refs did not change.
-func Findings(chart string, imageChanged bool, postgresRefsUnchanged bool) []verdict.Finding {
-	if !imageChanged || !postgresRefsUnchanged {
+func Findings(chart string, imageChanged bool, workloadRefsUnchanged bool) []verdict.Finding {
+	if !imageChanged || !workloadRefsUnchanged {
 		return nil
 	}
 	ops, err := Operators()

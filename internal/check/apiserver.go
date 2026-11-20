@@ -3,8 +3,11 @@ package check
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/stageproof/stageproof/internal/apiserver"
 	"github.com/stageproof/stageproof/internal/helm"
@@ -51,7 +54,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 
 	strict := in.ServerSideApply || helm.Major(ctx) >= 4
 	opt := apiserver.ProofOptions{StrictUnknown: strict}
-	res, err := srv.Prove(ctx, manifests(st.BaseObjs), manifests(st.HeadObjs), crdManifests(in.BaseDir, in.HeadDir), opt)
+	res, err := srv.Prove(ctx, manifests(st.BaseObjs), manifests(st.HeadObjs), crdManifests(in.BaseDir), crdManifests(in.HeadDir), opt)
 	if err != nil {
 		if mode == "require" {
 			st.Report.Skipped = append(st.Report.Skipped, verdict.SkipNotice{
@@ -71,7 +74,8 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	}
 	st.APIServerRan = true
 	st.APIServerVersion = srv.Version()
-	st.Stored = append(st.Stored, res.Stored...)
+	st.StoredBefore = append(st.StoredBefore, res.StoredBefore...)
+	st.StoredAfter = append(st.StoredAfter, res.StoredAfter...)
 	st.Report.Findings = append(st.Report.Findings, res.Findings...)
 	st.Report.Checked = "files, API server " + srv.Version()
 	blockers := 0
@@ -103,7 +107,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 		return
 	}
 	defer func() { _ = next.Stop() }()
-	nextRes, nerr := next.Prove(ctx, nil, manifests(st.HeadObjs), crdManifests(in.HeadDir), apiserver.ProofOptions{
+	nextRes, nerr := next.Prove(ctx, nil, manifests(st.HeadObjs), nil, crdManifests(in.HeadDir), apiserver.ProofOptions{
 		StrictUnknown: strict,
 		CreatesOnly:   true,
 		Warnings:      true,
@@ -126,30 +130,49 @@ func manifests(objs []k8sschema.ManifestObject) []apiserver.Manifest {
 	return out
 }
 
-func crdManifests(dirs ...string) []apiserver.Manifest {
+func crdManifests(dir string) []apiserver.Manifest {
+	if dir == "" {
+		return nil
+	}
 	var out []apiserver.Manifest
-	for _, dir := range dirs {
-		if dir == "" {
-			continue
-		}
-		entries, err := os.ReadDir(filepath.Join(dir, "crds"))
+	for _, path := range crdFiles(dir) {
+		raw, err := os.ReadFile(path)
 		if err != nil {
 			continue
 		}
-		for _, entry := range entries {
-			if entry.IsDir() {
-				continue
-			}
-			raw, err := os.ReadFile(filepath.Join(dir, "crds", entry.Name()))
-			if err != nil {
-				continue
-			}
-			objs, err := k8sschema.ParseManifestStream(string(raw))
-			if err != nil {
-				continue
-			}
-			out = append(out, manifests(objs)...)
+		objs, err := k8sschema.ParseManifestStream(string(raw))
+		if err != nil {
+			continue
 		}
+		out = append(out, manifests(objs)...)
 	}
 	return out
+}
+
+// crdFiles walks chart/crds and chart/charts/*/crds, including nested directories.
+func crdFiles(chartDir string) []string {
+	roots := []string{filepath.Join(chartDir, "crds")}
+	entries, err := os.ReadDir(filepath.Join(chartDir, "charts"))
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				roots = append(roots, filepath.Join(chartDir, "charts", entry.Name(), "crds"))
+			}
+		}
+	}
+	var files []string
+	for _, root := range roots {
+		_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d == nil || d.IsDir() {
+				return nil
+			}
+			switch strings.ToLower(filepath.Ext(path)) {
+			case ".yaml", ".yml", ".json":
+				files = append(files, path)
+			}
+			return nil
+		})
+	}
+	sort.Strings(files)
+	return files
 }

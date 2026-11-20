@@ -55,16 +55,23 @@ type ProofOptions struct {
 // ProofResult is what the API server demonstrated.
 type ProofResult struct {
 	Findings []verdict.Finding
-	// Stored is the JSON of each object the dry run returned, defaults applied.
-	Stored [][]byte
+	// StoredBefore is the JSON of each current object the server accepted.
+	StoredBefore [][]byte
+	// StoredAfter is the JSON of each new object the dry run returned.
+	StoredAfter [][]byte
 }
 
-// Prove installs CRDs, applies the current objects, and dry-runs the new ones.
-func (s *Server) Prove(ctx context.Context, before, after, extraCRDs []Manifest, opt ProofOptions) (ProofResult, error) {
+// Prove installs the current CRDs, applies the current objects, upgrades the
+// CRDs, dry-runs the new objects, and then checks each stored custom resource
+// against the new schema.
+// beforeExtra and afterExtra are CRDs from each chart's crds/ directory.
+// They stay on their own side so an updated file is not replaced by the old copy.
+func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExtra []Manifest, opt ProofOptions) (ProofResult, error) {
 	var result ProofResult
 	beforeObjs := docs(before)
 	afterObjs := docs(after)
-	extra := docs(extraCRDs)
+	beforeExtraObjs := docs(beforeExtra)
+	afterExtraObjs := docs(afterExtra)
 
 	var notSent []string
 	keep := func(u *unstructured.Unstructured) bool {
@@ -84,9 +91,13 @@ func (s *Server) Prove(ctx context.Context, before, after, extraCRDs []Manifest,
 
 	beforeCRDs, beforeRest := splitCRDs(filter(beforeObjs, keep))
 	afterCRDs, afterRest := splitCRDs(filter(afterObjs, keep))
-	for _, u := range filter(extra, keep) {
+	for _, u := range filter(beforeExtraObjs, keep) {
 		if u.GetKind() == "CustomResourceDefinition" {
 			beforeCRDs = append(beforeCRDs, u)
+		}
+	}
+	for _, u := range filter(afterExtraObjs, keep) {
+		if u.GetKind() == "CustomResourceDefinition" {
 			afterCRDs = append(afterCRDs, u)
 		}
 	}
@@ -99,72 +110,17 @@ func (s *Server) Prove(ctx context.Context, before, after, extraCRDs []Manifest,
 		return result, err
 	}
 	installed := map[string]*unstructured.Unstructured{}
-	var crdTargets []*unstructured.Unstructured
 	if opt.CreatesOnly {
-		crdTargets = afterCRDs
+		s.installCRDs(ctx, afterCRDs, installed, &result, opt)
 	} else {
-		crdTargets = beforeCRDs
-	}
-	for _, crd := range crdTargets {
-		got, finding, skip := s.putCRD(ctx, crd, false, opt)
-		if finding != nil {
-			result.Findings = append(result.Findings, *finding)
-		}
-		if skip || got == nil {
-			continue
-		}
-		installed[crd.GetName()] = got
-	}
-
-	if !opt.CreatesOnly {
-		byName := map[string]*unstructured.Unstructured{}
-		for _, crd := range beforeCRDs {
-			byName[crd.GetName()] = crd
-		}
-		for _, crd := range afterCRDs {
-			old := byName[crd.GetName()]
-			if old != nil && specEqual(old, crd) {
-				continue
-			}
-			// Dry-run the new CRD against the one already stored. This is
-			// where removing a stored version is rejected. Then apply it.
-			if old != nil {
-				if _, finding, _ := s.putCRD(ctx, crd, true, opt); finding != nil {
-					result.Findings = append(result.Findings, *finding)
-					continue
-				}
-			}
-			got, finding, skip := s.putCRD(ctx, crd, false, opt)
-			if finding != nil {
-				result.Findings = append(result.Findings, *finding)
-			}
-			if skip || got == nil {
-				continue
-			}
-			installed[crd.GetName()] = got
-		}
+		s.installCRDs(ctx, beforeCRDs, installed, &result, opt)
 	}
 	if err := s.refreshMapper(); err != nil {
 		return result, err
 	}
-	crdKinds := crdGroupKinds(installed)
 
-	ns := map[string]bool{}
-	collectNS := func(list []*unstructured.Unstructured) {
-		for _, u := range list {
-			if u.GetNamespace() != "" {
-				ns[u.GetNamespace()] = true
-			}
-		}
-	}
-	collectNS(afterRest)
-	if !opt.CreatesOnly {
-		collectNS(beforeRest)
-	}
-	for name := range ns {
-		if err := s.ensureNamespace(ctx, name); err != nil {
-			return result, err
-		}
+	if err := s.ensureNamespaces(ctx, beforeRest, afterRest, opt.CreatesOnly); err != nil {
+		return result, err
 	}
 
 	applied := map[string]bool{}
@@ -191,9 +147,41 @@ func (s *Server) Prove(ctx context.Context, before, after, extraCRDs []Manifest,
 			if got != nil {
 				applied[key(u)] = true
 				if raw, err := json.Marshal(got.Object); err == nil {
-					result.Stored = append(result.Stored, raw)
+					result.StoredBefore = append(result.StoredBefore, raw)
 				}
 			}
+		}
+
+		// Current objects are stored under the old CRDs. Upgrade the CRDs
+		// only after that, then check the stored custom resources.
+		byName := map[string]*unstructured.Unstructured{}
+		for _, crd := range beforeCRDs {
+			byName[crd.GetName()] = crd
+		}
+		for _, crd := range afterCRDs {
+			old := byName[crd.GetName()]
+			if old != nil && specEqual(old, crd) {
+				continue
+			}
+			// Dry-run the new CRD against the one already stored. This is
+			// where removing a stored version is rejected. Then apply it.
+			if old != nil {
+				if _, finding, _ := s.putCRD(ctx, crd, true, opt); finding != nil {
+					result.Findings = append(result.Findings, *finding)
+					continue
+				}
+			}
+			got, finding, skip := s.putCRD(ctx, crd, false, opt)
+			if finding != nil {
+				result.Findings = append(result.Findings, *finding)
+			}
+			if skip || got == nil {
+				continue
+			}
+			installed[crd.GetName()] = got
+		}
+		if err := s.refreshMapper(); err != nil {
+			return result, err
 		}
 	}
 
@@ -207,12 +195,13 @@ func (s *Server) Prove(ctx context.Context, before, after, extraCRDs []Manifest,
 		}
 		if got != nil {
 			if raw, err := json.Marshal(got.Object); err == nil {
-				result.Stored = append(result.Stored, raw)
+				result.StoredAfter = append(result.StoredAfter, raw)
 			}
 		}
 	}
 
 	if !opt.CreatesOnly {
+		crdKinds := crdGroupKinds(installed)
 		for _, u := range beforeRest {
 			if hook(u) || !applied[key(u)] {
 				continue
@@ -267,12 +256,57 @@ func (s *Server) putObject(ctx context.Context, u *unstructured.Unstructured, dr
 }
 
 func (s *Server) putExisting(ctx context.Context, u *unstructured.Unstructured, opt ProofOptions) (*unstructured.Unstructured, *verdict.Finding) {
-	got, err := s.apply(ctx, u, true)
+	live, err := s.getObject(ctx, u)
+	if err != nil {
+		f, _ := s.finding(ctx, u, err, opt, true)
+		return nil, f
+	}
+	// A full Update of an object that did not change does not recheck the CRD
+	// type. Server-side apply builds a typed object and does. managedFields
+	// has to be absent or that apply is rejected before the schema is read.
+	body := live.DeepCopy()
+	unstructured.RemoveNestedField(body.Object, "metadata", "managedFields")
+	unstructured.RemoveNestedField(body.Object, "status")
+	_, err = s.apply(ctx, body, true)
 	if err == nil {
-		return got, nil
+		return live, nil
 	}
 	f, _ := s.finding(ctx, u, err, opt, true)
 	return nil, f
+}
+
+func (s *Server) installCRDs(ctx context.Context, crds []*unstructured.Unstructured, installed map[string]*unstructured.Unstructured, result *ProofResult, opt ProofOptions) {
+	for _, crd := range crds {
+		got, finding, skip := s.putCRD(ctx, crd, false, opt)
+		if finding != nil {
+			result.Findings = append(result.Findings, *finding)
+		}
+		if skip || got == nil {
+			continue
+		}
+		installed[crd.GetName()] = got
+	}
+}
+
+func (s *Server) ensureNamespaces(ctx context.Context, before, after []*unstructured.Unstructured, createsOnly bool) error {
+	ns := map[string]bool{}
+	collect := func(list []*unstructured.Unstructured) {
+		for _, u := range list {
+			if u.GetNamespace() != "" {
+				ns[u.GetNamespace()] = true
+			}
+		}
+	}
+	collect(after)
+	if !createsOnly {
+		collect(before)
+	}
+	for name := range ns {
+		if err := s.ensureNamespace(ctx, name); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (s *Server) finding(ctx context.Context, u *unstructured.Unstructured, err error, opt ProofOptions, existing bool) (*verdict.Finding, bool) {
@@ -370,8 +404,7 @@ func notChecked(u *unstructured.Unstructured, why string) verdict.Finding {
 }
 
 func (s *Server) apply(ctx context.Context, u *unstructured.Unstructured, dry bool) (*unstructured.Unstructured, error) {
-	gvk := u.GroupVersionKind()
-	mapping, err := s.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	client, err := s.resourceClient(u)
 	if err != nil {
 		return nil, err
 	}
@@ -388,17 +421,31 @@ func (s *Server) apply(ctx context.Context, u *unstructured.Unstructured, dry bo
 	if dry {
 		opts.DryRun = []string{metav1.DryRunAll}
 	}
-	var client dynamic.ResourceInterface
+	return client.Patch(ctx, u.GetName(), types.ApplyPatchType, data, opts)
+}
+
+func (s *Server) getObject(ctx context.Context, u *unstructured.Unstructured) (*unstructured.Unstructured, error) {
+	client, err := s.resourceClient(u)
+	if err != nil {
+		return nil, err
+	}
+	return client.Get(ctx, u.GetName(), metav1.GetOptions{})
+}
+
+func (s *Server) resourceClient(u *unstructured.Unstructured) (dynamic.ResourceInterface, error) {
+	gvk := u.GroupVersionKind()
+	mapping, err := s.mapper.RESTMapping(gvk.GroupKind(), gvk.Version)
+	if err != nil {
+		return nil, err
+	}
 	if mapping.Scope.Name() == meta.RESTScopeNameNamespace {
 		ns := u.GetNamespace()
 		if ns == "" {
 			ns = "default"
 		}
-		client = s.dyn.Resource(mapping.Resource).Namespace(ns)
-	} else {
-		client = s.dyn.Resource(mapping.Resource)
+		return s.dyn.Resource(mapping.Resource).Namespace(ns), nil
 	}
-	return client.Patch(ctx, u.GetName(), types.ApplyPatchType, data, opts)
+	return s.dyn.Resource(mapping.Resource), nil
 }
 
 func (s *Server) ensureNamespace(ctx context.Context, name string) error {

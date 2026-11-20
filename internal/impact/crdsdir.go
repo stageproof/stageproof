@@ -2,6 +2,7 @@ package impact
 
 import (
 	"fmt"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"sort"
@@ -159,21 +160,13 @@ func loadDirCRDs(dir string) map[string]map[string]any {
 	if dir == "" {
 		return nil
 	}
-	root := filepath.Join(dir, "crds")
-	entries, err := os.ReadDir(root)
-	if err != nil {
+	files := chartCRDFiles(dir)
+	if len(files) == 0 {
 		return nil
 	}
 	var buf strings.Builder
-	for _, e := range entries {
-		if e.IsDir() {
-			continue
-		}
-		ext := strings.ToLower(filepath.Ext(e.Name()))
-		if ext != ".yaml" && ext != ".yml" && ext != ".json" {
-			continue
-		}
-		raw, err := os.ReadFile(filepath.Join(root, e.Name()))
+	for _, path := range files {
+		raw, err := os.ReadFile(path)
 		if err != nil || len(raw) == 0 {
 			continue
 		}
@@ -194,6 +187,33 @@ func loadDirCRDs(dir string) map[string]map[string]any {
 		}
 	}
 	return out
+}
+
+func chartCRDFiles(chartDir string) []string {
+	roots := []string{filepath.Join(chartDir, "crds")}
+	entries, err := os.ReadDir(filepath.Join(chartDir, "charts"))
+	if err == nil {
+		for _, entry := range entries {
+			if entry.IsDir() {
+				roots = append(roots, filepath.Join(chartDir, "charts", entry.Name(), "crds"))
+			}
+		}
+	}
+	var files []string
+	for _, root := range roots {
+		_ = filepath.WalkDir(root, func(path string, d fs.DirEntry, err error) error {
+			if err != nil || d == nil || d.IsDir() {
+				return nil
+			}
+			switch strings.ToLower(filepath.Ext(path)) {
+			case ".yaml", ".yml", ".json":
+				files = append(files, path)
+			}
+			return nil
+		})
+	}
+	sort.Strings(files)
+	return files
 }
 
 func fingerprint(body map[string]any) string {

@@ -34,6 +34,10 @@ jobs:
           else
             go run ./cmd/corpus run --set pairs --pr --out pairs.json
           fi
+      - name: Compare
+        run: |
+          go run ./cmd/corpus compare incidents.json corpus/baseline.json
+          go run ./cmd/corpus compare pairs.json corpus/baseline.json
       - name: Results
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
