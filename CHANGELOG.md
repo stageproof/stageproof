@@ -10,6 +10,7 @@ The next release is 0.2.0.
 ### Added
 
 - JSON reports start with `schema_version` 1. The field is added. Existing fields are unchanged.
+- The accuracy corpus runs the incident fixtures and 100 public chart pairs. `go run ./cmd/corpus` is not in the release archives.
 
 ### Breaking
 

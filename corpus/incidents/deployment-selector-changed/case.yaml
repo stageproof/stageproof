@@ -1,0 +1,7 @@
+id: deployment-selector-changed
+summary: The Deployment selector changes. Kubernetes rejects that upgrade.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.upgrade.immutable_selector_changed]}
+control_expect: {verdict: PASSED}
+status: active
+source: Kubernetes forbids mutating a Deployment label selector in place

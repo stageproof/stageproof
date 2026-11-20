@@ -1,0 +1,8 @@
+id: crd-field-type-changed
+summary: A CRD field changes type while objects already use the old type.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [crd.existing_object_invalid]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.5"
+source: a stored object fails the new OpenAPI schema

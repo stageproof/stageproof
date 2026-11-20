@@ -1,0 +1,14 @@
+{
+  "summary": {
+    "incidents_caught": 4,
+    "incidents_active": 4,
+    "controls_passed": 12,
+    "controls": 12,
+    "wrong_blocks": 0,
+    "labeled_clean": 45,
+    "p50_seconds": 0.471160842,
+    "p95_seconds": 2.731572753
+  },
+  "blocked_clean": [],
+  "recorded": "2026-11-20"
+}

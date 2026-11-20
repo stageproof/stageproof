@@ -1,0 +1,8 @@
+id: crds-directory-changed
+summary: A CRD under crds/ changed. Plain Helm does not upgrade CRDs in that directory.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [crd.not_upgraded_by_helm]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.5"
+source: https://helm.sh/docs/chart_best_practices/custom_resource_definitions/

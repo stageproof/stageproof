@@ -1,0 +1,9 @@
+id: crd-removed-from-templates
+summary: The new chart no longer templates a CRD. Helm deletes it and every object of that kind.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [impact.delete.crd]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.5"
+source: https://github.com/kubernetes-sigs/lws/issues/880
+note: helm upgrade on kind from a chart that templates the CRD to a chart that does not deletes the CRD.

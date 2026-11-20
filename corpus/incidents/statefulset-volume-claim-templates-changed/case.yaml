@@ -1,0 +1,8 @@
+id: statefulset-volume-claim-templates-changed
+summary: volumeClaimTemplates on a StatefulSet changed. Kubernetes rejects that upgrade.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.apply.immutable_field]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.4"
+source: Kubernetes rejects updates to StatefulSet volumeClaimTemplates
