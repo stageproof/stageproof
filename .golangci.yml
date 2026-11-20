@@ -1,0 +1,10 @@
+version: "2"
+
+linters:
+  exclusions:
+    rules:
+      # The report package writes to the caller's writer. A short write is not
+      # a different verdict, so those fmt errors are not checked.
+      - path: internal/report/report.go
+        linters:
+          - errcheck

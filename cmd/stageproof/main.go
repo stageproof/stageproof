@@ -273,7 +273,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 			fmt.Fprintf(os.Stderr, "tempdir error: %v\n", mErr)
 			return 2
 		}
-		defer os.RemoveAll(tmpPull)
+		defer func() { _ = os.RemoveAll(tmpPull) }()
 
 		pulledNew, pErr := argocd.PullChart(ctx, newSpec.RepoURL, newSpec.Chart, newSpec.TargetRevision, filepath.Join(tmpPull, "new"))
 		if pErr != nil {
@@ -349,7 +349,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	if yml, yErr := helm.AssignmentsYAML(setValues); yErr == nil && strings.TrimSpace(yml) != "" {
 		dir, dErr := os.MkdirTemp("", "stageproof-set-*")
 		if dErr == nil {
-			defer os.RemoveAll(dir)
+			defer func() { _ = os.RemoveAll(dir) }()
 			setPath := filepath.Join(dir, "parameters.yaml")
 			if wErr := os.WriteFile(setPath, []byte(yml), 0o644); wErr == nil {
 				effectiveValues = append(effectiveValues, setPath)
