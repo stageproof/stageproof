@@ -237,11 +237,22 @@ func verdictHeadlines(r *verdict.Report) []string {
 		if baselineWasSlow(r) {
 			lines = append(lines, "The current release had not become ready. The upgrade used that release and the same values.")
 		}
-		if r.HasRule("helm.operator.primary_restart") {
-			lines = append(lines, "An operator image change can restart the current primary without a switchover even when the Postgres image tag does not change. This rehearsal had no Cluster.")
+		if msg := operatorNote(r); msg != "" {
+			lines = append(lines, msg)
 		}
 	}
 	return lines
+}
+
+func operatorNote(r *verdict.Report) string {
+	for _, id := range []string{"helm.operator.documented_upgrade_behavior", "helm.operator.primary_restart"} {
+		for _, f := range r.Findings {
+			if f.RuleID == id && f.Message != "" {
+				return f.Message
+			}
+		}
+	}
+	return ""
 }
 
 func baselineWasSlow(r *verdict.Report) bool {

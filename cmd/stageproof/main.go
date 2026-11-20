@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -260,14 +261,20 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	// Values written inside an Argo CD Application are checked from a temporary
 	// file. Reports name where the values came from, not that file.
 	valuesLabel := map[string]string{}
+	var placeholderTokens []string
 
 	// Argo CD Application / .yaml.tmpl mode: auto-pull remote Helm chart(s), extract inline values & syncOptions!
 	if *argoFile != "" {
-		newSpec, _, aErr := argocd.ParseApplicationFile(*argoFile, templatePlaceholders())
+		newSpec, used, aErr := argocd.ParseApplicationFile(*argoFile, templatePlaceholders())
+		if tokens := argocd.UnresolvedTokens(aErr); len(tokens) > 0 {
+			emit(unresolvedPlaceholderReport(*argoFile, tokens))
+			return verdict.NotChecked.ExitCode()
+		}
 		if aErr != nil {
 			fmt.Fprintf(os.Stderr, "error parsing --argocd-file %s: %v\n", *argoFile, aErr)
 			return 2
 		}
+		placeholderTokens = append(placeholderTokens, used...)
 		tmpPull, mErr := os.MkdirTemp("", "stageproof-argopull-*")
 		if mErr != nil {
 			fmt.Fprintf(os.Stderr, "tempdir error: %v\n", mErr)
@@ -296,19 +303,30 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		var oldSpec *argocd.AppSpec
 		oldLabel := ""
 		if *currentArgo != "" {
-			parsed, _, oErr := argocd.ParseApplicationFile(*currentArgo, templatePlaceholders())
+			parsed, usedOld, oErr := argocd.ParseApplicationFile(*currentArgo, templatePlaceholders())
+			if tokens := argocd.UnresolvedTokens(oErr); len(tokens) > 0 {
+				emit(unresolvedPlaceholderReport(*currentArgo, tokens))
+				return verdict.NotChecked.ExitCode()
+			}
 			if oErr != nil {
 				fmt.Fprintf(os.Stderr, "error parsing --current-argocd-file %s: %v\n", *currentArgo, oErr)
 				return 2
 			}
 			oldSpec = parsed
 			oldLabel = *currentArgo
+			placeholderTokens = append(placeholderTokens, usedOld...)
 		} else if gitRef != "" {
 			oldBytes, gErr := readFileFromGitRef(gitRef, *argoFile)
 			if gErr == nil {
-				if parsed, _, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, templatePlaceholders()); oErr == nil {
+				parsed, usedOld, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, templatePlaceholders())
+				if tokens := argocd.UnresolvedTokens(oErr); len(tokens) > 0 {
+					emit(unresolvedPlaceholderReport(gitRef+":"+*argoFile, tokens))
+					return verdict.NotChecked.ExitCode()
+				}
+				if oErr == nil {
 					oldSpec = parsed
 					oldLabel = gitRef
+					placeholderTokens = append(placeholderTokens, usedOld...)
 				}
 			}
 		}
@@ -367,6 +385,9 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		ValuesFiles: relabel(effectiveValues, valuesLabel),
 		Checked:     verdict.CheckedFiles,
 		Timestamp:   time.Now().UTC(),
+	}
+	if note := placeholderFinding(placeholderTokens); note != nil {
+		rep.Findings = append(rep.Findings, *note)
 	}
 
 	// Pre-scan `required` `.Values.*` AST calls
@@ -853,7 +874,7 @@ func runCheckPR(args []string) int {
 
 		// 1. Check if file is an Argo CD Application YAML / .yaml.tmpl
 		if strings.HasSuffix(f, ".yaml") || strings.HasSuffix(f, ".yml") || strings.HasSuffix(f, ".yaml.tmpl") {
-			if _, _, aErr := argocd.ParseApplicationFile(f, templatePlaceholders()); aErr == nil {
+			if _, _, aErr := argocd.ParseApplicationFile(f, templatePlaceholders()); aErr == nil || len(argocd.UnresolvedTokens(aErr)) > 0 {
 				argoFiles = append(argoFiles, f)
 				continue
 			}
@@ -1032,6 +1053,52 @@ func fileExists(path string) bool {
 // incompleteReport stands in for a check that stopped before it had a report,
 // for example because a chart could not be downloaded. Without it that chart
 // would be missing from the pull request comment.
+func placeholderFinding(tokens []string) *verdict.Finding {
+	seen := map[string]bool{}
+	var uniq []string
+	for _, token := range tokens {
+		if token == "" || seen[token] {
+			continue
+		}
+		seen[token] = true
+		uniq = append(uniq, token)
+	}
+	if len(uniq) == 0 {
+		return nil
+	}
+	sort.Strings(uniq)
+	return &verdict.Finding{
+		RuleID:   "helm.config.placeholder_used",
+		Severity: verdict.SeverityInfo,
+		Message:  "A placeholder was used for " + strings.Join(uniq, ", ") + ".",
+		Detail:   "An unresolved ${...} token outside the chart repository, name, and version was replaced with stageproof-placeholder.",
+	}
+}
+
+func unresolvedPlaceholderReport(label string, tokens []string) *verdict.Report {
+	return &verdict.Report{
+		Verdict:   verdict.NotChecked,
+		ExitCode:  verdict.NotChecked.ExitCode(),
+		Adapter:   "helm",
+		BaseRef:   label,
+		HeadRef:   label,
+		Checked:   verdict.CheckedFiles,
+		Timestamp: time.Now().UTC(),
+		Checks: []verdict.CheckResult{{
+			Name:    "chart source",
+			Status:  "fail",
+			Summary: "Unresolved placeholder in the chart repository, name, or version: " + strings.Join(tokens, ", "),
+		}},
+		Findings: []verdict.Finding{{
+			RuleID:   "helm.config.unresolved_placeholder",
+			Severity: verdict.SeverityWarning,
+			File:     label,
+			Message:  "Stageproof could not check this chart because a placeholder is still in the chart repository, name, or version.",
+			Detail:   strings.Join(tokens, ", "),
+		}},
+	}
+}
+
 func incompleteReport(baseRef, target string) *verdict.Report {
 	return &verdict.Report{
 		Verdict:   verdict.NotChecked,
