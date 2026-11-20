@@ -18,7 +18,7 @@ jobs:
           fetch-depth: 0
       - uses: actions/setup-go@v6
         with:
-          go-version: "1.23"
+          go-version: "1.27.4"
       - uses: sigstore/cosign-installer@v3
       - id: mode
         env:
@@ -53,10 +53,18 @@ jobs:
       - uses: docker/build-push-action@v7
         with:
           context: .
+          target: stageproof
           push: true
           platforms: linux/amd64,linux/arm64
-          tags: |
-            ghcr.io/stageproof/stageproof:${{ github.ref_name }}
-            ghcr.io/stageproof/stageproof:latest
+          build-args: VERSION=${{ github.ref_name }}
+          tags: ghcr.io/stageproof/stageproof:${{ github.ref_name }}
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          target: live
+          push: true
+          platforms: linux/amd64,linux/arm64
+          build-args: VERSION=${{ github.ref_name }}
+          tags: ghcr.io/stageproof/stageproof:${{ github.ref_name }}-live
       - name: Sign the image
         run: cosign sign --yes ghcr.io/stageproof/stageproof:${{ github.ref_name }}
