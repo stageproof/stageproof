@@ -901,17 +901,20 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>Your repository is on GitLab and you want a failed check to stop a merge.</dd></div>
   <div><dt>Runs</dt><dd><a href="#pull-request"><code>stageproof check-pr</code></a> against the target branch of the merge request.</dd></div>
-  <div><dt>Needs</dt><dd>A runner that can run the <code>golang</code> image. No cluster.</dd></div>
+  <div><dt>Needs</dt><dd>A runner that can pull the Stageproof image. The image already contains Stageproof, Helm, and Git. No cluster.</dd></div>
 </dl>
 
 <h2>The job</h2>
-<p>This job is based on the one that runs on the repository where Stageproof is developed. It expects the Stageproof source in <code>stageproof/</code> in your repository. Change those two paths if you keep it somewhere else, and change the paths under <code>changes</code> to where your charts and Application files are.</p>
+<p>Change the paths under <code>changes</code> to where your charts and Application files are. The image tag is a released version.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
 stageproof:
   stage: test
-  image: golang:bookworm
+  image:
+    name: ghcr.io/stageproof/stageproof:v0.1.8
+    entrypoint: [""]
   variables:
     GIT_DEPTH: "50"
+    GIT_FETCH_EXTRA_FLAGS: "--prune --quiet"
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
       changes:
@@ -920,21 +923,11 @@ stageproof:
   script:
     - |
       set -euo pipefail
-
-      # Helm renders the charts.
-      curl -fsSL -o /tmp/helm.tgz https://get.helm.sh/helm-v3.17.1-linux-amd64.tar.gz
-      tar -xzf /tmp/helm.tgz -C /tmp
-      mv /tmp/linux-amd64/helm /usr/local/bin/helm
-
-      # Build Stageproof from source.
-      (cd stageproof/cli &amp;&amp; go build -o /usr/local/bin/stageproof ./cmd/stageproof)
-
-      # The commit this merge request will merge into.
       git fetch origin "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME" --depth=50
       BASE="${CI_MERGE_REQUEST_DIFF_BASE_SHA:-origin/$CI_MERGE_REQUEST_TARGET_BRANCH_NAME}"
 
       set +e
-      stageproof check-pr \
+      STAGEPROOF_COLOR=always stageproof check-pr \
         --current-git "$BASE" \
         --current-k8s 1.35 \
         --comment-file stageproof-comment.md \
@@ -942,9 +935,12 @@ stageproof:
       RESULT=$?
       set -e
 
-      # Post the report on the merge request.
+      # Post the report. This adds a new comment on every run.
       if [ -f stageproof-comment.md ] &amp;&amp; [ -n "${STAGEPROOF_GITLAB_TOKEN:-}" ]; then
-        python3 stageproof/ci/post_gitlab_mr_note.py stageproof-comment.md
+        curl --fail-with-body --silent --show-error \
+          --header "PRIVATE-TOKEN: ${STAGEPROOF_GITLAB_TOKEN}" \
+          --data-urlencode "body@stageproof-comment.md" \
+          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
       fi
 
       # 0 is PASSED or PROVEN. 1 is BLOCKED. 2 is NOT CHECKED.
@@ -983,7 +979,7 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 </table></div>
 
 <h2>The comment on the merge request</h2>
-<p>The script <code>ci/post_gitlab_mr_note.py</code> in the Stageproof source posts the Markdown report as a comment. When the job runs again, it updates that comment and does not add a second one. A merge request that changes several charts gets one comment that covers all of them.</p>
+<p>The <code>curl</code> call posts the Markdown report as a new comment. A later run adds another comment. It does not edit the previous one. A merge request that changes several charts gets one comment that covers all of them.</p>
 <p>It needs a CI/CD variable named <code>STAGEPROOF_GITLAB_TOKEN</code> that holds a GitLab access token with the <code>api</code> scope. Mark the variable as masked. Without the variable, the job still checks the merge request and skips the comment.</p>
 
 <h2>Stop a blocked merge request from merging</h2>
@@ -1000,16 +996,11 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>Your repository is on GitHub and you want a failed check to stop a merge.</dd></div>
   <div><dt>Runs</dt><dd><a href="#pull-request"><code>stageproof check-pr</code></a> against the base branch of the pull request.</dd></div>
-  <div><dt>Needs</dt><dd>A GitHub-hosted Ubuntu runner. Helm is already installed on it. No cluster.</dd></div>
+  <div><dt>Needs</dt><dd>A GitHub-hosted Ubuntu runner. The job downloads the released binary and Helm. No cluster.</dd></div>
 </dl>
 
-<div class="doc-callout is-info">
-  <div class="doc-callout-title">Status of this workflow</div>
-  <p>Stageproof is tested daily with the <a href="#ci-gitlab">GitLab job</a>. This workflow follows the same steps. Treat it as a starting point and confirm it on your repository.</p>
-</div>
-
 <h2>The workflow</h2>
-<p>The workflow expects the Stageproof source in <code>stageproof/</code> in your repository. Change <code>working-directory</code> if you keep it somewhere else, and change <code>paths</code> to where your charts and Application files are.</p>
+<p>Change <code>paths</code> to where your charts and Application files are. The version in the download URL is a released tag.</p>
 <pre data-kind="file" data-label=".github/workflows/stageproof.yml">
 name: stageproof
 
@@ -1030,18 +1021,27 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.23"
+      - name: Install Helm 3.22.1
+        run: |
+          set -euo pipefail
+          curl -fsSL -o /tmp/helm.tgz https://get.helm.sh/helm-v3.22.1-linux-amd64.tar.gz
+          echo "896cf63684a42a723d61c980369d6e588330927deb13676ca0d85006dd6da0ea  /tmp/helm.tgz" | sha256sum -c -
+          tar -xzf /tmp/helm.tgz -C /tmp
+          sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
 
-      - name: Build Stageproof
-        working-directory: stageproof/cli
-        run: go build -o "$RUNNER_TEMP/stageproof" ./cmd/stageproof
+      - name: Install Stageproof v0.1.8
+        run: |
+          set -euo pipefail
+          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.1.8/checksums.txt
+          curl -fsSL -o stageproof_0.1.8_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.1.8/stageproof_0.1.8_linux_amd64.tar.gz
+          sha256sum -c checksums.txt --ignore-missing
+          tar -xzf stageproof_0.1.8_linux_amd64.tar.gz
+          sudo mv stageproof /usr/local/bin/stageproof
 
       - name: Check the pull request
         run: |
           set +e
-          "$RUNNER_TEMP/stageproof" check-pr \
+          stageproof check-pr \
             --current-git "origin/${{ github.base_ref }}" \
             --current-k8s 1.35 \
             --comment-file stageproof-comment.md \
@@ -1049,7 +1049,6 @@ jobs:
           result=$?
           set -e
 
-          # Show the report on the workflow summary page.
           if [ -f stageproof-comment.md ]; then
             cat stageproof-comment.md &gt;&gt; "$GITHUB_STEP_SUMMARY"
           fi
