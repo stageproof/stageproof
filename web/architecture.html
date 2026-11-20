@@ -120,6 +120,11 @@ kind cluster on this machine
               <td>The server is not your cluster. The patch it ran is named in the report. <code>--api-server off</code> uses only the table. Webhook configurations are not sent.</td>
             </tr>
             <tr>
+              <td>Impact</td>
+              <td>It compares the two sets of objects. A delete of a PersistentVolumeClaim, a Namespace, or a templated CRD is <code>BLOCKED</code>. A CRD schema break that an existing object uses is <code>BLOCKED</code>. A restart is named and does not block. When the API server did not run, the check says it compared the rendered objects.</td>
+              <td>The comparison does not print values. A CRD under <code>crds/</code> is judged as plain Helm, which does not upgrade that directory. Argo CD and Flux adapters are not wired into the command yet.</td>
+            </tr>
+            <tr>
               <td>Argo CD</td>
               <td>An Application file is parsed, both chart revisions are pulled, and inline <code>helm.values</code> are checked. <code>${...}</code> placeholders in a <code>.yaml.tmpl</code> are replaced with fixed samples so the file parses.</td>
               <td>One chart source. Several sources, <code>valueFiles</code>, and a Git path as the source are not read.</td>
@@ -144,16 +149,12 @@ kind cluster on this machine
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">03</span> Planned, and not built</p>
           <h2>The next engine is still a plan.</h2>
-          <p class="sec-lede">These checks are not in the tool yet. The <a href="roadmap.html">roadmap</a> is the list, in order.</p>
+          <p class="sec-lede">This check is not in the tool yet. The <a href="roadmap.html">roadmap</a> is the list, in order.</p>
         </div>
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Values proof by rendering</h3>
             <p>Render with and without each key you set. A key is used when removing it changes the output. A verified rename is one that reproduces the old output.</p>
-          </article>
-          <article class="doc-card">
-            <h3>What the upgrade does</h3>
-            <p>A classifier for deletes, restarts, exposure, privilege, and CRD compatibility. The first lines of a report should say what the upgrade removes.</p>
           </article>
         </div>
       </div>

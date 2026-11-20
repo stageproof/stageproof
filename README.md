@@ -77,9 +77,9 @@ stageproof check \
 |---|---|
 | Does the new chart render with your values? | `helm template` |
 | Does a values key you set still get read? | The chart templates. A key the old chart reads and the new chart does not is `BLOCKED`. |
-| Does the chart use an API your Kubernetes version removed? | A table of removed APIs, at `--current-k8s`. |
+| Does the chart use an API your Kubernetes version removed? | A local API server of `--current-k8s` when those binaries are available. Otherwise a table of removed APIs. |
 | Will the next Kubernetes version remove an API the chart still uses? | `--next-k8s` prints a warning. The pull request can still merge. The cluster is not upgraded. |
-| Can the upgrade be applied on top of the old release? | Label selectors that Kubernetes refuses to change are `BLOCKED`. |
+| Can the upgrade be applied on top of the old release? | The local API server dry-runs the new objects on top of the current ones. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED`, unless the object has `helm.sh/resource-policy: keep`. A CRD schema change that an existing object uses is `BLOCKED`. A restart is named and does not block. A label selector Kubernetes will not change is `BLOCKED`. |
 | Does the new release start, and can it roll back? | `--live`, on the temporary cluster above. |
 
 `check-pr` finds every changed chart, and every changed Argo CD Application that names one chart, by reading `git diff`. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`.

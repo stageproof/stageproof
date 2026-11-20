@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stageproof/stageproof/internal/report"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
@@ -45,6 +46,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	if st.Stopped {
 		return st.Report
 	}
+	Impact(in, st)
 	APIs(in, st)
 
 	runtimeOK, inconclusive := Rehearse(ctx, in, st)
@@ -55,6 +57,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	if in.Live && !runtimeOK && len(st.Report.Skipped) == 0 {
 		inconclusive = true
 	}
+	st.Report.Findings = report.OrderFindings(st.Report.Findings)
 	st.Report.DurationMs = time.Since(in.Started).Milliseconds()
 	st.Report.Finalize(runtimeOK, inconclusive, in.RequireRehearsal)
 	return st.Report

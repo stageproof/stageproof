@@ -57,6 +57,7 @@ func paint(enabled bool, code, text string) string {
 func WriteJSON(w io.Writer, r *verdict.Report) error {
 	if r != nil {
 		r.SchemaVersion = 1
+		r.Findings = OrderFindings(r.Findings)
 	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
@@ -68,6 +69,9 @@ func WriteTerminal(w io.Writer, r *verdict.Report) {
 }
 
 func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
+	if r != nil {
+		r.Findings = OrderFindings(r.Findings)
+	}
 	verdictColor := ansiGreenB
 	switch r.Verdict {
 	case verdict.Blocked:
@@ -229,6 +233,14 @@ func WriteCombinedMarkdown(w io.Writer, c *Combined) {
 
 func verdictHeadlines(r *verdict.Report) []string {
 	var lines []string
+	for _, f := range r.Findings {
+		if f.Severity != verdict.SeverityBlocker {
+			continue
+		}
+		if strings.HasPrefix(f.RuleID, "impact.delete") || strings.HasPrefix(f.RuleID, "crd.") {
+			lines = append(lines, f.Message)
+		}
+	}
 	if r.Checked == verdict.CheckedFilesAndLive && minorMismatch(r) {
 		lines = append(lines, "Rehearsed on a different Kubernetes version than the one requested. This proves less.")
 	}
@@ -286,6 +298,9 @@ func minorMismatch(r *verdict.Report) bool {
 }
 
 func WriteMarkdown(w io.Writer, r *verdict.Report) {
+	if r != nil {
+		r.Findings = OrderFindings(r.Findings)
+	}
 	badge := string(r.Verdict)
 	fmt.Fprintf(w, "## Stageproof Upgrade Gate: `%s` (exit `%d`)\n\n", badge, r.ExitCode)
 	for _, line := range verdictHeadlines(r) {
