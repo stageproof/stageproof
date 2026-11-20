@@ -1,0 +1,4 @@
+- crdGroup: postgresql.cnpg.io
+  note: An operator upgrade can switch over or restart the current primary even when the Postgres image tag does not change. The rehearsal had no Cluster.
+  source: https://cloudnative-pg.io/documentation/current/installation_upgrade/
+  alias: helm.operator.primary_restart

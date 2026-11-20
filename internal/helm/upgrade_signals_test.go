@@ -167,7 +167,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: redis
-  namespace: izbirai
+  namespace: example
 spec:
   template:
     spec:
@@ -292,10 +292,14 @@ func TestPostgresPrimarySignal_SameDatabaseImage(t *testing.T) {
 	}
 	prior := []verdict.Finding{{RuleID: "helm.image.changed", Severity: verdict.SeverityWarning}}
 	got := postgresPrimarySignal(filepath.Join(root, "base"), filepath.Join(root, "head"), nil, nil, prior)
-	if len(got) != 1 || got[0].RuleID != "helm.operator.primary_restart" {
+	if len(got) != 2 {
 		t.Fatalf("got %+v", got)
 	}
-	if !strings.Contains(got[0].Message, "without a switchover") || !strings.Contains(got[0].Message, "no Cluster") {
+	ids := got[0].RuleID + " " + got[1].RuleID
+	if !strings.Contains(ids, "helm.operator.primary_restart") || !strings.Contains(ids, "helm.operator.documented_upgrade_behavior") {
+		t.Fatalf("ids: %s", ids)
+	}
+	if !strings.Contains(got[0].Message, "no Cluster") {
 		t.Fatalf("message: %s", got[0].Message)
 	}
 	changed := "apiVersion: postgresql.cnpg.io/v1\nimage: ghcr.io/cloudnative-pg/postgresql:17.5\n"

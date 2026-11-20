@@ -14,19 +14,17 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
-var KnownCRDBundles = map[string]string{
-	"monitoring.coreos.com/ServiceMonitor": "https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.78.1/example/prometheus-operator-crd/monitoring.coreos.com_servicemonitors.yaml",
-	"monitoring.coreos.com/PodMonitor":     "https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.78.1/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml",
-	"monitoring.coreos.com/PrometheusRule": "https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/v0.78.1/example/prometheus-operator-crd/monitoring.coreos.com_prometheusrules.yaml",
-	"gateway.networking.k8s.io/HTTPRoute":  "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml",
-	"gateway.networking.k8s.io/Gateway":    "https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.0/standard-install.yaml",
-	"cert-manager.io/Certificate":          "https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.crds.yaml",
-	"cert-manager.io/Issuer":               "https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.crds.yaml",
-	"cert-manager.io/ClusterIssuer":        "https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.crds.yaml",
-	"postgresql.cnpg.io/Cluster":           "https://raw.githubusercontent.com/cloudnative-pg/cloudnative-pg/v1.24.1/config/crd/bases/postgresql.cnpg.io_clusters.yaml",
+func crdBundle(groupKind string) (string, bool) {
+	bundles, err := knowledge.CRDBundles()
+	if err != nil {
+		return "", false
+	}
+	url, ok := bundles[groupKind]
+	return url, ok
 }
 
 type KindOptions struct {
@@ -61,7 +59,7 @@ type Outcome struct {
 }
 
 // DefaultReadinessTimeout is how long one helm install, upgrade, or rollback
-// waits for pods. Harbor and Longhorn do not become ready in 90s on an empty
+// waits for pods. Some charts do not become ready in 90s on an empty
 // cluster, and a short wait then hides the candidate chart.
 const DefaultReadinessTimeout = 10 * time.Minute
 
@@ -685,7 +683,6 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 						}
 						if r == "ImagePullBackOff" || r == "ErrImagePull" {
 							if strings.Contains(lmsg, "unauthorized") || strings.Contains(lmsg, "authentication") ||
-								strings.Contains(lmsg, ".internal") || strings.Contains(lmsg, "harbor") ||
 								strings.Contains(lmsg, "no such host") {
 								return fmt.Sprintf("pod `%s` private registry image unreachable/unauthorized", p.Metadata.Name),
 									failExternalEnvGap,
@@ -982,7 +979,7 @@ func hydrateCRDs(ctx context.Context, kubeconfig string, externalGKs, extraBundl
 	var missing []string
 	hydratedCount := 0
 	for _, gk := range externalGKs {
-		url, ok := KnownCRDBundles[gk]
+		url, ok := crdBundle(gk)
 		if !ok {
 			missing = append(missing, gk)
 			continue

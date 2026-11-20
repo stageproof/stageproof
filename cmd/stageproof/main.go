@@ -263,7 +263,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 
 	// Argo CD Application / .yaml.tmpl mode: auto-pull remote Helm chart(s), extract inline values & syncOptions!
 	if *argoFile != "" {
-		newSpec, aErr := argocd.ParseApplicationFile(*argoFile)
+		newSpec, _, aErr := argocd.ParseApplicationFile(*argoFile, templatePlaceholders())
 		if aErr != nil {
 			fmt.Fprintf(os.Stderr, "error parsing --argocd-file %s: %v\n", *argoFile, aErr)
 			return 2
@@ -296,7 +296,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		var oldSpec *argocd.AppSpec
 		oldLabel := ""
 		if *currentArgo != "" {
-			parsed, oErr := argocd.ParseApplicationFile(*currentArgo)
+			parsed, _, oErr := argocd.ParseApplicationFile(*currentArgo, templatePlaceholders())
 			if oErr != nil {
 				fmt.Fprintf(os.Stderr, "error parsing --current-argocd-file %s: %v\n", *currentArgo, oErr)
 				return 2
@@ -306,7 +306,7 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		} else if gitRef != "" {
 			oldBytes, gErr := readFileFromGitRef(gitRef, *argoFile)
 			if gErr == nil {
-				if parsed, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile); oErr == nil {
+				if parsed, _, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, templatePlaceholders()); oErr == nil {
 					oldSpec = parsed
 					oldLabel = gitRef
 				}
@@ -853,17 +853,17 @@ func runCheckPR(args []string) int {
 
 		// 1. Check if file is an Argo CD Application YAML / .yaml.tmpl
 		if strings.HasSuffix(f, ".yaml") || strings.HasSuffix(f, ".yml") || strings.HasSuffix(f, ".yaml.tmpl") {
-			if _, aErr := argocd.ParseApplicationFile(f); aErr == nil {
+			if _, _, aErr := argocd.ParseApplicationFile(f, templatePlaceholders()); aErr == nil {
 				argoFiles = append(argoFiles, f)
 				continue
 			}
 		}
 
-		// 2. Special-case Terraform modules calling argo-cd chart (`terraform/modules/argo-cd/*`)
-		if strings.HasPrefix(f, "terraform/modules/argo-cd/") {
-			if !seenCharts["__tf_argocd__"] {
-				seenCharts["__tf_argocd__"] = true
-				argoFiles = append(argoFiles, "__TF_ARGOCD__")
+		if app := configuredApplication(f); app != nil {
+			key := "app:" + app.Name
+			if !seenCharts[key] {
+				seenCharts[key] = true
+				argoFiles = append(argoFiles, key)
 			}
 			continue
 		}
@@ -961,16 +961,22 @@ func runCheckPR(args []string) int {
 	}
 
 	for _, af := range argoFiles {
-		if af == "__TF_ARGOCD__" {
-			newPath, oldPath, cleanup, sErr := synthesizeTerraformArgoApps(*currentGit)
+		if strings.HasPrefix(af, "app:") {
+			app := configuredApplicationByName(strings.TrimPrefix(af, "app:"))
+			if app == nil {
+				reports = append(reports, incompleteReport(*currentGit, af))
+				note(verdict.NotChecked)
+				continue
+			}
+			newPath, oldPath, cleanup, sErr := synthesizeConfiguredApp(*app, *currentGit)
 			if sErr != nil {
-				fmt.Fprintf(os.Stderr, "stageproof check-pr: terraform argo-cd: %v\n", sErr)
-				reports = append(reports, incompleteReport(*currentGit, "terraform/modules/argo-cd"))
+				fmt.Fprintf(os.Stderr, "stageproof check-pr: %s: %v\n", app.Name, sErr)
+				reports = append(reports, incompleteReport(*currentGit, app.VersionFrom.File))
 				note(verdict.NotChecked)
 				continue
 			}
 			defer cleanup()
-			runTarget("terraform/modules/argo-cd", []string{"--argocd-file", newPath, "--current-argocd-file", oldPath})
+			runTarget(app.VersionFrom.File, []string{"--argocd-file", newPath, "--current-argocd-file", oldPath})
 			continue
 		}
 		runTarget(af, []string{"--argocd-file", af, "--current-git", *currentGit})
@@ -1043,64 +1049,125 @@ func incompleteReport(baseRef, target string) *verdict.Report {
 	}
 }
 
-// synthesizeTerraformArgoApps builds the candidate Application from the working
-// tree and the current Application from baseGitRef. The chart version lives in
-// terraform/modules/argo-cd/variables.tf, which is not an Argo CD manifest, so
-// git show of a temp file cannot recover the old revision.
-func synthesizeTerraformArgoApps(baseGitRef string) (string, string, func(), error) {
-	const varsPath = "terraform/modules/argo-cd/variables.tf"
-	const valsPath = "terraform/modules/argo-cd/values.yaml.tmpl"
+func templatePlaceholders() map[string]string {
+	cfg, err := config.Load(".stageproof.yaml")
+	if err != nil {
+		return nil
+	}
+	return cfg.TemplatePlaceholders
+}
+
+func configuredApplication(path string) *config.Application {
+	cfg, err := config.Load(".stageproof.yaml")
+	if err != nil {
+		return nil
+	}
+	for i := range cfg.Applications {
+		if cfg.Applications[i].CoversFile(path) {
+			return &cfg.Applications[i]
+		}
+	}
+	return nil
+}
+
+func configuredApplicationByName(name string) *config.Application {
+	cfg, err := config.Load(".stageproof.yaml")
+	if err != nil {
+		return nil
+	}
+	for i := range cfg.Applications {
+		if cfg.Applications[i].Name == name {
+			return &cfg.Applications[i]
+		}
+	}
+	return nil
+}
+
+// synthesizeConfiguredApp builds the candidate Application from the working
+// tree and the current one from baseGitRef. The version and values files come
+// from .stageproof.yaml, not from a built-in path.
+func synthesizeConfiguredApp(app config.Application, baseGitRef string) (string, string, func(), error) {
 	noop := func() {}
-
-	newVars, err := os.ReadFile(varsPath)
+	newVer, err := versionFromFile(app.VersionFrom.File, app.VersionFrom.Regex, "")
 	if err != nil {
 		return "", "", noop, err
 	}
-	newVals, err := os.ReadFile(valsPath)
+	oldVer, err := versionFromFile(app.VersionFrom.File, app.VersionFrom.Regex, baseGitRef)
 	if err != nil {
 		return "", "", noop, err
 	}
-	newVer := chartVersionFromTF(string(newVars))
-	if newVer == "" {
-		return "", "", noop, fmt.Errorf("could not parse chart_version in %s", varsPath)
-	}
-
-	oldVars, err := readFileFromGitRef(baseGitRef, varsPath)
+	newVals, err := readValues(app.ValuesFrom, "")
 	if err != nil {
-		return "", "", noop, fmt.Errorf("read %s from %s: %w", varsPath, baseGitRef, err)
+		return "", "", noop, err
 	}
-	oldVals, err := readFileFromGitRef(baseGitRef, valsPath)
+	oldVals, err := readValues(app.ValuesFrom, baseGitRef)
 	if err != nil {
-		return "", "", noop, fmt.Errorf("read %s from %s: %w", valsPath, baseGitRef, err)
+		return "", "", noop, err
 	}
-	oldVer := chartVersionFromTF(string(oldVars))
-	if oldVer == "" {
-		return "", "", noop, fmt.Errorf("could not parse chart_version in %s at %s", varsPath, baseGitRef)
-	}
-
-	tmp, err := os.MkdirTemp("", "sp-tf-argo-*")
+	tmp, err := os.MkdirTemp("", "sp-app-*")
 	if err != nil {
 		return "", "", noop, err
 	}
 	cleanup := func() { _ = os.RemoveAll(tmp) }
-	newPath := filepath.Join(tmp, "argocd-new.yaml")
-	oldPath := filepath.Join(tmp, "argocd-current.yaml")
-	if err := os.WriteFile(newPath, []byte(terraformArgoAppYAML(newVer, string(newVals))), 0o644); err != nil {
+	newPath := filepath.Join(tmp, "app-new.yaml")
+	oldPath := filepath.Join(tmp, "app-current.yaml")
+	if err := os.WriteFile(newPath, []byte(applicationYAML(app, newVer, newVals)), 0o644); err != nil {
 		cleanup()
 		return "", "", noop, err
 	}
-	if err := os.WriteFile(oldPath, []byte(terraformArgoAppYAML(oldVer, string(oldVals))), 0o644); err != nil {
+	if err := os.WriteFile(oldPath, []byte(applicationYAML(app, oldVer, oldVals)), 0o644); err != nil {
 		cleanup()
 		return "", "", noop, err
 	}
 	return newPath, oldPath, cleanup, nil
 }
 
-func terraformArgoAppYAML(version, values string) string {
+func versionFromFile(path, pattern, gitRef string) (string, error) {
+	var raw []byte
+	var err error
+	if gitRef == "" {
+		raw, err = os.ReadFile(path)
+	} else {
+		raw, err = readFileFromGitRef(gitRef, path)
+	}
+	if err != nil {
+		return "", err
+	}
+	got, err := config.FirstCapture(string(raw), pattern)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", path, err)
+	}
+	return got, nil
+}
+
+func readValues(paths []string, gitRef string) (string, error) {
 	var b strings.Builder
-	b.WriteString("apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: argo-cd\nspec:\n  source:\n    repoURL: https://argoproj.github.io/argo-helm\n    chart: argo-cd\n    targetRevision: ")
-	b.WriteString(version)
-	b.WriteString("\n    helm:\n      values: |\n")
+	for _, path := range paths {
+		var raw []byte
+		var err error
+		if gitRef == "" {
+			raw, err = os.ReadFile(path)
+		} else {
+			raw, err = readFileFromGitRef(gitRef, path)
+		}
+		if err != nil {
+			return "", err
+		}
+		text := string(raw)
+		for key, val := range templatePlaceholders() {
+			text = strings.ReplaceAll(text, key, val)
+		}
+		b.WriteString(text)
+		if !strings.HasSuffix(text, "\n") {
+			b.WriteByte('\n')
+		}
+	}
+	return b.String(), nil
+}
+
+func applicationYAML(app config.Application, version, values string) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: %s\nspec:\n  source:\n    repoURL: %s\n    chart: %s\n    targetRevision: %s\n    helm:\n      values: |\n", app.Name, app.RepoURL, app.Chart, version)
 	for _, line := range strings.Split(values, "\n") {
 		b.WriteString("        ")
 		b.WriteString(line)
@@ -1120,30 +1187,4 @@ func chartRefLabel(chart, revision, source string) string {
 		return label
 	}
 	return label + " (" + source + ")"
-}
-
-func chartVersionFromTF(tf string) string {
-	const marker = `variable "chart_version"`
-	i := strings.Index(tf, marker)
-	if i < 0 {
-		return ""
-	}
-	rest := tf[i+len(marker):]
-	if j := strings.Index(rest, "\nvariable "); j >= 0 {
-		rest = rest[:j]
-	}
-	def := strings.Index(rest, "default")
-	if def < 0 {
-		return ""
-	}
-	rest = rest[def:]
-	q1 := strings.IndexByte(rest, '"')
-	if q1 < 0 {
-		return ""
-	}
-	q2 := strings.IndexByte(rest[q1+1:], '"')
-	if q2 < 0 {
-		return ""
-	}
-	return rest[q1+1 : q1+1+q2]
 }

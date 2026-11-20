@@ -4,19 +4,22 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 
 	"gopkg.in/yaml.v3"
 )
 
 type Config struct {
-	CurrentKubernetes string   `yaml:"currentKubernetes"`
-	NextKubernetes    string   `yaml:"nextKubernetes,omitempty"`
-	ServerSideApply   bool     `yaml:"serverSideApply,omitempty"`
-	LiveTest          bool     `yaml:"liveTest"`
-	RequireRehearsal  bool     `yaml:"requireRehearsal,omitempty"`
-	Charts            []Chart  `yaml:"charts"`
-	CRDFiles          []string `yaml:"crdFiles,omitempty"`
+	CurrentKubernetes    string            `yaml:"currentKubernetes"`
+	NextKubernetes       string            `yaml:"nextKubernetes,omitempty"`
+	ServerSideApply      bool              `yaml:"serverSideApply,omitempty"`
+	LiveTest             bool              `yaml:"liveTest"`
+	RequireRehearsal     bool              `yaml:"requireRehearsal,omitempty"`
+	Charts               []Chart           `yaml:"charts"`
+	Applications         []Application     `yaml:"applications,omitempty"`
+	TemplatePlaceholders map[string]string `yaml:"templatePlaceholders,omitempty"`
+	CRDFiles             []string          `yaml:"crdFiles,omitempty"`
 
 	// Legacy aliases accepted when loading older configs
 	TargetKubernetes string   `yaml:"targetKubernetes,omitempty"`
@@ -30,6 +33,48 @@ type Chart struct {
 	Name        string   `yaml:"name"`
 	Path        string   `yaml:"path"`
 	ValuesFiles []string `yaml:"valuesFiles,omitempty"`
+}
+
+// Application is a Helm chart whose version and values live in other files,
+// for example a Terraform variable and a values template.
+type Application struct {
+	Name        string    `yaml:"name"`
+	RepoURL     string    `yaml:"repoURL"`
+	Chart       string    `yaml:"chart"`
+	VersionFrom FileMatch `yaml:"versionFrom"`
+	ValuesFrom  []string  `yaml:"valuesFrom,omitempty"`
+}
+
+type FileMatch struct {
+	File  string `yaml:"file"`
+	Regex string `yaml:"regex"`
+}
+
+// FirstCapture returns the first parenthesized group of pattern in text.
+func FirstCapture(text, pattern string) (string, error) {
+	re, err := regexp.Compile(pattern)
+	if err != nil {
+		return "", err
+	}
+	m := re.FindStringSubmatch(text)
+	if len(m) < 2 || m[1] == "" {
+		return "", fmt.Errorf("pattern did not capture a value")
+	}
+	return m[1], nil
+}
+
+// CoversFile reports whether path is one of the files this application is read from.
+func (a Application) CoversFile(path string) bool {
+	path = filepath.ToSlash(path)
+	if filepath.ToSlash(a.VersionFrom.File) == path {
+		return true
+	}
+	for _, vf := range a.ValuesFrom {
+		if filepath.ToSlash(vf) == path {
+			return true
+		}
+	}
+	return false
 }
 
 func Load(path string) (*Config, error) {

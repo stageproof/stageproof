@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/stageproof/stageproof/internal/config"
 )
 
 func TestChartVersionFromTF(t *testing.T) {
@@ -22,7 +24,11 @@ variable "other" {
   default = "nope"
 }
 `
-	if got := chartVersionFromTF(src); got != "10.18.0" {
+	got, err := config.FirstCapture(src, `variable "chart_version"[^}]*default\s*=\s*"([^"]+)"`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "10.18.0" {
 		t.Fatalf("chart version = %q", got)
 	}
 }
@@ -54,7 +60,7 @@ func TestInlineValuesAreNamedByTheirSource(t *testing.T) {
 }
 
 func TestChartVersionFromTFMissing(t *testing.T) {
-	if got := chartVersionFromTF(`variable "replicas" { default = "1" }`); got != "" {
-		t.Fatalf("expected empty, got %q", got)
+	if _, err := config.FirstCapture(`variable "replicas" { default = "1" }`, `variable "chart_version"[^}]*default\s*=\s*"([^"]+)"`); err == nil {
+		t.Fatal("expected no match")
 	}
 }
