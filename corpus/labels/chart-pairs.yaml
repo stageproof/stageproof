@@ -121,7 +121,7 @@ labels:
   date: '2026-11-20'
 - case: vmware-tanzu-velero-minor
   truth: breaks
-  evidence: templates/backupstoragelocation.yaml prints `provider: {{ .provider }}` and values.yaml sets provider to an empty string, so the key is empty. crds/backupstoragelocations.yaml types provider as a string and credential as an object, and neither is nullable. The same empty key is in 12.1.0.
+  evidence: "templates/backupstoragelocation.yaml prints `provider: {{ .provider }}` and values.yaml sets provider to an empty string, so the key is empty. crds/backupstoragelocations.yaml types provider as a string and credential as an object, and neither is nullable. The same empty key is in 12.1.0."
   by: chart-template
   date: '2026-11-20'
 - case: vmware-tanzu-velero-major

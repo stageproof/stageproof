@@ -26,12 +26,23 @@
       "summary": "1 named change"
     },
     {
+      "name": "impact",
+      "status": "pass",
+      "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
+    },
+    {
       "name": "k8s 1.33 compatibility",
       "status": "pass",
       "summary": "0 removed APIs or selector breaks on K8s 1.33"
     }
   ],
   "findings": [
+    {
+      "rule_id": "impact.restart",
+      "severity": "info",
+      "resource": "Deployment/default/demo",
+      "message": "The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade."
+    },
     {
       "rule_id": "helm.image.changed",
       "severity": "warning",

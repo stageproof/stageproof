@@ -24,6 +24,11 @@
       "summary": "1 silently dropped key across 1 overlay"
     },
     {
+      "name": "impact",
+      "status": "pass",
+      "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
+    },
+    {
       "name": "k8s 1.33 compatibility",
       "status": "pass",
       "summary": "0 removed APIs or selector breaks on K8s 1.33"
@@ -36,6 +41,12 @@
       "resource": "message",
       "file": "testdata/dropped/values.yaml",
       "message": "Values key `message` was consumed in baseline chart but is silently ignored in upgraded chart."
+    },
+    {
+      "rule_id": "impact.restart",
+      "severity": "info",
+      "resource": "Deployment/default/demo",
+      "message": "The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].args[0]. The pods will restart. A restart is normal for an upgrade."
     }
   ]
 }

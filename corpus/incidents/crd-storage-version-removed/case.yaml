@@ -3,6 +3,5 @@ summary: The CRD no longer serves the version that was stored. The API server re
 k8s: "1.35"
 expect: {verdict: BLOCKED, rules: [crd.existing_object_invalid]}
 control_expect: {verdict: PASSED}
-status: expected-fail
-needs: "1.5"
+status: active
 source: Kubernetes rejects a CRD update that removes a stored version

@@ -21,7 +21,10 @@ func runPairs(root, bin string, prOnly bool) ([]caseResult, error) {
 		sums[a.Repo+"|"+a.Chart+"|"+a.Version] = a.SHA256
 	}
 	var labels labelsFile
-	_ = loadYAML(filepath.Join(root, "corpus", "labels", "chart-pairs.yaml"), &labels)
+	// An unreadable label file must fail the run. Skipping it would count zero labeled-clean pairs and the gate would pass with no labels.
+	if err := loadYAML(filepath.Join(root, "corpus", "labels", "chart-pairs.yaml"), &labels); err != nil {
+		return nil, fmt.Errorf("chart-pairs.yaml: %w", err)
+	}
 	truth := map[string]string{}
 	for _, l := range labels.Labels {
 		truth[l.Case] = l.Truth

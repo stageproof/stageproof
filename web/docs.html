@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Documentation for Stageproof CLI v0.1.8</span>
+        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.1.8.</span>
       </div>
     </div>
   </footer>
@@ -101,6 +101,7 @@
   <li><strong>A setting you rely on stops working.</strong> The new chart renames or removes a values key. Helm ignores the old key without an error, so your override is no longer applied.</li>
   <li><strong>The chart uses an API your cluster no longer serves.</strong> Kubernetes removes old API versions over time. A chart that still uses one fails when it is applied.</li>
   <li><strong>The upgrade cannot be applied in place.</strong> Some fields cannot change on a running workload, for example the label selector of a Deployment. A fresh install works. The upgrade of an existing release fails.</li>
+  <li><strong>The new chart deletes something you still need.</strong> Helm removes an object it no longer renders. A PersistentVolumeClaim, a Namespace, or a templated custom resource definition takes data or other objects with it.</li>
 </ul>
 <p>Stageproof finds these while the change is still a pull request.</p>
 
@@ -112,6 +113,7 @@
     <tr><td>Values</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file</td></tr>
     <tr><td>Kubernetes API versions</td><td>Does the chart use an API that your Kubernetes version has removed?</td><td>Every run</td></tr>
     <tr><td>Upgrade safety</td><td>Does the upgrade change a field that Kubernetes does not allow to change?</td><td>When you give a current chart</td></tr>
+    <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>When you give a current chart</td></tr>
     <tr><td>CRD size</td><td>Is a CRD too large to apply without server-side apply?</td><td>Every run</td></tr>
     <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
   </tbody>
@@ -294,7 +296,7 @@ stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You have the current chart, the new chart, and the values file you deploy with.</dd></div>
-  <div><dt>Finds</dt><dd>Values keys that stop working, removed Kubernetes APIs, and changes that cannot be applied in place.</dd></div>
+  <div><dt>Finds</dt><dd>Values keys that stop working, removed Kubernetes APIs, changes that cannot be applied in place, and objects the new chart deletes.</dd></div>
   <div><dt>Needs</dt><dd>Helm. No cluster.</dd></div>
 </dl>
 
@@ -689,6 +691,94 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
 <p>When a row names the kind of a resource, that row decides. A row for all kinds applies only to kinds that have no row of their own.</p>
 <p>APIs added by a CRD, for example a <code>ServiceMonitor</code>, are not in this list. Stageproof does not judge their versions.</p>
 <p>To look ahead to the version you plan to upgrade the cluster to, see <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</p>
+  </template>
+
+  <template data-topic="impact" data-group="Guides" data-title="See what the upgrade deletes">
+<p class="docs-lede">The first lines of a blocked report name a delete or a CRD break. A restart is named and does not block. The samples below were produced by this source with <code>--api-server off</code>.</p>
+
+<h2>A PersistentVolumeClaim the new chart drops</h2>
+<p>This is the <code>pvc-removed-from-chart</code> fixture. The current chart renders a claim named <code>data</code>. The new chart does not. Plain Helm deletes that claim on upgrade, and the data on it goes with it.</p>
+<pre data-kind="cmd">
+stageproof check \
+  --current-chart corpus/incidents/pvc-removed-from-chart/before \
+  --new-chart corpus/incidents/pvc-removed-from-chart/after \
+  --current-k8s 1.35 \
+  --api-server off</pre>
+<pre data-kind="out">
+!  Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+stageproof  BLOCKED  exit 1
+compare  corpus/incidents/pvc-removed-from-chart/before -> corpus/incidents/pvc-removed-from-chart/after
+k8s  1.35  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✕ FAIL  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  ERROR  impact.delete.pvc
+         PersistentVolumeClaim/default/data
+         Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+
+verdict  BLOCKED (exit 1)  · 124ms · 0 AI calls</pre>
+<p>The impact line says the API server did not run, so a default the server would add is not in the comparison. An object annotated <code>helm.sh/resource-policy: keep</code> is not reported as deleted. Helm leaves that object in the cluster.</p>
+
+<h2>A field an existing object uses</h2>
+<p>This is the <code>crd-field-type-changed</code> fixture. The current chart renders a Widget with <code>spec.size</code> set to a string. The new CRD changes that field to an integer. The new chart also stops rendering the Widget, so the report warns about that delete. The block is the field.</p>
+<pre data-kind="cmd">
+stageproof check \
+  --current-chart corpus/incidents/crd-field-type-changed/before \
+  --new-chart corpus/incidents/crd-field-type-changed/after \
+  --current-k8s 1.35 \
+  --api-server off</pre>
+<pre data-kind="out">
+!  Widget/default/demo uses spec.size, and that field changed (type) on widgets.example.com. The object does not match the new schema.
+stageproof  BLOCKED  exit 1
+compare  corpus/incidents/crd-field-type-changed/before -> corpus/incidents/crd-field-type-changed/after
+k8s  1.35  ·  checked: files
+
+  ✓ PASS  helm template            rendered 2 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✕ FAIL  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  WARN  impact.delete
+         Helm will delete objects the new chart does not render: Widget/default/demo.
+  ERROR  crd.existing_object_invalid
+         Widget/default/demo
+         Widget/default/demo uses spec.size, and that field changed (type) on widgets.example.com. The object does not match the new schema.
+
+verdict  BLOCKED (exit 1)  · 177ms · 0 AI calls</pre>
+<p>The same type change with no object that uses the field is a warning, <code>crd.schema.incompatible</code>. A description change, a new optional field, or a wider enum is not reported.</p>
+
+<h2>A restart stays PASSED</h2>
+<p>An image change restarts the pods. That is normal for an upgrade. The result stays <code>PASSED</code>. The restart line names the field. It does not repeat the image value. The image warning in the same report is a separate check, and that line does name the tags.</p>
+<pre data-kind="cmd">
+stageproof check \
+  --current-chart testdata/image/base \
+  --new-chart testdata/image/head \
+  --current-k8s 1.33 \
+  --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  testdata/image/base -> testdata/image/head
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+  INFO  impact.restart
+         Deployment/default/demo
+         The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to nginx:1.28-alpine.
+         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+
+verdict  PASSED (exit 0)  · 173ms · 0 AI calls</pre>
+<p>Findings are ordered deletes, CRD changes, privilege, exposure, values, restarts, capacity, then everything else. A blocker whose rule starts with <code>impact.delete</code> or <code>crd.</code> is also printed on the first lines. The rule list is in <a href="#findings">Findings</a>.</p>
   </template>
 
   <template data-topic="cluster-upgrade" data-group="Guides" data-title="Prepare for a Kubernetes cluster upgrade">
@@ -1402,9 +1492,42 @@ charts:
     <tr><td><code>k8s.apply.immutable_field</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The local API server rejected an update. The report names the field. A Job pod template and a StatefulSet <code>volumeClaimTemplates</code> change are this rule. A Helm hook is dry-run as a create, not as an update.</td><td>Keep the field, or plan to delete and recreate the object. On <code>--next-k8s</code> the same rejection is a warning.</td></tr>
     <tr><td><code>k8s.apply.unknown_field</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The object has a field the schema does not declare. Helm 3.22.1 drops it and the upgrade succeeds. Helm 4.3.2 server-side apply rejects the upgrade, and so does <code>--server-side-apply</code>. Those two cases are <code>ERROR</code>.</td><td>Remove the field, or keep it only if your apply path drops unknown fields.</td></tr>
     <tr><td><code>k8s.apply.invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The API server rejected the object. The report includes the server's message. On <code>--next-k8s</code> this is a warning.</td><td>Change the object so that Kubernetes version accepts it.</td></tr>
-    <tr><td><code>crd.existing_object_invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>An object stored from the current chart does not match the new CRD schema.</td><td>Keep the stored object valid, or plan a migration before the upgrade.</td></tr>
+    <tr><td><code>crd.existing_object_invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>An object from the current chart does not match the new CRD schema. The same rule covers a storage version that was removed, and a field an existing custom resource uses when that field was removed, changed type, became required, or lost an enum value. The API server can also emit this rule.</td><td>Keep the stored object valid, or plan a migration before the upgrade.</td></tr>
     <tr><td><code>k8s.apply.not_exercised</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A webhook configuration, an APIService, or an object the server could not judge was not sent. Sending a webhook configuration would make later requests fail.</td><td>Nothing, unless you needed that object judged. It is not a failure.</td></tr>
     <tr><td><code>k8s.crd.oversized_annotation_limit</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A CRD in the chart is larger than 256 KiB.</td><td>See <a href="#large-crds">Large CRDs and server-side apply</a>.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Impact</h2>
+<p>These compare the current objects with the new ones. Lists of containers, env, ports, and volumes are matched by name. RBAC rules are compared as a set. When the API server returned a stored form for both sides, that form is what is compared. Otherwise the check says it used the rendered objects.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>impact.delete.crd</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A templated custom resource definition is in the current chart and not in the new one. Helm deletes it, and Kubernetes then deletes every object of that kind. An object with <code>helm.sh/resource-policy: keep</code> is not this rule.</td><td>Keep rendering the CRD, or move the objects before the upgrade.</td></tr>
+    <tr><td><code>impact.delete.pvc</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A PersistentVolumeClaim is dropped. The data on that claim goes with it. The keep annotation suppresses this.</td><td>Keep the claim in the chart, or copy the data first.</td></tr>
+    <tr><td><code>impact.delete.namespace</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A Namespace is dropped. Every object in it is deleted with it. The keep annotation suppresses this.</td><td>Keep the namespace in the chart.</td></tr>
+    <tr><td><code>impact.delete.statefulset</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A StatefulSet is dropped and <code>persistentVolumeClaimRetentionPolicy.whenDeleted</code> is <code>Delete</code>, so its claims are deleted too. When that field is not <code>Delete</code>, the same rule is a warning.</td><td>Keep the StatefulSet, or accept that its claims will be deleted.</td></tr>
+    <tr><td><code>impact.delete</code></td><td><span class="verdict-badge warn">WARN</span></td><td>Other objects the new chart does not render. When a near-identical object is created under a new name, the message starts with <code>replaced: delete then create</code>.</td><td>Confirm the objects are meant to go.</td></tr>
+    <tr><td><code>crd.scope_changed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A custom resource definition changed from namespaced to cluster scope, or the other way around.</td><td>Do not change scope on a CRD that already has objects.</td></tr>
+    <tr><td><code>crd.schema.incompatible</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A field was removed, changed type, became required, or lost an enum value, and no current object uses that field. It is <code>crd.existing_object_invalid</code> when one does.</td><td>Read the field the report names before you upgrade.</td></tr>
+    <tr><td><code>crd.not_upgraded_by_helm</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A CRD under <code>crds/</code> changed in a way the new schema will not accept. Plain Helm does not upgrade CRDs in that directory. A new file, a removed file, or a compatible edit is a warning.</td><td>Apply that CRD yourself before the upgrade, or keep the schema compatible.</td></tr>
+    <tr><td><code>crd.argocd_renders_crds</code></td><td><span class="verdict-badge warn">WARN</span></td><td>Reserved for an Argo CD input. Argo CD renders with <code>helm template</code> and applies the manifests unless <code>spec.source.helm.skipCrds</code> is set. The current command always uses the Helm rule above.</td><td>Nothing until the Argo adapter sets this rule.</td></tr>
+    <tr><td><code>crd.flux_upgrade_crds</code></td><td><span class="verdict-badge warn">WARN</span></td><td>Reserved for a Flux HelmRelease. <code>spec.upgrade.crds</code> defaults to Skip. Skip or Create with an incompatible change to an existing CRD is <code>ERROR</code>, the same as plain Helm. CreateReplace is info, and the schema is compared. The current command does not read a HelmRelease.</td><td>Nothing until the Flux adapter sets this rule.</td></tr>
+    <tr><td><code>impact.privilege.rbac</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A Role or ClusterRole gained rules. Wildcards, a cluster-wide secrets read, <code>escalate</code>, <code>bind</code>, <code>impersonate</code>, and <code>pods/exec</code> are named when present. Any new rule is a warning.</td><td>Confirm the new verbs are intended.</td></tr>
+    <tr><td><code>impact.privilege.binding</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A new binding to <code>cluster-admin</code>, or a new subject on a binding that already points at <code>cluster-admin</code>.</td><td>Confirm who gained that access.</td></tr>
+    <tr><td><code>impact.privilege.securitycontext</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A container security context became weaker: privileged, privilege escalation, running as root, a writable root filesystem, or a capability that was added or no longer dropped.</td><td>Keep the stricter context unless the process needs the new right.</td></tr>
+    <tr><td><code>impact.privilege.hostpath</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A new hostPath volume, named by the volume name. The path is not printed.</td><td>Confirm the workload should see that host path.</td></tr>
+    <tr><td><code>impact.privilege.webhook</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A new admission webhook with <code>failurePolicy: Fail</code>, or an empty failure policy, and no namespace selector.</td><td>Add a namespace selector, or accept that a webhook outage fails every request.</td></tr>
+    <tr><td><code>impact.privilege.conversion</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A CRD <code>conversion.strategy</code> became <code>Webhook</code>.</td><td>The conversion service has to be up before objects of that kind are read.</td></tr>
+    <tr><td><code>impact.exposure.service</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A Service type moved to <code>LoadBalancer</code> or <code>NodePort</code>.</td><td>Confirm the Service should be reachable from outside the cluster.</td></tr>
+    <tr><td><code>impact.exposure.route</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An Ingress, Gateway, HTTPRoute, GRPCRoute, or TLSRoute gained a host.</td><td>Confirm the host should be published.</td></tr>
+    <tr><td><code>impact.exposure.networkpolicy</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A NetworkPolicy was removed or opened to all. A removed policy is not also listed under <code>impact.delete</code>.</td><td>Keep the policy, or accept the wider access.</td></tr>
+    <tr><td><code>impact.exposure.host</code></td><td><span class="verdict-badge warn">WARN</span></td><td><code>hostNetwork</code> or a <code>hostPort</code> was added.</td><td>Confirm the pod should use the host network.</td></tr>
+    <tr><td><code>impact.restart</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A pod template changed. The report names the field. A restart is normal for an upgrade.</td><td>Nothing, unless the field is not the change you expected.</td></tr>
+    <tr><td><code>impact.capacity.replicas</code></td><td><span class="verdict-badge slate">INFO</span></td><td>Replicas went down. The numbers are not printed.</td><td>Confirm the smaller count is intended.</td></tr>
+    <tr><td><code>impact.capacity.requests</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A cpu or memory request went up. The quantities are not printed.</td><td>Confirm the cluster has the extra capacity.</td></tr>
+    <tr><td><code>impact.capacity.pdb</code></td><td><span class="verdict-badge slate">INFO</span></td><td><code>minAvailable</code> or <code>maxUnavailable</code> changed. The report names the field.</td><td>Confirm disruptions are still allowed during the upgrade.</td></tr>
+    <tr><td><code>impact.capacity.hpa</code></td><td><span class="verdict-badge slate">INFO</span></td><td><code>minReplicas</code> or <code>maxReplicas</code> changed. The report names the field.</td><td>Confirm the new bounds.</td></tr>
   </tbody>
 </table></div>
 
@@ -1435,7 +1558,7 @@ charts:
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What Stageproof 0.1.7 covers, what it leaves out, and where a passing result says less than you might expect.</p>
+<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.1.8.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1454,7 +1577,8 @@ charts:
   <li><strong><code>PASSED</code> is about files.</strong> Nothing was started. The chart renders, your values are still used, and no rule found a problem. Whether the new version runs is not known.</li>
   <li><strong><code>PROVEN</code> is about an empty cluster.</strong> The temporary cluster has no production data, no traffic, and none of the other workloads in your real cluster. The rehearsal shows that the upgrade and the rollback work mechanically.</li>
   <li><strong>The temporary cluster may run another Kubernetes version than yours.</strong> That happens when kind has no image for your version. The report then says which version the rehearsal ran on.</li>
-  <li><strong>The API check uses a fixed list.</strong> It covers the removals listed in <a href="#cluster-version">Check against your Kubernetes version</a>. APIs added by CRDs are not judged.</li>
+  <li><strong>The API check uses a local API server when the binaries are available.</strong> Deprecations still come from the table in <a href="#cluster-version">Check against your Kubernetes version</a>. <code>--api-server off</code> uses only that table. APIs added by CRDs are not judged by the removal table.</li>
+  <li><strong>A restart is not a failure.</strong> The report names the field that changed. The result stays <code>PASSED</code> when nothing else is blocked.</li>
   <li><strong>The values check follows references.</strong> It knows whether a chart reads a key. It does not know whether the chart does something sensible with the value.</li>
   <li><strong>A pull request check covers the values files it knows about.</strong> Without a <code>charts</code> list in the configuration file, a chart in your repository is checked with its own <code>values.yaml</code> only. See <a href="#values-files">Check each values file of a chart</a>.</li>
 </ul>

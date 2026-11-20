@@ -21,6 +21,11 @@
       "summary": "no custom -f overlay passed (default chart values verified)"
     },
     {
+      "name": "impact",
+      "status": "pass",
+      "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
+    },
+    {
       "name": "k8s 1.33 compatibility",
       "status": "pass",
       "summary": "0 removed APIs or selector breaks on K8s 1.33"

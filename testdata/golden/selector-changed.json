@@ -21,12 +21,23 @@
       "summary": "no custom -f overlay passed (default chart values verified)"
     },
     {
+      "name": "impact",
+      "status": "pass",
+      "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
+    },
+    {
       "name": "k8s 1.33 compatibility",
       "status": "fail",
       "summary": "1 removed API or immutable upgrade blocker"
     }
   ],
   "findings": [
+    {
+      "rule_id": "impact.restart",
+      "severity": "info",
+      "resource": "Deployment/default/demo",
+      "message": "The pod template of Deployment/default/demo changed at spec.template.metadata.labels.app. The pods will restart. A restart is normal for an upgrade."
+    },
     {
       "rule_id": "k8s.upgrade.immutable_selector_changed",
       "severity": "blocker",

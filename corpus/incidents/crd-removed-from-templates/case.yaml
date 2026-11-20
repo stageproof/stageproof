@@ -3,7 +3,6 @@ summary: The new chart no longer templates a CRD. Helm deletes it and every obje
 k8s: "1.35"
 expect: {verdict: BLOCKED, rules: [impact.delete.crd]}
 control_expect: {verdict: PASSED}
-status: expected-fail
-needs: "1.5"
+status: active
 source: https://github.com/kubernetes-sigs/lws/issues/880
 note: helm upgrade on kind from a chart that templates the CRD to a chart that does not deletes the CRD.

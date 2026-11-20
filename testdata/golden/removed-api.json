@@ -21,12 +21,22 @@
       "summary": "no custom -f overlay passed (default chart values verified)"
     },
     {
+      "name": "impact",
+      "status": "warn",
+      "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
+    },
+    {
       "name": "k8s 1.32 compatibility",
       "status": "fail",
       "summary": "1 removed API or immutable upgrade blocker"
     }
   ],
   "findings": [
+    {
+      "rule_id": "impact.delete",
+      "severity": "warning",
+      "message": "Helm will delete objects the new chart does not render: Deployment/default/demo."
+    },
     {
       "rule_id": "k8s.api.removed",
       "severity": "blocker",
