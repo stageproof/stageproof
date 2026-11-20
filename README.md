@@ -31,7 +31,7 @@ k8s  1.33  ·  checked: files
 verdict  PASSED (exit 0)  · 87ms · 0 AI calls
 ```
 
-That sample is metrics-server 3.12.2 to 3.13.0. `values.yaml AST` is the check that your values keys are still read. `checked: files` means the upgrade was not started.
+That sample is metrics-server 3.12.2 to 3.13.0. `values.yaml AST` is the check that your values keys are still read. `checked: files` means no API server was started. The default check starts one, and the line then names the patch, for example `checked: files, API server 1.35.0`. The result is still `PASSED` until you pass `--live`.
 
 Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions and GitLab CI examples are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
@@ -143,7 +143,7 @@ Your cluster stays as it is. You pass the Kubernetes version it runs.
 
 Flux, Kustomize, Helmfile, and plain manifests are skipped. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
 
-The values check reads the templates. A key that is mentioned and then ignored can still look used. The API check is a table, not a live API server. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
+The values check reads the templates. A key that is mentioned and then ignored can still look used. The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
 ## Check a download
 

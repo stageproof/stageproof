@@ -1,0 +1,66 @@
+name: apiserver
+
+on:
+  pull_request:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  minors:
+    runs-on: ubuntu-latest
+    outputs:
+      list: ${{ steps.gen.outputs.list }}
+    steps:
+      - id: gen
+        run: |
+          curl -fsSL -A "stageproof (https://github.com/stageproof/stageproof)" \
+            -o "$RUNNER_TEMP/envtest-releases.yaml" \
+            https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/HEAD/envtest-releases.yaml
+          python3 - <<'PY'
+          import json, os, re
+          text = open(os.environ["RUNNER_TEMP"] + "/envtest-releases.yaml").read().splitlines()
+          vers = []
+          for line in text:
+              m = re.match(r"  v(\d+)\.(\d+)\.(\d+):\s*$", line)
+              if m:
+                  vers.append(tuple(int(x) for x in m.groups()))
+          vers.sort()
+          minors = []
+          seen = set()
+          for major, minor, _patch in reversed(vers):
+              key = f"{major}.{minor}"
+              if key in seen:
+                  continue
+              seen.add(key)
+              minors.append(key)
+              if len(minors) == 4:
+                  break
+          with open(os.environ["GITHUB_OUTPUT"], "a") as out:
+              out.write("list=" + json.dumps(minors) + "\n")
+          PY
+
+  proof:
+    needs: minors
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        k8s: ${{ fromJson(needs.minors.outputs.list) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
+        with:
+          go-version: "1.27.4"
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.cache/stageproof/envtest
+          key: envtest-${{ matrix.k8s }}-${{ runner.os }}-${{ runner.arch }}
+      - name: API server proof
+        env:
+          STAGEPROOF_APISERVER: "1"
+          STAGEPROOF_APISERVER_K8S: ${{ matrix.k8s }}
+        run: go test ./internal/apiserver/ -count=1 -timeout 20m -run 'TestAPIServer'

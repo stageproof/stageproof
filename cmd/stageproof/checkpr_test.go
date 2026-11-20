@@ -102,7 +102,7 @@ charts:
 	git(t, "add", "-A")
 	git(t, "commit", "-q", "-m", "change both charts")
 
-	code := runCheckPR([]string{"--current-git", "main", "--comment-file", "comment.md", "--out", "report.json"})
+	code := runCheckPR([]string{"--current-git", "main", "--api-server", "off", "--comment-file", "comment.md", "--out", "report.json"})
 	if code != 1 {
 		t.Fatalf("the renamed key in values-prod.yaml must block the pull request, got exit %d", code)
 	}
@@ -152,7 +152,7 @@ charts:
 
 	// A flag on the command line wins over the file.
 	_ = os.Remove("report.json")
-	runCheckPR([]string{"--current-git", "main", "--current-k8s", "1.35", "--out", "report.json"})
+	runCheckPR([]string{"--current-git", "main", "--api-server", "off", "--current-k8s", "1.35", "--out", "report.json"})
 	raw, err = os.ReadFile("report.json")
 	if err != nil {
 		t.Fatal(err)
@@ -188,10 +188,10 @@ func TestRequireRehearsalWithoutLiveIsNotChecked(t *testing.T) {
 	chart(t, "old", "app", "1.0.0", "config.logLevel")
 	chart(t, "new", "app", "1.1.0", "config.logLevel")
 
-	if code := runCheck([]string{"--current-chart", "old", "--new-chart", "new"}); code != 0 {
+	if code := runCheck([]string{"--api-server", "off", "--current-chart", "old", "--new-chart", "new"}); code != 0 {
 		t.Fatalf("file checks on a clean upgrade must exit 0, got %d", code)
 	}
-	if code := runCheck([]string{"--current-chart", "old", "--new-chart", "new", "--require-rehearsal"}); code != 2 {
+	if code := runCheck([]string{"--api-server", "off", "--current-chart", "old", "--new-chart", "new", "--require-rehearsal"}); code != 2 {
 		t.Fatalf("--require-rehearsal without --live must exit 2, got %d", code)
 	}
 }

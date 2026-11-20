@@ -14,6 +14,8 @@ type Input struct {
 	SetValues         []string
 	KubeVersion       string
 	NextKubernetes    string
+	APIServer         string // auto, off, or require. Empty skips the API server so tests stay offline.
+	APIServerDir      string
 	ServerSideApply   bool
 	RequireRehearsal  bool
 	Live              bool

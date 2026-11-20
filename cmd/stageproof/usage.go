@@ -13,6 +13,7 @@ Usage:
   stageproof check    --current-chart <dir> --new-chart <dir> [flags]
   stageproof check    --argocd-file <app.yaml> --current-git <git-ref> [flags]
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
+  stageproof fetch-apiserver --k8s <minor> --out <dir>
 
 Results:
   PROVEN       exit 0   file checks passed and the upgrade was rehearsed
@@ -34,6 +35,8 @@ Chart, Argo CD & Values:
 Kubernetes & GitOps Environment:
   --current-k8s <ver>      Current cluster Kubernetes version (default "1.33")
   --next-k8s <ver>         Next Kubernetes version you plan to upgrade to (e.g. "1.34")
+  --api-server <mode>      auto (default), off, or require. auto asks a local API server of that minor and uses the built-in table if the binaries are not available. require exits 2 instead.
+  --api-server-dir <dir>   kube-apiserver, etcd, and kubectl already on disk. Nothing is downloaded.
   --server-side-apply      Server-Side Apply is enabled in Argo CD / Flux / Helm v4 (suppresses >256KiB CRD warning)
 
 Live Cluster Test (temporary kind cluster on this machine):

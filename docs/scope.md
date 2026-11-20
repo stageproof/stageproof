@@ -1,6 +1,6 @@
 # What Stageproof does and does not do
 
-Last updated: 2026-11-19.
+Last updated: 2026-11-20.
 
 This page is the scope of the command line tool.
 
@@ -48,9 +48,9 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | Does the new chart render with your values? | Yes | `helm template` | That the rendered objects are the ones you wanted. |
 | Does every key in your values file still do something? | Partly | It reads the chart templates and records which `.Values` keys they mention. A key the old chart reads and the new chart does not read is `BLOCKED`. Argo CD `helm.parameters` and `--set` are included as a values file. | A key the template mentions and then ignores still looks used. Rendering with and without the key is planned. |
 | Did the chart version, appVersion, image ref, or a Chart.yaml dependency change? | Yes, as a warning | The report names a minor-version skip, a new major, a changed `appVersion`, a changed container image, and a dependency constraint whose packaged chart under `charts/` did not change. A tag that only gains or loses a leading `v` is called out. | That the upstream project forbids the skip, or that the registry tag exists. |
-| Does the chart use an API your Kubernetes version has removed? | Yes, from a table we maintain | `--current-k8s` | This is not a live API server. Unknown fields and CRD validation rules are not judged. A real API server is planned. |
-| Will the next Kubernetes version remove an API the chart still uses? | Yes, as a warning | `--next-k8s` | It does not block the chart upgrade. It does not upgrade the cluster. |
-| Can the upgrade be applied on top of the old release? | Partly | Label selectors that Kubernetes refuses to change are `BLOCKED`. CRDs larger than 256 KiB are a warning, because client-side apply will fail. | Deletes, restarts, new privileges, and CRD schema breaks are not classified yet. |
+| Does the chart use an API your Kubernetes version has removed? | Yes | `--current-k8s` starts a local API server of that minor (`--api-server auto`). A kind the server does not serve is `BLOCKED`. If the binaries cannot be downloaded, the built-in table is used and the report says so. `--api-server off` uses only the table. `--api-server require` is `NOT CHECKED` when the binaries are missing. | The patch that ran is named in `checked:`. It is not a claim that your cluster is that patch. Deprecations still come from the table. |
+| Will the next Kubernetes version remove an API the chart still uses? | Yes, as a warning | `--next-k8s` dry-runs the new objects as creates on a second local API server when that minor is published. Otherwise the table is used. | It does not block the chart upgrade. It does not upgrade the cluster. |
+| Can the upgrade be applied on top of the old release? | Partly | The local API server applies the current objects and dry-runs the new ones. An immutable field, including a Job pod template and a StatefulSet `volumeClaimTemplates` change, is `BLOCKED`. A label selector change is still `BLOCKED`. A Helm hook is dry-run as a create. An unknown field is a warning with client-side Helm and `BLOCKED` with server-side apply. CRDs larger than 256 KiB are a warning. | Deletes, restarts, new privileges, and CRD schema breaks are not classified yet. An API server proof without `--live` is still `PASSED`. |
 | Does the new release start, and can you roll it back? | Only if you pass `--live` | Temporary kind cluster on the machine running the command. Each step waits up to 10 minutes. Install, upgrade, roll back, delete. If the current chart misses the deadline and the release is still there, the next step upgrades that release with the same values. A fresh install of the new chart is only used when there is no release to upgrade, and it is not called an upgrade. The deadline is reported as `context deadline exceeded`. A call to the cluster's own API is not an outside service. | Your real data, traffic, secrets, and private images. A slow empty-cluster install is not a broken chart. |
 
 ## What a result means

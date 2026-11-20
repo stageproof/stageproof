@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
@@ -197,12 +198,18 @@ func readFileFromGitRef(ref, filePath string) ([]byte, error) {
 // verifies each one, and returns the worst result: BLOCKED, then NOT CHECKED,
 // then PASSED, then PROVEN. PASSED and PROVEN both exit 0.
 func runCheckPR(args []string) int {
+	return runCheckPRCtx(context.Background(), args)
+}
+
+func runCheckPRCtx(ctx context.Context, args []string) int {
 	fs := flag.NewFlagSet("check-pr", flag.ContinueOnError)
 	fs.Usage = printUsage
 	currentGit := fs.String("current-git", "origin/main", "Base git ref/SHA of the PR/MR")
 	newGit := fs.String("new-git", "HEAD", "Head git ref/SHA of the PR/MR")
 	currentK8s := fs.String("current-k8s", "1.33", "Current cluster Kubernetes version")
 	nextK8s := fs.String("next-k8s", "", "Next cluster Kubernetes version")
+	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
+	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply enabled")
 	live := fs.Bool("live", false, "Run live kind upgrade/rollback")
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
@@ -301,6 +308,12 @@ func runCheckPR(args []string) int {
 	if *nextK8s != "" {
 		shared = append(shared, "--next-k8s", *nextK8s)
 	}
+	if flagWasSet(fs, "api-server") {
+		shared = append(shared, "--api-server", *apiServer)
+	}
+	if *apiServerDir != "" {
+		shared = append(shared, "--api-server-dir", *apiServerDir)
+	}
 	if *ssa {
 		shared = append(shared, "--server-side-apply")
 	}
@@ -325,7 +338,7 @@ func runCheckPR(args []string) int {
 		if before > 0 && strings.EqualFold(*format, "text") {
 			fmt.Println() // keep consecutive reports apart in the job log
 		}
-		_ = runCheckCollect(append(target, shared...), &reports)
+		_ = runCheckCollect(ctx, append(target, shared...), &reports)
 		if len(reports) == before {
 			reports = append(reports, incompleteReport(*currentGit, label))
 		}

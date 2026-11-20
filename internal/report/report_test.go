@@ -52,6 +52,21 @@ func TestFileCheckSaysItWasNotTestedLive(t *testing.T) {
 	}
 }
 
+func TestAPIServerCheckStillSaysNotTestedLive(t *testing.T) {
+	rep := sampleReport()
+	rep.Findings = nil
+	rep.Skipped = nil
+	rep.Checked = "files, API server 1.35.0"
+	var buf bytes.Buffer
+	writeTerminal(&buf, rep, true)
+	if !strings.Contains(buf.String(), "NOT TESTED LIVE") {
+		t.Fatalf("an API server proof is not a rehearsal:\n%s", buf.String())
+	}
+	if !strings.Contains(buf.String(), "checked: files, API server 1.35.0") {
+		t.Fatalf("the patch that ran must be named:\n%s", buf.String())
+	}
+}
+
 func TestTerminalColors(t *testing.T) {
 	var buf bytes.Buffer
 	writeTerminal(&buf, sampleReport(), true)

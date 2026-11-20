@@ -9,13 +9,17 @@ import (
 
 // State is what the stages pass along. The report is the only part that is printed.
 type State struct {
-	Report       *verdict.Report
-	BaseObjs     []k8sschema.ManifestObject
-	HeadObjs     []k8sschema.ManifestObject
-	Placeholders []string
-	Started      time.Time
-	Require      bool
-	Stopped      bool
+	Report           *verdict.Report
+	BaseObjs         []k8sschema.ManifestObject
+	HeadObjs         []k8sschema.ManifestObject
+	Placeholders     []string
+	Started          time.Time
+	Require          bool
+	Stopped          bool
+	APIServerRan     bool
+	APIServerVersion string
+	NextAPIServerRan bool
+	Stored           [][]byte
 }
 
 func (s *State) stop(runtimeOK, couldNotCheck bool) {

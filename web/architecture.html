@@ -116,8 +116,8 @@ kind cluster on this machine
             </tr>
             <tr>
               <td>Kubernetes APIs</td>
-              <td>A table of removed and deprecated APIs, plus a diff of label selectors and a size check on CRDs.</td>
-              <td>The table is ours to maintain. It is not a Kubernetes API server. An API server of your cluster's version is planned.</td>
+              <td>A local API server of the minor you named applies the current objects and dry-runs the new ones. Deprecations, label selectors, and the CRD size check still come from the built-in table.</td>
+              <td>The server is not your cluster. The patch it ran is named in the report. <code>--api-server off</code> uses only the table. Webhook configurations are not sent.</td>
             </tr>
             <tr>
               <td>Argo CD</td>
@@ -144,16 +144,12 @@ kind cluster on this machine
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">03</span> Planned, and not built</p>
           <h2>The next engine is still a plan.</h2>
-          <p class="sec-lede">These are the checks we intend to add. None of them run today. The <a href="roadmap.html">roadmap</a> is the list, in order.</p>
+          <p class="sec-lede">These checks are not in the tool yet. The <a href="roadmap.html">roadmap</a> is the list, in order.</p>
         </div>
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Values proof by rendering</h3>
             <p>Render with and without each key you set. A key is used when removing it changes the output. A verified rename is one that reproduces the old output.</p>
-          </article>
-          <article class="doc-card">
-            <h3>A real API server</h3>
-            <p>Apply the current objects, then dry-run the new ones, on the API server of your Kubernetes version. Removed APIs, unknown fields, and immutable fields come from Kubernetes.</p>
           </article>
           <article class="doc-card">
             <h3>What the upgrade does</h3>
