@@ -88,6 +88,7 @@ type SkipNotice struct {
 type DegradedNotice = SkipNotice
 
 type Report struct {
+	SchemaVersion  int           `json:"schema_version"`
 	Verdict        State         `json:"verdict"`
 	ExitCode       int           `json:"exit_code"`
 	Adapter        string        `json:"adapter"`

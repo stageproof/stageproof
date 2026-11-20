@@ -7,6 +7,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 The next release is 0.2.0.
 
+### Added
+
+- JSON reports start with `schema_version` 1. The field is added. Existing fields are unchanged.
+
 ### Breaking
 
 - CI behavior: when the current release does not become ready before the deadline and the upgrade of that same release does, a rollback that hits the same deadline is `NOT CHECKED` (exit 2). The same case was `BLOCKED` (exit 1).
