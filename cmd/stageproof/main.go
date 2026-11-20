@@ -19,8 +19,8 @@ import (
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
-// version is the release tag. The release build replaces it.
-var version = "v0.1.8"
+// version is the release tag. A release build replaces it with the tag.
+var version = "dev"
 
 type multiFlag []string
 
