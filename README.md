@@ -147,24 +147,30 @@ The values check reads the templates. A key that is mentioned and then ignored c
 
 ## Check a download
 
-The release signs `checksums.txt` with the GitHub Actions identity. No maintainer key is stored.
+The release signs `checksums.txt` and the image with the GitHub Actions identity. No maintainer key is stored. These commands were run against the pre-release `v0.2.0-rc.1`. A tag with a hyphen does not move `latest`.
 
 ```bash
+gh release download v0.2.0-rc.1 \
+  -p checksums.txt -p checksums.txt.pem -p checksums.txt.sig \
+  -p stageproof_0.2.0-rc.1_linux_amd64.tar.gz \
+  -p stageproof_0.2.0-rc.1_linux_amd64.tar.gz.sbom.json
+
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature checksums.txt.sig \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.8" \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.2.0-rc.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
-```
 
-The container image is signed the same way:
-
-```bash
-cosign verify ghcr.io/stageproof/stageproof:v0.1.8 \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.1.8" \
+cosign verify \
+  ghcr.io/stageproof/stageproof@sha256:2ba858d17b672dde9b610458220a20beec9f7d3b3fa153c39c5a671c84b043b0 \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.2.0-rc.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com"
+
+gh attestation verify stageproof_0.2.0-rc.1_linux_amd64.tar.gz --repo stageproof/stageproof
 ```
+
+The `.sbom.json` file is an SPDX document produced by syft. It names the module `github.com/stageproof/stageproof` at `v0.2.0-rc.1`.
 
 ## Documentation
 
