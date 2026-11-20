@@ -1314,6 +1314,7 @@ charts:
         - charts/webapp/values.yaml</pre>
 <p>The two Kubernetes versions are placeholders. Change <code>currentKubernetes</code> to the version your cluster runs, and <code>nextKubernetes</code> to the version you plan to move to, or delete that line.</p>
 <p>Subcharts inside a chart's own <code>charts</code> directory are not listed. They are checked as part of their parent chart.</p>
+<p>A chart whose version lives in another file, rather than in an Application manifest, is listed under <code>applications</code>. <code>versionFrom.regex</code> must capture the version. <code>templatePlaceholders</code> replaces <code>${...}</code> tokens. A token left in the chart repository, name, or version makes the result <code>NOT CHECKED</code> and names the token. A token left anywhere else is replaced with <code>stageproof-placeholder</code>.</p>
   </template>
 
   <template data-topic="findings" data-group="Reference" data-title="Findings">

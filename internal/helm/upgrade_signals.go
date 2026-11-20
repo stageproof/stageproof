@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/stageproof/stageproof/internal/k8sschema"
+	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 	"gopkg.in/yaml.v3"
 )
@@ -300,7 +301,7 @@ func postgresPrimarySignal(baseDir, headDir string, baseObjs, headObjs []k8ssche
 			break
 		}
 	}
-	if !changed || !chartMentions(baseDir, headDir, baseObjs, headObjs, "postgresql.cnpg.io") {
+	if !changed {
 		return nil
 	}
 	baseRefs := postgresImageRefs(baseDir, baseObjs)
@@ -313,12 +314,7 @@ func postgresPrimarySignal(baseDir, headDir string, baseObjs, headObjs []k8ssche
 			return nil
 		}
 	}
-	return []verdict.Finding{{
-		RuleID:   "helm.operator.primary_restart",
-		Severity: verdict.SeverityWarning,
-		Message:  "An operator image change can restart the current primary without a switchover even when the Postgres image tag does not change. This rehearsal had no Cluster.",
-		Detail:   "The database image ref is the same in both charts. The rehearsal installs the operator into an empty cluster, so it has no primary to watch.",
-	}}
+	return knowledge.Findings(chartText(baseDir, baseObjs)+"\n"+chartText(headDir, headObjs), true, true)
 }
 
 var postgresImageRefRe = regexp.MustCompile(`(?i)[a-z0-9][a-z0-9._/-]*postgres[a-z0-9._/-]*:[A-Za-z0-9][A-Za-z0-9._-]{0,80}`)
@@ -330,10 +326,6 @@ func postgresImageRefs(dir string, objs []k8sschema.ManifestObject) map[string]b
 		out[ref] = true
 	}
 	return out
-}
-
-func chartMentions(baseDir, headDir string, baseObjs, headObjs []k8sschema.ManifestObject, needle string) bool {
-	return strings.Contains(chartText(baseDir, baseObjs), needle) || strings.Contains(chartText(headDir, headObjs), needle)
 }
 
 func chartText(dir string, objs []k8sschema.ManifestObject) string {

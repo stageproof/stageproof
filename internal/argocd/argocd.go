@@ -23,30 +23,28 @@ type AppSpec struct {
 	ServerSideApply bool
 }
 
-var tfInterpRe = regexp.MustCompile(`\$\{[^}]+\}`)
+var placeholderRe = regexp.MustCompile(`\$\{[^}]+\}`)
 
-// ParseApplicationFile parses an Argo CD `Application` YAML or Terraform `.yaml.tmpl` file,
-// safely replacing `${terraform_vars}` with deterministic valid strings so Helm charts
-// defined inside GitOps / Terraform templates can be pulled and verified automatically.
-func ParseApplicationFile(path string) (*AppSpec, error) {
+// ParseApplicationFile parses an Argo CD Application YAML. ${...} tokens are
+// replaced from the supplied map. A token with no entry becomes the fixed
+// string stageproof-placeholder.
+func ParseApplicationFile(path string, placeholders map[string]string) (*AppSpec, []string, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return ParseApplicationBytes(raw, path)
+	return ParseApplicationBytes(raw, path, placeholders)
 }
 
-func ParseApplicationBytes(raw []byte, label string) (*AppSpec, error) {
-	sanitized := tfInterpRe.ReplaceAllStringFunc(string(raw), func(m string) string {
-		inner := strings.ToLower(m)
-		switch {
-		case strings.Contains(inner, "size"):
-			return "10Gi"
-		case strings.Contains(inner, "concurrent") || strings.Contains(inner, "replica") || strings.Contains(inner, "count") || strings.Contains(inner, "port"):
-			return "2"
-		default:
-			return "stageproof-placeholder"
-		}
+func ParseApplicationBytes(raw []byte, label string, placeholders map[string]string) (*AppSpec, []string, error) {
+	text := string(raw)
+	for key, val := range placeholders {
+		text = strings.ReplaceAll(text, key, val)
+	}
+	var used []string
+	sanitized := placeholderRe.ReplaceAllStringFunc(text, func(m string) string {
+		used = append(used, m)
+		return "stageproof-placeholder"
 	})
 
 	var doc struct {
@@ -75,13 +73,16 @@ func ParseApplicationBytes(raw []byte, label string) (*AppSpec, error) {
 	}
 
 	if err := yaml.Unmarshal([]byte(sanitized), &doc); err != nil {
-		return nil, fmt.Errorf("parse Argo CD manifest %s: %w", label, err)
+		return nil, used, fmt.Errorf("parse Argo CD manifest %s: %w", label, err)
 	}
 	if !strings.HasPrefix(doc.APIVersion, "argoproj.io/") || doc.Kind != "Application" {
-		return nil, fmt.Errorf("%s is not an argoproj.io Application (got %s %s)", label, doc.APIVersion, doc.Kind)
+		return nil, used, fmt.Errorf("%s is not an argoproj.io Application (got %s %s)", label, doc.APIVersion, doc.Kind)
 	}
 	if doc.Spec.Source.Chart == "" || doc.Spec.Source.RepoURL == "" {
-		return nil, fmt.Errorf("%s does not reference a remote Helm chart (repoURL/chart empty)", label)
+		return nil, used, fmt.Errorf("%s does not reference a remote Helm chart (repoURL/chart empty)", label)
+	}
+	if strings.Contains(doc.Spec.Source.RepoURL, "stageproof-placeholder") || strings.Contains(doc.Spec.Source.Chart, "stageproof-placeholder") || strings.Contains(doc.Spec.Source.TargetRevision, "stageproof-placeholder") {
+		return nil, used, fmt.Errorf("%s: unresolved placeholder in repoURL, chart, or targetRevision: %s", label, strings.Join(used, ", "))
 	}
 
 	out := &AppSpec{
@@ -101,7 +102,7 @@ func ParseApplicationBytes(raw []byte, label string) (*AppSpec, error) {
 			out.ServerSideApply = true
 		}
 	}
-	return out, nil
+	return out, used, nil
 }
 
 // PullChart downloads and untars a specific `(repoURL, chart, version)` into destParentDir,
