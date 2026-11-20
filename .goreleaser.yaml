@@ -37,6 +37,9 @@ archives:
 checksum:
   name_template: checksums.txt
 
+sboms:
+  - artifacts: archive
+
 signs:
   - cmd: cosign
     signature: ${artifact}.sig
@@ -69,6 +72,7 @@ changelog:
   use: github
 
 release:
+  prerelease: auto
   github:
     owner: stageproof
     name: stageproof
