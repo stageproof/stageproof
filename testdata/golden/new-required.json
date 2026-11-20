@@ -1,0 +1,27 @@
+{
+  "verdict": "BLOCKED",
+  "exit_code": 1,
+  "adapter": "helm",
+  "target_k8s": "1.33",
+  "base_ref": "testdata/required/base",
+  "head_ref": "testdata/required/head",
+  "checked": "files",
+  "duration_ms": 0,
+  "timestamp": "0001-01-01T00:00:00Z",
+  "checks": [
+    {
+      "name": "required values gate",
+      "status": "fail",
+      "summary": "1 new unset `required` value introduced by the upgrade"
+    }
+  ],
+  "findings": [
+    {
+      "rule_id": "helm.values.new_required_unset",
+      "severity": "blocker",
+      "resource": "title",
+      "message": "Upgraded chart introduces a NEW `required` value `title` that is unset in your values.",
+      "detail": "Template requirement: \"title is required\""
+    }
+  ]
+}

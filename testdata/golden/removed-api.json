@@ -1,0 +1,37 @@
+{
+  "verdict": "BLOCKED",
+  "exit_code": 1,
+  "adapter": "helm",
+  "target_k8s": "1.32",
+  "base_ref": "testdata/removed-api/base",
+  "head_ref": "testdata/removed-api/head",
+  "checked": "files",
+  "duration_ms": 0,
+  "timestamp": "0001-01-01T00:00:00Z",
+  "checks": [
+    {
+      "name": "helm template",
+      "status": "pass",
+      "summary": "rendered 1 Kubernetes object cleanly"
+    },
+    {
+      "name": "values.yaml AST",
+      "status": "pass",
+      "summary": "no custom -f overlay passed (default chart values verified)"
+    },
+    {
+      "name": "k8s 1.32 compatibility",
+      "status": "fail",
+      "summary": "1 removed API or immutable upgrade blocker"
+    }
+  ],
+  "findings": [
+    {
+      "rule_id": "k8s.api.removed",
+      "severity": "blocker",
+      "resource": "CronJob/default/nightly",
+      "message": "API `batch/v1beta1` (CronJob) was removed in Kubernetes 1.25 (target is 1.32).",
+      "detail": "Migrate resource to `batch/v1`."
+    }
+  ]
+}

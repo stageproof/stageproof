@@ -1,0 +1,38 @@
+{
+  "verdict": "NOT CHECKED",
+  "exit_code": 2,
+  "adapter": "helm",
+  "target_k8s": "1.33",
+  "base_ref": "testdata/clean/base",
+  "head_ref": "testdata/clean/head",
+  "checked": "files",
+  "duration_ms": 0,
+  "timestamp": "0001-01-01T00:00:00Z",
+  "checks": [
+    {
+      "name": "helm template",
+      "status": "pass",
+      "summary": "rendered 1 Kubernetes object cleanly"
+    },
+    {
+      "name": "values.yaml AST",
+      "status": "pass",
+      "summary": "no custom -f overlay passed (default chart values verified)"
+    },
+    {
+      "name": "k8s 1.33 compatibility",
+      "status": "pass",
+      "summary": "0 removed APIs or selector breaks on K8s 1.33"
+    }
+  ],
+  "skipped": [
+    {
+      "code": "rehearsal_required",
+      "reason": "File checks passed. --require-rehearsal is set and the upgrade was not rehearsed in a cluster.",
+      "remediation": "Re-run with --live. That starts a temporary kind cluster on this machine, installs the current chart, upgrades to the new chart, and rolls back. It does not commit and it does not change any cluster you already have."
+    }
+  ],
+  "excluded_checks": [
+    "kind.upgrade_rollback"
+  ]
+}
