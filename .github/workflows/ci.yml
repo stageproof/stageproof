@@ -9,7 +9,8 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  helm:
+    name: helm ${{ matrix.helm }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -36,3 +37,11 @@ jobs:
         with:
           version: v2.15.0
           args: --timeout=5m
+
+  # The branch protection rule looks for this exact check name.
+  test:
+    needs: helm
+    runs-on: ubuntu-latest
+    steps:
+      - name: Helm matrix passed
+        run: echo "Helm 3.22.1 and Helm 4.3.2 passed"
