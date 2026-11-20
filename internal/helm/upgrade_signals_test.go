@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/stageproof/stageproof/internal/k8sschema"
+	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 	"gopkg.in/yaml.v3"
 )
@@ -280,7 +281,11 @@ func TestOperatorSignal_NamesExistingCustomResources(t *testing.T) {
 
 func TestPostgresPrimarySignal_SameDatabaseImage(t *testing.T) {
 	root := t.TempDir()
-	body := "apiVersion: postgresql.cnpg.io/v1\nimage: ghcr.io/cloudnative-pg/postgresql:17.2\n"
+	ops, err := knowledge.Operators()
+	if err != nil || len(ops) == 0 {
+		t.Fatal(err)
+	}
+	body := "apiVersion: " + ops[0].CRDGroup + "/v1\nimage: example.com/postgresql:17.2\n"
 	for _, side := range []string{"base", "head"} {
 		dir := filepath.Join(root, side)
 		if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -302,7 +307,7 @@ func TestPostgresPrimarySignal_SameDatabaseImage(t *testing.T) {
 	if !strings.Contains(got[0].Message, "no Cluster") {
 		t.Fatalf("message: %s", got[0].Message)
 	}
-	changed := "apiVersion: postgresql.cnpg.io/v1\nimage: ghcr.io/cloudnative-pg/postgresql:17.5\n"
+	changed := "apiVersion: " + ops[0].CRDGroup + "/v1\nimage: example.com/postgresql:17.5\n"
 	if err := os.WriteFile(filepath.Join(root, "head", "cluster.yaml"), []byte(changed), 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -22,8 +22,8 @@ func TestLoadSavedLiveMatchesMergeRequestSHA(t *testing.T) {
 	  "reports": [{
 	    "verdict": "NOT CHECKED",
 	    "exit_code": 2,
-	    "base_ref": "longhorn@1.10.2",
-	    "head_ref": "longhorn@1.11.3",
+	    "base_ref": "demo@1.10.2",
+	    "head_ref": "demo@1.11.3",
 	    "cluster": "spmr50",
 	    "checked": "files+live"
 	  }]

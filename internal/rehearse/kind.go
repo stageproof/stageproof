@@ -682,8 +682,7 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 								"Check with a values file (`-f`) that does not mount that Secret or ConfigMap, so the chart can start in an empty cluster."
 						}
 						if r == "ImagePullBackOff" || r == "ErrImagePull" {
-							if strings.Contains(lmsg, "unauthorized") || strings.Contains(lmsg, "authentication") ||
-								strings.Contains(lmsg, "no such host") {
+							if privateRegistryPull(lmsg) {
 								return fmt.Sprintf("pod `%s` private registry image unreachable/unauthorized", p.Metadata.Name),
 									failExternalEnvGap,
 									"The temporary cluster cannot pull from a private registry. Check with a values file (`-f`) that uses an image it can pull."
@@ -882,13 +881,21 @@ func resolveNodeImageOnce(ctx context.Context, k8sVersion string) (string, bool)
 	return "", false
 }
 
+func privateRegistryPull(msg string) bool {
+	l := strings.ToLower(msg)
+	return strings.Contains(l, "unauthorized") ||
+		strings.Contains(l, "authentication") ||
+		strings.Contains(l, "forbidden") ||
+		strings.Contains(l, "401") ||
+		strings.Contains(l, "403") ||
+		strings.Contains(l, "no such host")
+}
+
 func hardImageFailure(msg string) bool {
 	return strings.Contains(msg, "not found") ||
 		strings.Contains(msg, "manifest unknown") ||
 		strings.Contains(msg, "no such manifest") ||
-		strings.Contains(msg, "unauthorized") ||
-		strings.Contains(msg, "authentication") ||
-		strings.Contains(msg, "no such host")
+		privateRegistryPull(msg)
 }
 
 func lastLines(s string, n, max int) string {

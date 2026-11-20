@@ -105,9 +105,9 @@ func TestResolveNodeImageFallsBackWhenLookupFails(t *testing.T) {
 }
 
 func TestLastLinesKeepsTheEndOfTheLog(t *testing.T) {
-	log := "Waiting for caches to sync\nv1 Endpoints is deprecated in v1.33+\nlonghorn-uninstall: connection to the local volume manager failed\n"
+	log := "Waiting for caches to sync\nv1 Endpoints is deprecated in v1.33+\nvolume-manager: connection to the local volume manager failed\n"
 	got := lastLines(log, 2, 800)
-	if !strings.Contains(got, "longhorn-uninstall") || strings.Contains(got, "Waiting for caches") {
+	if !strings.Contains(got, "volume-manager") || strings.Contains(got, "Waiting for caches") {
 		t.Fatalf("got %q", got)
 	}
 }
@@ -118,5 +118,17 @@ func TestHardImageFailureLeavesTransientPullsAlone(t *testing.T) {
 	}
 	if !hardImageFailure("manifest unknown: not found") {
 		t.Fatal("a deleted tag must stay a hard failure")
+	}
+}
+
+func TestPrivateRegistryComesFromThePullError(t *testing.T) {
+	if privateRegistryPull("failed to pull registry.example/app:1: connection reset by peer") {
+		t.Fatal("a host name is not a private registry")
+	}
+	if !privateRegistryPull("Head \"https://registry.example/v2/app/manifests/1\": 403 Forbidden") {
+		t.Fatal("403 is a private registry")
+	}
+	if !privateRegistryPull("dial tcp: lookup registry.example: no such host") {
+		t.Fatal("a host that does not resolve is a private registry")
 	}
 }

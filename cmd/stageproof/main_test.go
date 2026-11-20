@@ -37,7 +37,7 @@ func TestChartRefLabelHidesTempPath(t *testing.T) {
 	if got := chartRefLabel("argo-cd", "10.18.0", filepath.Join(os.TempDir(), "argocd-new.yaml")); got != "argo-cd@10.18.0" {
 		t.Fatalf("temp label = %q", got)
 	}
-	if got := chartRefLabel("argo-cd", "10.9.6", "terraform/modules/argo-cd/application.yaml.tmpl"); got != "argo-cd@10.9.6 (terraform/modules/argo-cd/application.yaml.tmpl)" {
+	if got := chartRefLabel("argo-cd", "10.9.6", "charts/platform/application.yaml.tmpl"); got != "argo-cd@10.9.6 (charts/platform/application.yaml.tmpl)" {
 		t.Fatalf("repo label = %q", got)
 	}
 }
