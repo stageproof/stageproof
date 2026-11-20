@@ -1,4 +1,5 @@
 {
+  "schema_version": 1,
   "verdict": "NOT CHECKED",
   "exit_code": 2,
   "adapter": "helm",

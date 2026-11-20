@@ -1,8 +1,10 @@
 {
+  "schema_version": 1,
   "verdict": "BLOCKED",
   "exit_code": 1,
   "reports": [
     {
+      "schema_version": 1,
       "verdict": "BLOCKED",
       "exit_code": 1,
       "adapter": "helm",
@@ -54,6 +56,7 @@
       ]
     },
     {
+      "schema_version": 1,
       "verdict": "PASSED",
       "exit_code": 0,
       "adapter": "helm",
@@ -98,6 +101,7 @@
       ]
     },
     {
+      "schema_version": 1,
       "verdict": "PASSED",
       "exit_code": 0,
       "adapter": "helm",

@@ -55,6 +55,9 @@ func paint(enabled bool, code, text string) string {
 }
 
 func WriteJSON(w io.Writer, r *verdict.Report) error {
+	if r != nil {
+		r.SchemaVersion = 1
+	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(r)
@@ -180,13 +183,22 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 // Combined is the result of a pull request check: the worst result across all
 // charts that changed, and the report of each one.
 type Combined struct {
-	Verdict  verdict.State     `json:"verdict"`
-	ExitCode int               `json:"exit_code"`
-	HeadGit  string            `json:"head_git,omitempty"`
-	Reports  []*verdict.Report `json:"reports"`
+	SchemaVersion int               `json:"schema_version"`
+	Verdict       verdict.State     `json:"verdict"`
+	ExitCode      int               `json:"exit_code"`
+	HeadGit       string            `json:"head_git,omitempty"`
+	Reports       []*verdict.Report `json:"reports"`
 }
 
 func WriteCombinedJSON(w io.Writer, c *Combined) error {
+	if c != nil {
+		c.SchemaVersion = 1
+		for _, r := range c.Reports {
+			if r != nil {
+				r.SchemaVersion = 1
+			}
+		}
+	}
 	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	return enc.Encode(c)
