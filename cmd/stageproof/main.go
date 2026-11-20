@@ -5,8 +5,10 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/stageproof/stageproof/internal/argocd"
@@ -34,6 +36,8 @@ func (m *multiFlag) Set(val string) error {
 }
 
 func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 	if len(os.Args) < 2 {
 		printUsage()
 		os.Exit(2)
@@ -43,9 +47,11 @@ func main() {
 	case "init":
 		os.Exit(runInit(os.Args[2:]))
 	case "check":
-		os.Exit(runCheck(os.Args[2:]))
+		os.Exit(runCheckCtx(ctx, os.Args[2:]))
 	case "check-pr", "check-mr":
-		os.Exit(runCheckPR(os.Args[2:]))
+		os.Exit(runCheckPRCtx(ctx, os.Args[2:]))
+	case "fetch-apiserver":
+		os.Exit(runFetchAPIServer(ctx, os.Args[2:]))
 	case "version", "--version", "-v":
 		fmt.Printf("stageproof %s (Apache-2.0)\n", version)
 		os.Exit(0)
@@ -85,12 +91,16 @@ func runInit(args []string) int {
 }
 
 func runCheck(args []string) int {
-	return runCheckCollect(args, nil)
+	return runCheckCtx(context.Background(), args)
+}
+
+func runCheckCtx(ctx context.Context, args []string) int {
+	return runCheckCollect(ctx, args, nil)
 }
 
 // runCheckCollect runs one check. When collected is not nil the report is also
 // appended to it, so that check-pr can combine the reports of several charts.
-func runCheckCollect(args []string, collected *[]*verdict.Report) int {
+func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.Report) int {
 	fs := flag.NewFlagSet("check", flag.ContinueOnError)
 	fs.Usage = printUsage
 
@@ -113,6 +123,8 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 
 	currentK8s := fs.String("current-k8s", "1.33", "Current cluster Kubernetes version")
 	nextK8s := fs.String("next-k8s", "", "Next cluster Kubernetes version")
+	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
+	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply is enabled in Argo CD / Flux / Helm")
 	applyMode := fs.String("apply-mode", "", "Apply mode: client | ssa")
 
@@ -194,7 +206,15 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 	}
 
 	tStart := time.Now()
-	ctx := context.Background()
+	if ctx == nil {
+		ctx = context.Background()
+	}
+	switch *apiServer {
+	case "auto", "off", "require":
+	default:
+		fmt.Fprintf(os.Stderr, "error: --api-server must be auto, off, or require\n")
+		return 2
+	}
 
 	resolvedBaseDir := baseDir
 	effectiveValues := []string(valuesFiles)
@@ -330,6 +350,8 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		SetValues:         setValues,
 		KubeVersion:       effK8s,
 		NextKubernetes:    effNextK8s,
+		APIServer:         *apiServer,
+		APIServerDir:      *apiServerDir,
 		ServerSideApply:   effSSA,
 		RequireRehearsal:  effRequire,
 		Live:              effLive,

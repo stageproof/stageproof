@@ -11,10 +11,13 @@ The next release is 0.2.0.
 
 - JSON reports start with `schema_version` 1. The field is added. Existing fields are unchanged.
 - The accuracy corpus runs the incident fixtures and 100 public chart pairs. `go run ./cmd/corpus` is not in the release archives.
+- `--api-server auto` asks a local Kubernetes API server of the requested minor whether the upgrade is accepted. The binaries are `kube-apiserver`, `etcd`, and `kubectl` from the controller-tools envtest index, checked with the SHA-512 in that index, and cached on disk. `stageproof fetch-apiserver` downloads them for a machine that cannot fetch them later. The module now depends on `k8s.io` and `sigs.k8s.io`. A build of this commit is 56 MB.
+- Rules `k8s.apply.immutable_field`, `k8s.apply.unknown_field`, `k8s.apply.invalid`, `crd.existing_object_invalid`, and `k8s.apply.not_exercised`.
 
 ### Breaking
 
 - CI behavior: when the current release does not become ready before the deadline and the upgrade of that same release does, a rollback that hits the same deadline is `NOT CHECKED` (exit 2). The same case was `BLOCKED` (exit 1).
+- The default check starts a local API server. A Job pod template change and a StatefulSet `volumeClaimTemplates` change are `BLOCKED`. An unknown field is a warning with client-side Helm and `BLOCKED` when the apply is server-side (Helm 4, or `--server-side-apply`). `--api-server off` keeps the built-in table. `--api-server require` is `NOT CHECKED` (exit 2) when the binaries are not available. The result words are unchanged: an API server proof without `--live` is still `PASSED`.
 
 ### Changed
 

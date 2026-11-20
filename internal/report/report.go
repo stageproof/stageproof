@@ -241,7 +241,7 @@ func verdictHeadlines(r *verdict.Report) []string {
 	if r.Cluster != "" {
 		lines = append([]string{"kind cluster " + r.Cluster}, lines...)
 	}
-	if r.Verdict == verdict.Passed && (r.Checked == "" || r.Checked == verdict.CheckedFiles) {
+	if r.Verdict == verdict.Passed && !strings.Contains(r.Checked, "live cluster") {
 		lines = append(lines, "NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.")
 	}
 	if r.Verdict == verdict.Proven {

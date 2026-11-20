@@ -3,6 +3,5 @@ summary: A Job that is not a Helm hook changed its pod template. Kubernetes reje
 k8s: "1.35"
 expect: {verdict: BLOCKED, rules: [k8s.apply.immutable_field]}
 control_expect: {verdict: PASSED}
-status: expected-fail
-needs: "1.4"
-source: Job pod templates are immutable
+status: active
+source: Job pod templates are immutable. The control is a pre-upgrade hook whose template changes. Helm deletes and recreates hook Jobs.

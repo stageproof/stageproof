@@ -143,7 +143,7 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 	case couldNotCheck:
 		r.Verdict = NotChecked
 	case runtimeSucceeded && len(r.Skipped) == 0:
-		r.Checked = CheckedFilesAndLive
+		r.Checked = withLive(r.Checked)
 		// A green rehearsal of the chart on disk is not proof of a dependency
 		// constraint that was never packaged under charts/.
 		if r.HasRule("helm.dependency.not_updated") {
@@ -169,6 +169,16 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 	if r.Timestamp.IsZero() {
 		r.Timestamp = time.Now().UTC()
 	}
+}
+
+func withLive(checked string) string {
+	if checked == "" || checked == CheckedFiles {
+		return CheckedFilesAndLive
+	}
+	if len(checked) >= len("live cluster") && checked[len(checked)-len("live cluster"):] == "live cluster" {
+		return checked
+	}
+	return checked + ", live cluster"
 }
 
 func appendUnique(list []string, item string) []string {

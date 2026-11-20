@@ -41,6 +41,10 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	Diff(in, st)
 	// Signals are recorded before compatibility findings, matching the previous order.
 	Changes(in, st)
+	ServerProof(ctx, in, st)
+	if st.Stopped {
+		return st.Report
+	}
 	APIs(in, st)
 
 	runtimeOK, inconclusive := Rehearse(ctx, in, st)

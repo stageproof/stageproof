@@ -120,7 +120,7 @@ func checkOut(t *testing.T, root string, args []string) string {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = os.Chdir(prev) })
-	runCheck(append(args, "--out", out))
+	runCheck(append(args, "--api-server", "off", "--out", out))
 	return out
 }
 
@@ -205,7 +205,7 @@ charts:
 	gitAt(t, "2020-01-02T00:00:00Z", "commit", "-q", "-m", "change both charts")
 
 	out := filepath.Join(t.TempDir(), "report.json")
-	runCheckPR([]string{"--current-git", "main", "--out", out})
+	runCheckPR([]string{"--current-git", "main", "--api-server", "off", "--out", out})
 	return out
 }
 

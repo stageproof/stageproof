@@ -165,7 +165,7 @@ spec:
 	writeFixture(t, userVals, "replicas: 1\nmessage: custom-prod-banner\npodAnnotations:\n  env: prod\n")
 
 	// Case 1: file checks only. PASSED exits 0. The report says what was checked and does not invent a warning.
-	cmd1 := exec.Command(binPath, "check", "--current-chart", baseChart, "--new-chart", goodChart, "-f", userVals)
+	cmd1 := exec.Command(binPath, "check", "--api-server", "off", "--current-chart", baseChart, "--new-chart", goodChart, "-f", userVals)
 	out1, err1 := cmd1.CombinedOutput()
 	if cmd1.ProcessState.ExitCode() != 0 {
 		t.Fatalf("Case 1 expected exit 0 (PASSED), got %d (err=%v)\n%s", cmd1.ProcessState.ExitCode(), err1, string(out1))
@@ -178,7 +178,7 @@ spec:
 	}
 
 	// Case 2: Dropped values.yaml key -> MUST return exit 1 (BLOCKED)
-	cmd2 := exec.Command(binPath, "check", "--current-chart", baseChart, "--new-chart", badKeyChart, "-f", userVals)
+	cmd2 := exec.Command(binPath, "check", "--api-server", "off", "--current-chart", baseChart, "--new-chart", badKeyChart, "-f", userVals)
 	out2, _ := cmd2.CombinedOutput()
 	if cmd2.ProcessState.ExitCode() != 1 || !strings.Contains(string(out2), "helm.values.silently_dropped") {
 		t.Fatalf("Case 2 expected exit 1 + helm.values.silently_dropped, got %d:\n%s", cmd2.ProcessState.ExitCode(), string(out2))
@@ -195,7 +195,7 @@ spec:
 
 	// Case (a): a clean upgrade and rollback is PROVEN.
 	// Case 3: Live kind rehearsal (--live) on good upgrade -> MUST return exit 0 (PROVEN)
-	cmd3 := exec.Command(binPath, "check", "--current-chart", baseChart, "--new-chart", goodChart, "-f", userVals,
+	cmd3 := exec.Command(binPath, "check", "--api-server", "off", "--current-chart", baseChart, "--new-chart", goodChart, "-f", userVals,
 		"--live", "--keep-cluster", "--cluster-name", clusterName, "--timeout", "45s")
 	cmd3.Env = append(os.Environ(), "NO_COLOR=1")
 	out3, err3 := cmd3.CombinedOutput()
@@ -210,7 +210,7 @@ spec:
 
 	// Case (b): a new version that crash-loops is BLOCKED.
 	// Case 4: Live kind rehearsal on crashing runtime upgrade -> MUST catch crashloop, rollback cleanly to rev 1, and exit 1 (BLOCKED)
-	cmd4 := exec.Command(binPath, "check", "--current-chart", baseChart, "--new-chart", crashChart, "-f", userVals,
+	cmd4 := exec.Command(binPath, "check", "--api-server", "off", "--current-chart", baseChart, "--new-chart", crashChart, "-f", userVals,
 		"--live", "--keep-cluster", "--cluster-name", clusterName, "--timeout", "20s")
 	out4, _ := cmd4.CombinedOutput()
 	if cmd4.ProcessState.ExitCode() != 1 || !strings.Contains(string(out4), "rollback rehearsal") {
@@ -218,7 +218,7 @@ spec:
 	}
 
 	// Case 5: a custom CRD that is not in the chart must not be reported as a broken upgrade. File checks passed, so the result is PASSED, and the report names the missing CRD.
-	cmd5 := exec.Command(binPath, "check", "--current-chart", baseChart, "--new-chart", tierCChart, "-f", userVals,
+	cmd5 := exec.Command(binPath, "check", "--api-server", "off", "--current-chart", baseChart, "--new-chart", tierCChart, "-f", userVals,
 		"--live", "--keep-cluster", "--cluster-name", clusterName, "--timeout", "30s")
 	out5, _ := cmd5.CombinedOutput()
 	if cmd5.ProcessState.ExitCode() != 0 || !strings.Contains(string(out5), "missing_external_crds") || !strings.Contains(string(out5), "PASSED") {
@@ -295,7 +295,7 @@ func TestE2E_UnreadyBaselineThenUpgrade(t *testing.T) {
 	cluster := "sp-e2e-unready"
 	defer func() { _ = exec.Command("kind", "delete", "cluster", "--name", cluster).Run() }()
 
-	cmd := exec.Command(bin, "check", "--current-chart", base, "--new-chart", head,
+	cmd := exec.Command(bin, "check", "--api-server", "off", "--current-chart", base, "--new-chart", head,
 		"--live", "--cluster-name", cluster, "--timeout", "30s")
 	cmd.Env = append(os.Environ(), "NO_COLOR=1")
 	out, _ := cmd.CombinedOutput()
@@ -337,7 +337,7 @@ func TestE2E_MissingImageTag(t *testing.T) {
 	cluster := "sp-e2e-missing"
 	defer func() { _ = exec.Command("kind", "delete", "cluster", "--name", cluster).Run() }()
 
-	cmd := exec.Command(bin, "check", "--current-chart", base, "--new-chart", head,
+	cmd := exec.Command(bin, "check", "--api-server", "off", "--current-chart", base, "--new-chart", head,
 		"--live", "--cluster-name", cluster, "--timeout", "30s")
 	cmd.Env = append(os.Environ(), "NO_COLOR=1")
 	out, _ := cmd.CombinedOutput()
@@ -375,7 +375,7 @@ func TestE2E_ParallelClusters(t *testing.T) {
 		wg.Add(1)
 		go func(i int, name string) {
 			defer wg.Done()
-			cmd := exec.Command(bin, "check", "--current-chart", base, "--new-chart", head,
+			cmd := exec.Command(bin, "check", "--api-server", "off", "--current-chart", base, "--new-chart", head,
 				"--live", "--cluster-name", name, "--timeout", "45s")
 			cmd.Env = append(os.Environ(), "NO_COLOR=1")
 			out, _ := cmd.CombinedOutput()
