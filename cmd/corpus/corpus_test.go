@@ -26,8 +26,12 @@ func TestCompareFailsAMissedIncident(t *testing.T) {
 	dir := t.TempDir()
 	results := filepath.Join(dir, "results.json")
 	base := filepath.Join(dir, "baseline.json")
-	os.WriteFile(results, []byte(`{"incidents":[{"id":"removed-api","status":"active","ok":false,"control_ok":true}]}`), 0o644)
-	os.WriteFile(base, []byte(`{"blocked_clean":[]}`), 0o644)
+	if err := os.WriteFile(results, []byte(`{"incidents":[{"id":"removed-api","status":"active","ok":false,"control_ok":true}]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(base, []byte(`{"blocked_clean":[]}`), 0o644); err != nil {
+		t.Fatal(err)
+	}
 	if err := compare([]string{results, base}); err == nil {
 		t.Fatal("a missed active incident must fail the compare")
 	}
