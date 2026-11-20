@@ -414,6 +414,16 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	if opts.BaseChartDir != "" {
 		tRb := time.Now()
 		if rbErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, []string{"rollback", relName, "1", "--namespace", ns, "--wait", "--timeout", waitTimeout}); rbErr != nil {
+			// The current release already missed this deadline. A rollback that
+			// misses it again is the same fact, not a new failure of the upgrade.
+			if upgradedUnready && readinessTimedOut(rbErr.Error()) {
+				out.Checks = append(out.Checks, verdict.CheckResult{
+					Name:    "rollback rehearsal",
+					Status:  "warn",
+					Summary: "the current release still did not become ready within the deadline. The upgraded release had become ready.",
+				})
+				return out, nil
+			}
 			out.Findings = append(out.Findings, verdict.Finding{
 				RuleID:   "helm.runtime.rollback_failed",
 				Severity: verdict.SeverityBlocker,
