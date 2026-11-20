@@ -14,8 +14,11 @@ type ManifestObject struct {
 	Kind       string         `yaml:"kind"`
 	Metadata   ObjectMetadata `yaml:"metadata"`
 	Spec       map[string]any `yaml:"spec"`
-	RawBytes   int            `yaml:"-"`
-	RawYAML    string         `yaml:"-"`
+	// Object is the whole document. ConfigMap data, RBAC rules, CRD schemas,
+	// and webhook config live outside spec.
+	Object   map[string]any `yaml:"-"`
+	RawBytes int            `yaml:"-"`
+	RawYAML  string         `yaml:"-"`
 }
 
 type ObjectMetadata struct {
@@ -30,7 +33,25 @@ func (m ManifestObject) ID() string {
 	if ns == "" {
 		ns = "default"
 	}
+	// The printed form stays Kind/namespace/name. A core object has no group
+	// to print. Other groups are part of matchKey, not this string, so a
+	// report does not change.
 	return fmt.Sprintf("%s/%s/%s", m.Kind, ns, m.Metadata.Name)
+}
+
+// Group is the API group. A core object (apiVersion v1) has an empty group.
+func (m ManifestObject) Group() string {
+	if !strings.Contains(m.APIVersion, "/") {
+		return ""
+	}
+	group, _, _ := strings.Cut(m.APIVersion, "/")
+	return group
+}
+
+// matchKey separates two objects that share a kind and a name in different
+// API groups. The printed ID stays the same.
+func (m ManifestObject) matchKey() string {
+	return m.Group() + "\x00" + m.ID()
 }
 
 type apiRemovalRule struct {
@@ -114,6 +135,10 @@ func ParseManifestStream(renderedYAML string) ([]ManifestObject, error) {
 		}
 		if obj.APIVersion == "" || obj.Kind == "" {
 			continue
+		}
+		var full map[string]any
+		if err := node.Decode(&full); err == nil {
+			obj.Object = full
 		}
 		obj.RawBytes = len(rawDoc)
 		obj.RawYAML = string(rawDoc)
@@ -225,12 +250,12 @@ func removalRulesFor(obj ManifestObject) []apiRemovalRule {
 func DiffUpgradeSafety(baseObjs, headObjs []ManifestObject) []verdict.Finding {
 	baseMap := make(map[string]ManifestObject, len(baseObjs))
 	for _, b := range baseObjs {
-		baseMap[b.ID()] = b
+		baseMap[b.matchKey()] = b
 	}
 
 	var findings []verdict.Finding
 	for _, h := range headObjs {
-		b, exists := baseMap[h.ID()]
+		b, exists := baseMap[h.matchKey()]
 		if !exists {
 			continue
 		}

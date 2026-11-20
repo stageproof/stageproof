@@ -37,6 +37,36 @@ func TestSpecificKindRuleBeatsWildcard(t *testing.T) {
 	}
 }
 
+func TestIdentityKeepsThePrintedFormAndSeparatesGroups(t *testing.T) {
+	core := ManifestObject{APIVersion: "v1", Kind: "ConfigMap", Metadata: ObjectMetadata{Name: "app"}}
+	if core.Group() != "" || core.ID() != "ConfigMap/default/app" {
+		t.Fatalf("core identity = %s %s", core.Group(), core.ID())
+	}
+	a := ManifestObject{APIVersion: "apps/v1", Kind: "Deployment", Metadata: ObjectMetadata{Namespace: "demo", Name: "web"}}
+	b := ManifestObject{APIVersion: "example.com/v1", Kind: "Deployment", Metadata: ObjectMetadata{Namespace: "demo", Name: "web"}}
+	if a.ID() != "Deployment/demo/web" || b.ID() != "Deployment/demo/web" {
+		t.Fatalf("printed form changed: %s %s", a.ID(), b.ID())
+	}
+	if a.matchKey() == b.matchKey() {
+		t.Fatal("different API groups must not share an identity")
+	}
+}
+
+func TestParseKeepsTheWholeDocument(t *testing.T) {
+	raw := "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: app\ndata:\n  file: hello\n"
+	objs, err := ParseManifestStream(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(objs) != 1 {
+		t.Fatalf("objects: %d", len(objs))
+	}
+	data, _ := objs[0].Object["data"].(map[string]any)
+	if data["file"] != "hello" {
+		t.Fatalf("data outside spec was dropped: %#v", objs[0].Object)
+	}
+}
+
 func TestWildcardStillCoversOtherKinds(t *testing.T) {
 	obj := []ManifestObject{{APIVersion: "admissionregistration.k8s.io/v1beta1", Kind: "ValidatingWebhookConfiguration", Metadata: ObjectMetadata{Name: "hook"}}}
 	if rulesFired(obj, "1.33", "")["k8s.api.removed"] != verdict.SeverityBlocker {
