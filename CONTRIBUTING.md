@@ -20,4 +20,15 @@ Helm is required for the checks. The live test also needs kind, kubectl, and Doc
 
 ## Results
 
-`PROVEN` and `PASSED` exit 0. `BLOCKED` exits 1. `NOT CHECKED` exits 2. Do not add a fourth exit code.
+`PROVEN` and `PASSED` exit 0. `BLOCKED` exits 1. `NOT CHECKED` exits 2. Do not add a fourth exit code. What a version may change is in [docs/versioning.md](docs/versioning.md).
+
+## Release checklist
+
+1. `main` is green, including the `live` job and, once it exists, the corpus.
+2. `CHANGELOG.md` has the new section. Anything under Breaking is also the first line of the release notes.
+3. Version strings are updated in `cmd/stageproof/main.go`, `README.md`, `web/docs.html`, `web/index.html`, `web/security.html`, `web/architecture.html`, and `.github/ISSUE_TEMPLATE/bug.yml`. Check with `rg -n '0\.<old>\.<old>'`. It must return nothing.
+4. That change is merged by pull request. Then `git tag vX.Y.Z <merge sha>` and `git push origin vX.Y.Z`. The tag is lightweight.
+5. Watch the release run to the end. If one job fails for an outside reason, rerun that job once. If it fails twice, stop and report.
+6. From a clean directory: download, `sha256sum -c`, `cosign verify-blob`, run `stageproof version`, and `cosign verify` the image.
+7. Update the Homebrew formula by hand. Open the GitLab merge request that bumps the image pin.
+8. Never move, delete, or rebuild a pushed tag. A bad release is fixed by the next version.
