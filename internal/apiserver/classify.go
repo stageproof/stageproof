@@ -57,6 +57,9 @@ func Classify(err error) Classified {
 		if errors.As(err, &api) {
 			statusErr = &apierrors.StatusError{ErrStatus: api.Status()}
 		} else {
+			if field, detail, ok := typedMismatch(err.Error()); ok {
+				return Classified{Class: ClassInvalid, Field: field, Detail: detail}
+			}
 			return Classified{Class: ClassUnclassified}
 		}
 	}
@@ -71,7 +74,8 @@ func Classify(err error) Classified {
 		case metav1.CauseTypeForbidden:
 			return Classified{Class: ClassImmutable, Field: cause.Field, Reason: st.Reason}
 		case metav1.CauseTypeFieldValueNotSupported:
-			return Classified{Class: ClassUnknown, Field: cause.Field, Reason: st.Reason}
+			// An unsupported enum value is a rejection, not an unknown field.
+			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
 		case metav1.CauseTypeFieldValueInvalid:
 			// An immutable update is FieldValueInvalid. The validation detail is
 			// the suffix "field is immutable". The message also quotes the
@@ -79,18 +83,21 @@ func Classify(err error) Classified {
 			if strings.HasSuffix(cause.Message, "field is immutable") {
 				return Classified{Class: ClassImmutable, Field: cause.Field, Reason: st.Reason}
 			}
-			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: cause.Message, Reason: st.Reason}
+			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
 		case metav1.CauseTypeFieldValueRequired,
 			metav1.CauseTypeTypeInvalid,
 			metav1.CauseTypeFieldValueNotFound,
 			metav1.CauseTypeFieldValueDuplicate,
 			metav1.CauseTypeTooLong,
 			metav1.CauseTypeTooMany:
-			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: cause.Message, Reason: st.Reason}
+			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
 		}
 	}
 	if field, ok := typedUnknownField(st); ok {
 		return Classified{Class: ClassUnknown, Field: field, Reason: st.Reason}
+	}
+	if field, detail, ok := typedMismatch(st.Message); ok {
+		return Classified{Class: ClassInvalid, Field: field, Detail: detail, Reason: st.Reason}
 	}
 	switch st.Reason {
 	case metav1.StatusReasonBadRequest:
@@ -126,6 +133,113 @@ func typedUnknownField(st metav1.Status) (string, bool) {
 		return "", true
 	}
 	return strings.TrimPrefix(head[i+2:], "."), true
+}
+
+// scrubDetail drops the rejected value from a Kubernetes validation message.
+// "Invalid value: \"secret\": expected integer" becomes "expected integer".
+// The constraint that follows, including supported enum values, stays.
+func scrubDetail(msg string) string {
+	for _, prefix := range []string{"Invalid value: ", "Unsupported value: "} {
+		msg = stripPrefixedValue(msg, prefix)
+	}
+	return strings.TrimSpace(scrubGotQuoted(msg))
+}
+
+func stripPrefixedValue(msg, prefix string) string {
+	for {
+		i := strings.Index(msg, prefix)
+		if i < 0 {
+			return msg
+		}
+		rest := msg[i+len(prefix):]
+		n, ok := consumeValue(rest)
+		if !ok {
+			return msg
+		}
+		tail := rest[n:]
+		switch {
+		case strings.HasPrefix(tail, ": "):
+			tail = tail[2:]
+		case strings.HasPrefix(tail, ":"):
+			tail = strings.TrimPrefix(tail[1:], " ")
+		}
+		msg = msg[:i] + tail
+	}
+}
+
+func consumeValue(s string) (int, bool) {
+	if s == "" {
+		return 0, false
+	}
+	if s[0] == '"' {
+		return consumeQuoted(s)
+	}
+	if i := strings.Index(s, ": "); i >= 0 {
+		return i, true
+	}
+	return 0, false
+}
+
+func consumeQuoted(s string) (int, bool) {
+	if len(s) < 2 || s[0] != '"' {
+		return 0, false
+	}
+	escaped := false
+	for i := 1; i < len(s); i++ {
+		if escaped {
+			escaped = false
+			continue
+		}
+		if s[i] == '\\' {
+			escaped = true
+			continue
+		}
+		if s[i] == '"' {
+			return i + 1, true
+		}
+	}
+	return 0, false
+}
+
+func scrubGotQuoted(msg string) string {
+	const marker = "got \""
+	i := strings.Index(msg, marker)
+	if i < 0 {
+		return msg
+	}
+	rest := msg[i+len("got "):]
+	n, ok := consumeQuoted(rest)
+	if !ok {
+		return msg
+	}
+	return msg[:i] + "got string" + rest[n:]
+}
+
+// typedMismatch recognises a server-side apply error for a value of the wrong
+// type. kube-apiserver often returns that as a typed-patch message with no
+// field cause. An unknown field keeps its own class.
+func typedMismatch(msg string) (string, string, bool) {
+	if msg == "" || strings.Contains(msg, "field not declared in schema") {
+		return "", "", false
+	}
+	if !strings.Contains(msg, "expected ") {
+		return "", "", false
+	}
+	if !strings.Contains(msg, "got ") && !strings.Contains(msg, "must be of type") {
+		return "", "", false
+	}
+	const marker = ": expected "
+	i := strings.Index(msg, marker)
+	if i < 0 {
+		return "", scrubDetail(msg), true
+	}
+	head := msg[:i]
+	field := head
+	if j := strings.LastIndex(head, " "); j >= 0 {
+		field = head[j+1:]
+	}
+	field = strings.TrimPrefix(field, ".")
+	return field, scrubDetail(msg[i+2:]), true
 }
 
 func firstCause(causes []metav1.StatusCause) string {

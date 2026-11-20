@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"regexp"
+	"strings"
 	"syscall"
 	"testing"
 	"time"
@@ -68,7 +69,7 @@ spec:
       restartPolicy: Never
       containers: [{name: job, image: busybox:1.37}]
 `)
-	res, err := srv.Prove(ctx, []Manifest{beforeJob}, []Manifest{afterJob}, nil, ProofOptions{})
+	res, err := srv.Prove(ctx, []Manifest{beforeJob}, []Manifest{afterJob}, nil, nil, ProofOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -82,7 +83,7 @@ spec:
 		t.Fatal(err)
 	}
 	defer func() { _ = srv2.Stop() }()
-	hookRes, err := srv2.Prove(ctx, []Manifest{beforeJob}, []Manifest{hook}, nil, ProofOptions{})
+	hookRes, err := srv2.Prove(ctx, []Manifest{beforeJob}, []Manifest{hook}, nil, nil, ProofOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -99,15 +100,15 @@ spec:
 	defer func() { _ = srv3.Stop() }()
 	beforeSTS := manifest(t, sts("1Gi"))
 	afterSTS := manifest(t, sts("2Gi"))
-	stsRes, err := srv3.Prove(ctx, []Manifest{beforeSTS}, []Manifest{afterSTS}, nil, ProofOptions{})
+	stsRes, err := srv3.Prove(ctx, []Manifest{beforeSTS}, []Manifest{afterSTS}, nil, nil, ProofOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !hasBlocker(stsRes, "k8s.apply.immutable_field") {
 		t.Fatalf("volumeClaimTemplates change must be immutable, findings: %+v", stsRes.Findings)
 	}
-	if len(stsRes.Stored) == 0 {
-		t.Fatal("dry run must keep the stored object")
+	if len(stsRes.StoredBefore) == 0 {
+		t.Fatal("the applied object must be kept")
 	}
 }
 
@@ -144,7 +145,7 @@ spec:
     spec:
       containers: [{name: app, image: nginx:1.27, notAField: x}]
 `)
-	res, err := srv.Prove(ctx, []Manifest{base}, []Manifest{changed}, nil, ProofOptions{})
+	res, err := srv.Prove(ctx, []Manifest{base}, []Manifest{changed}, nil, nil, ProofOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -156,7 +157,7 @@ spec:
 			t.Fatalf("client-side apply drops the field, severity: %s", f.Severity)
 		}
 	}
-	strict, err := srv.Prove(ctx, nil, []Manifest{changed}, nil, ProofOptions{StrictUnknown: true, CreatesOnly: true})
+	strict, err := srv.Prove(ctx, nil, []Manifest{changed}, nil, nil, ProofOptions{StrictUnknown: true, CreatesOnly: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -188,12 +189,167 @@ func TestAPIServerFiftyObjects(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer func() { _ = srv.Stop() }()
-	if _, err := srv.Prove(ctx, nil, docs, nil, ProofOptions{CreatesOnly: true}); err != nil {
+	if _, err := srv.Prove(ctx, nil, docs, nil, nil, ProofOptions{CreatesOnly: true}); err != nil {
 		t.Fatal(err)
 	}
 	if elapsed := time.Since(start); elapsed > 30*time.Second {
 		t.Fatalf("50 objects took %s, the limit is 30s with a warm cache", elapsed)
 	}
+}
+
+func TestAPIServerCRDExistingObjectInvalid(t *testing.T) {
+	version := apiServerOn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+	srv, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Stop() }()
+	if srv.Version() != version && !strings.HasPrefix(srv.Version(), version+".") {
+		t.Fatalf("server reported %s for requested %s", srv.Version(), version)
+	}
+
+	beforeCRD := manifest(t, widgetCRD("string"))
+	afterCRD := manifest(t, widgetCRD("integer"))
+	widget := manifest(t, widgetCR())
+	res, err := srv.Prove(ctx, []Manifest{beforeCRD, widget}, []Manifest{afterCRD, widget}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasBlocker(res, "crd.existing_object_invalid") {
+		t.Fatalf("stored widget must be invalid, findings: %+v", res.Findings)
+	}
+	for _, f := range res.Findings {
+		if f.RuleID == "k8s.apply.not_exercised" && (f.Resource == "Widget/default/demo" || strings.Contains(f.Message, "Widget/default/demo")) {
+			t.Fatalf("widget was not judged: %+v", res.Findings)
+		}
+	}
+
+	srv2, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv2.Stop() }()
+	control, err := srv2.Prove(ctx, []Manifest{beforeCRD, widget}, []Manifest{beforeCRD, widget}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasBlocker(control, "crd.existing_object_invalid") {
+		t.Fatalf("unchanged CRD must not block: %+v", control.Findings)
+	}
+}
+
+func TestAPIServerSkipsWebhooks(t *testing.T) {
+	version := apiServerOn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	srv, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Stop() }()
+	dep := manifest(t, `
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: app}
+spec:
+  replicas: 1
+  selector: {matchLabels: {app: app}}
+  template:
+    metadata: {labels: {app: app}}
+    spec:
+      containers: [{name: app, image: nginx:1.27}]
+`)
+	hook := manifest(t, `
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingWebhookConfiguration
+metadata: {name: deny}
+webhooks:
+  - name: deny.example.com
+    admissionReviewVersions: ["v1"]
+    sideEffects: None
+    clientConfig: {url: "https://127.0.0.1:8443/deny"}
+`)
+	res, err := srv.Prove(ctx, []Manifest{dep}, []Manifest{dep, hook}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasRule(res, "k8s.apply.not_exercised") {
+		t.Fatalf("webhook must be skipped: %+v", res.Findings)
+	}
+	for _, f := range res.Findings {
+		if f.Severity == "blocker" {
+			t.Fatalf("deployment must still succeed: %+v", res.Findings)
+		}
+	}
+}
+
+func TestAPIServerInvalidEnumIsBlocker(t *testing.T) {
+	version := apiServerOn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+	srv, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Stop() }()
+	pod := manifest(t, `
+apiVersion: v1
+kind: Pod
+metadata: {name: bad}
+spec:
+  restartPolicy: Bogus
+  containers: [{name: app, image: nginx:1.27}]
+`)
+	res, err := srv.Prove(ctx, nil, []Manifest{pod}, nil, nil, ProofOptions{CreatesOnly: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasBlocker(res, "k8s.apply.invalid") {
+		t.Fatalf("invalid enum must block: %+v", res.Findings)
+	}
+	if hasRule(res, "k8s.apply.unknown_field") {
+		t.Fatalf("invalid enum is not an unknown field: %+v", res.Findings)
+	}
+	for _, f := range res.Findings {
+		if strings.Contains(f.Detail, "Bogus") || strings.Contains(f.Message, "Bogus") {
+			t.Fatalf("rejected value leaked: %+v", f)
+		}
+	}
+}
+
+func widgetCRD(sizeType string) string {
+	return `
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:
+                size: {type: ` + sizeType + `}
+`
+}
+
+func widgetCR() string {
+	return `
+apiVersion: example.com/v1
+kind: Widget
+metadata: {name: demo}
+spec: {size: large}
+`
 }
 
 func TestAPIServerStopOnSIGTERM(t *testing.T) {

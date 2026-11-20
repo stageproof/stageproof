@@ -18,12 +18,19 @@ The next release is 0.2.0.
 
 ### Breaking
 
+- An invalid enum value, such as a `restartPolicy` Kubernetes does not support, is `k8s.apply.invalid` and exits 1. The same object was `k8s.apply.unknown_field`, a warning with client-side Helm, and exited 0.
+- A Helm hook is not reported as a delete or a restart. A hook PersistentVolumeClaim that the new chart drops was `impact.delete.pvc` (exit 1). It is not a finding now.
 - CI behavior: when the current release does not become ready before the deadline and the upgrade of that same release does, a rollback that hits the same deadline is `NOT CHECKED` (exit 2). The same case was `BLOCKED` (exit 1).
 - The default check starts a local API server. A Job pod template change and a StatefulSet `volumeClaimTemplates` change are `BLOCKED`. An unknown field is a warning with client-side Helm and `BLOCKED` when the apply is server-side (Helm 4, or `--server-side-apply`). `--api-server off` keeps the built-in table. `--api-server require` is `NOT CHECKED` (exit 2) when the binaries are not available. The result words are unchanged: an API server proof without `--live` is still `PASSED`.
 - A chart that drops a templated CRD, a PersistentVolumeClaim, or a Namespace, that removes a CRD storage version, or that incompatibly changes a CRD under `crds/`, can now exit 1. The same input was exit 0, or exit 1 only when the API server rejected the object. `--api-server off` still classifies those cases from the rendered objects.
 
 ### Fixed
 
+- The API server proof stores the current objects before it upgrades CRDs, then dry-runs an update of each stored custom resource against the new schema. A custom resource the new schema rejects is `crd.existing_object_invalid`. The report names the patch the process is running, and `fetch-apiserver` copies that process's binaries.
+- CRD files under nested `crds/` directories and unpacked `charts/*/crds` are included. A schema break blocks only custom resources of that version that use the changed field. A newly required field the object already sets, and an enum value that is still allowed, stay warnings. Every affected custom resource is named.
+- Removing a `securityContext` that set `runAsNonRoot`, `readOnlyRootFilesystem`, `allowPrivilegeEscalation: false`, or `capabilities.drop` is `impact.privilege.securitycontext`.
+- API server details keep the constraint and drop the rejected value.
+- The corpus workflow compares incident results and pair results with the committed baseline.
 - `golang.org/x/net` is v0.60.0. The Kubernetes client libraries otherwise pull a module with the known HTTP/2 issues.
 - The corpus label file parses again. One evidence line contained a colon, so no pair was labeled and the wrong-block count was zero for that reason. A labels file that does not parse now fails the run.
 

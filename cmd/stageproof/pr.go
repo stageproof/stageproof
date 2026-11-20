@@ -604,9 +604,6 @@ func applicationYAML(app config.Application, version, values string) string {
 	return b.String()
 }
 
-// chartVersionFromTF returns the default of variable "chart_version".
-// The first `default` in the file is not used: other variables and the
-// description string sit above that default.
 // chartRefLabel renders chart@version. A synthesized Application under the
 // temp dir is not a source path, so it is left off the merge request comment.
 func chartRefLabel(chart, revision, source string) string {

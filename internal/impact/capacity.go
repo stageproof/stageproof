@@ -10,7 +10,8 @@ import (
 
 func capacity(before, after map[string]obj) []verdict.Finding {
 	var findings []verdict.Finding
-	for k, neu := range after {
+	for _, k := range orderedKeys(after) {
+		neu := after[k]
 		old, ok := before[k]
 		if !ok {
 			continue

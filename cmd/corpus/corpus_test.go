@@ -22,6 +22,24 @@ func TestChooseVersionsNeedsMinorAndMajor(t *testing.T) {
 	}
 }
 
+func TestCorpusFilesParse(t *testing.T) {
+	root := filepath.Join("..", "..")
+	var pairs pairsFile
+	if err := loadYAML(filepath.Join(root, "corpus", "pairs", "pairs.yaml"), &pairs); err != nil {
+		t.Fatal(err)
+	}
+	if len(pairs.Pairs) == 0 {
+		t.Fatal("pairs.yaml has no pairs")
+	}
+	var labels labelsFile
+	if err := loadYAML(filepath.Join(root, "corpus", "labels", "chart-pairs.yaml"), &labels); err != nil {
+		t.Fatal(err)
+	}
+	if len(labels.Labels) == 0 {
+		t.Fatal("chart-pairs.yaml has no labels")
+	}
+}
+
 func TestCompareFailsAMissedIncident(t *testing.T) {
 	dir := t.TempDir()
 	results := filepath.Join(dir, "results.json")

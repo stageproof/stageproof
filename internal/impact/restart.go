@@ -8,9 +8,10 @@ import (
 
 func restarts(before, after map[string]obj) []verdict.Finding {
 	var findings []verdict.Finding
-	for k, old := range before {
+	for _, k := range orderedKeys(before) {
+		old := before[k]
 		neu, ok := after[k]
-		if !ok || !workload(old.Kind) {
+		if !ok || !workload(old.Kind) || isHook(old) || isHook(neu) {
 			continue
 		}
 		oldT, path := podTemplate(old)

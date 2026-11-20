@@ -86,6 +86,20 @@ func fromJSON(raw []byte) (obj, bool) {
 	}, true
 }
 
+func orderedKeys(m map[string]obj) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func isHook(o obj) bool {
+	_, ok := o.Annotations["helm.sh/hook"]
+	return ok
+}
+
 func indexManifests(in []k8sschema.ManifestObject) map[string]obj {
 	out := make(map[string]obj, len(in))
 	for _, m := range in {

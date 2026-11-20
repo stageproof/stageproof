@@ -10,10 +10,14 @@ import (
 
 // schemaChange is one incompatibility reported by the CRD comparer.
 // Class is scope, stored, type, required, enum, or removed.
+// Version is the CRD version the change applies to. Empty means every version.
+// Values are newly required child names, or the enum values named in the change.
 type schemaChange struct {
 	Class    string
+	Version  string
 	Property string
 	Detail   string
+	Values   []string
 }
 
 // schemaDiffer is the only call into the CRD comparison library.
@@ -27,12 +31,14 @@ var schemas schemaDiffer = crdifySchema{}
 func crdSafety(before, after map[string]obj, opt Options) []verdict.Finding {
 	var findings []verdict.Finding
 	var users []obj
-	for _, o := range before {
+	for _, k := range orderedKeys(before) {
+		o := before[k]
 		if o.Kind != "CustomResourceDefinition" {
 			users = append(users, o)
 		}
 	}
-	for k, neu := range after {
+	for _, k := range orderedKeys(after) {
+		neu := after[k]
 		if neu.Kind != "CustomResourceDefinition" {
 			continue
 		}
@@ -80,13 +86,15 @@ func compareCRD(old, neu obj, users []obj, stored []string) []verdict.Finding {
 		default:
 			prop := strings.TrimPrefix(c.Property, "^.")
 			prop = strings.TrimPrefix(prop, "^")
-			if who := usersOf(users, old.Body, c.Property); len(who) > 0 {
-				findings = append(findings, verdict.Finding{
-					RuleID:   "crd.existing_object_invalid",
-					Severity: verdict.SeverityBlocker,
-					Resource: who[0].ID,
-					Message:  fmt.Sprintf("%s uses %s, and that field changed (%s) on %s. The object does not match the new schema.", who[0].ID, prop, c.Class, neu.Name),
-				})
+			if who := usersOf(users, old.Body, c); len(who) > 0 {
+				for _, u := range who {
+					findings = append(findings, verdict.Finding{
+						RuleID:   "crd.existing_object_invalid",
+						Severity: verdict.SeverityBlocker,
+						Resource: u.ID,
+						Message:  fmt.Sprintf("%s uses %s, and that field changed (%s) on %s. The object does not match the new schema.", u.ID, prop, c.Class, neu.Name),
+					})
+				}
 				continue
 			}
 			unused = append(unused, prop+" ("+c.Class+")")
@@ -137,15 +145,97 @@ func unserved(old, neu obj, users []obj, storageAlready bool) []verdict.Finding 
 	return findings
 }
 
-func usersOf(users []obj, crd map[string]any, property string) []obj {
+func usersOf(users []obj, crd map[string]any, c schemaChange) []obj {
 	var out []obj
 	for _, u := range users {
-		if crMatches(u, crd) && usesProperty(u.Body, property) {
-			out = append(out, u)
+		if !crMatches(u, crd) {
+			continue
 		}
+		if c.Version != "" && versionOf(u) != c.Version {
+			continue
+		}
+		if !changeHits(u, c) {
+			continue
+		}
+		out = append(out, u)
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
 	return out
+}
+
+func changeHits(u obj, c schemaChange) bool {
+	switch c.Class {
+	case "required":
+		return missingRequired(u.Body, c.Property, c.Values)
+	case "enum":
+		return enumViolates(u.Body, c.Property, c.Detail, c.Values)
+	default:
+		return usesProperty(u.Body, c.Property)
+	}
+}
+
+func missingRequired(body map[string]any, property string, children []string) bool {
+	if len(children) == 0 {
+		return false
+	}
+	parent, ok := valueAt(body, property)
+	if !ok || parent == nil {
+		return false
+	}
+	return missingOn(parent, children)
+}
+
+func missingOn(parent any, children []string) bool {
+	if m, ok := asMap(parent); ok {
+		for _, child := range children {
+			if _, exists := m[child]; !exists {
+				return true
+			}
+		}
+		return false
+	}
+	if arr, ok := asSlice(parent); ok {
+		for _, item := range arr {
+			if missingOn(item, children) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func enumViolates(body map[string]any, property, detail string, named []string) bool {
+	val, ok := valueAt(body, property)
+	if !ok || val == nil {
+		return false
+	}
+	got := scalarString(val)
+	set := map[string]bool{}
+	for _, item := range named {
+		set[item] = true
+	}
+	switch {
+	case strings.Contains(detail, "allowed enum values removed"):
+		return set[got]
+	case strings.Contains(detail, "enum constraint added"):
+		return len(set) > 0 && !set[got]
+	default:
+		return false
+	}
+}
+
+func scalarString(v any) string {
+	switch t := v.(type) {
+	case string:
+		return t
+	case bool:
+		if t {
+			return "true"
+		}
+		return "false"
+	default:
+		return fmt.Sprint(t)
+	}
 }
 
 func crMatches(o obj, crd map[string]any) bool {
@@ -201,12 +291,54 @@ func scopeOf(body map[string]any) string {
 }
 
 func usesProperty(body map[string]any, property string) bool {
+	_, ok := valueAt(body, property)
+	return ok
+}
+
+func valueAt(body map[string]any, property string) (any, bool) {
 	path := strings.TrimPrefix(property, "^.")
 	path = strings.TrimPrefix(path, "^")
 	if path == "" {
-		return false
+		return nil, false
 	}
-	return walkPath(body, splitProp(path))
+	return walkValue(body, splitProp(path))
+}
+
+func walkValue(v any, parts []string) (any, bool) {
+	if len(parts) == 0 {
+		if v == nil {
+			return nil, false
+		}
+		return v, true
+	}
+	m, ok := asMap(v)
+	if !ok {
+		return nil, false
+	}
+	name, indexed := cutIndex(parts[0])
+	next, exists := m[name]
+	if !exists || next == nil {
+		return nil, false
+	}
+	if indexed {
+		arr, ok := asSlice(next)
+		if !ok || len(arr) == 0 {
+			return nil, false
+		}
+		if len(parts) == 1 {
+			return arr, true
+		}
+		for _, item := range arr {
+			if got, ok := walkValue(item, parts[1:]); ok {
+				return got, true
+			}
+		}
+		return nil, false
+	}
+	if len(parts) == 1 {
+		return next, true
+	}
+	return walkValue(next, parts[1:])
 }
 
 func splitProp(path string) []string {
@@ -217,40 +349,6 @@ func splitProp(path string) []string {
 		}
 	}
 	return parts
-}
-
-func walkPath(v any, parts []string) bool {
-	if len(parts) == 0 {
-		return v != nil
-	}
-	m, ok := asMap(v)
-	if !ok {
-		return false
-	}
-	name, indexed := cutIndex(parts[0])
-	next, ok := m[name]
-	if !ok || next == nil {
-		return false
-	}
-	if indexed {
-		arr, ok := asSlice(next)
-		if !ok {
-			return false
-		}
-		if len(parts) == 1 {
-			return len(arr) > 0
-		}
-		for _, item := range arr {
-			if walkPath(item, parts[1:]) {
-				return true
-			}
-		}
-		return false
-	}
-	if len(parts) == 1 {
-		return true
-	}
-	return walkPath(next, parts[1:])
 }
 
 func cutIndex(part string) (string, bool) {

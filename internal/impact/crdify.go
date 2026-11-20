@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -124,7 +125,8 @@ func crdifyChanges(res *runner.Results) []schemaChange {
 			out = append(out, schemaChange{Class: "stored", Detail: text})
 		case "existingFieldRemoval":
 			for _, line := range append(append([]string{}, c.Errors...), c.Warnings...) {
-				out = append(out, schemaChange{Class: "removed", Property: propertyFrom(line), Detail: line})
+				ver, prop := versionAndProperty(line)
+				out = append(out, schemaChange{Class: "removed", Version: ver, Property: prop, Detail: line})
 			}
 		}
 	}
@@ -138,7 +140,10 @@ func crdifyChanges(res *runner.Results) []schemaChange {
 				if text == "" {
 					continue
 				}
-				out = append(out, schemaChange{Class: c.Name, Property: prop.Property, Detail: text})
+				out = append(out, schemaChange{
+					Class: c.Name, Version: version.Version, Property: prop.Property,
+					Detail: text, Values: listFromDetail(text),
+				})
 			}
 		}
 	}
@@ -155,9 +160,44 @@ func firstText(errors, warnings []string) string {
 	return ""
 }
 
-func propertyFrom(line string) string {
-	if i := strings.Index(line, "^"); i >= 0 {
-		return line[i:]
+func versionAndProperty(line string) (string, string) {
+	i := strings.Index(line, "^")
+	if i < 0 {
+		return "", ""
 	}
-	return ""
+	property := line[i:]
+	head := strings.TrimSuffix(strings.TrimSpace(line[:i]), ".")
+	version := head
+	if j := strings.LastIndex(head, " "); j >= 0 {
+		version = head[j+1:]
+	}
+	return version, property
+}
+
+func listFromDetail(detail string) []string {
+	i := strings.Index(detail, "[")
+	j := strings.LastIndex(detail, "]")
+	if i < 0 || j <= i {
+		return nil
+	}
+	inner := strings.TrimSpace(detail[i+1 : j])
+	if inner == "" {
+		return nil
+	}
+	var out []string
+	for _, item := range strings.Fields(inner) {
+		out = append(out, unquoteJSON(item))
+	}
+	return out
+}
+
+func unquoteJSON(s string) string {
+	s = strings.TrimSpace(s)
+	if len(s) >= 2 && s[0] == '"' && s[len(s)-1] == '"' {
+		if u, err := strconv.Unquote(s); err == nil {
+			return u
+		}
+		return s[1 : len(s)-1]
+	}
+	return s
 }

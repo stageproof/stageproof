@@ -1,6 +1,7 @@
 package impact
 
 import (
+	"bytes"
 	"encoding/json"
 	"os"
 	"path/filepath"
@@ -90,7 +91,8 @@ func TestStoredFormsIgnoreServerDefaults(t *testing.T) {
 	// object carries a default the server would add. That is not a change.
 	findings, summary := Compare([]k8sschema.ManifestObject{before}, []k8sschema.ManifestObject{after}, Options{
 		APIServerRan: true,
-		Stored:       [][]byte{stored, stored},
+		StoredBefore: [][]byte{stored},
+		StoredAfter:  [][]byte{stored},
 	})
 	rejectRule(t, findings, "impact.restart")
 	if !strings.Contains(summary, "stored objects") {
@@ -235,6 +237,270 @@ func cloneManifest(t *testing.T, in k8sschema.ManifestObject) k8sschema.Manifest
 	}
 	in.Object = body
 	return in
+}
+
+func TestHooksAreNotDeletesOrRestarts(t *testing.T) {
+	before := parseDocs(t, `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  annotations: {"helm.sh/hook": pre-upgrade}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers: [{name: job, image: busybox:1.36}]
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: scratch
+  annotations: {"helm.sh/hook": pre-upgrade}
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources: {requests: {storage: 1Gi}}
+`)
+	after := parseDocs(t, `
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  annotations: {"helm.sh/hook": pre-upgrade}
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers: [{name: job, image: busybox:1.37}]
+`)
+	findings, _ := Compare(before, after, Options{})
+	rejectRule(t, findings, "impact.delete")
+	rejectRule(t, findings, "impact.delete.pvc")
+	rejectRule(t, findings, "impact.restart")
+}
+
+func TestRemovedSecurityContextIsWeaker(t *testing.T) {
+	before, after := split(t, "privilege/context-removed.yaml", 1)
+	findings, _ := Compare(before, after, Options{})
+	text := joined(findings, "impact.privilege.securitycontext")
+	for _, field := range []string{"runAsNonRoot", "readOnlyRootFilesystem", "allowPrivilegeEscalation", "capabilities.drop"} {
+		if !strings.Contains(text, field) {
+			t.Fatalf("missing %s in %s", field, text)
+		}
+	}
+	quiet, _ := Compare(before, before, Options{})
+	rejectRule(t, quiet, "impact.privilege.securitycontext")
+}
+
+func TestCompareDeterministic(t *testing.T) {
+	before := parseDocs(t, `
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: b}
+spec:
+  selector: {matchLabels: {app: b}}
+  template:
+    metadata: {labels: {app: b}}
+    spec: {containers: [{name: app, image: nginx:1.27}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: a}
+spec: {type: ClusterIP, ports: [{port: 80, name: http}]}
+`)
+	after := parseDocs(t, `
+apiVersion: apps/v1
+kind: Deployment
+metadata: {name: b}
+spec:
+  selector: {matchLabels: {app: b}}
+  template:
+    metadata: {labels: {app: b}}
+    spec: {containers: [{name: app, image: nginx:1.28}]}
+---
+apiVersion: v1
+kind: Service
+metadata: {name: a}
+spec: {type: LoadBalancer, ports: [{port: 80, name: http}]}
+`)
+	var first []byte
+	for i := 0; i < 20; i++ {
+		findings, summary := Compare(before, after, Options{})
+		raw, err := json.Marshal(struct {
+			Findings []verdict.Finding `json:"findings"`
+			Summary  string            `json:"summary"`
+		}{findings, summary})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if i == 0 {
+			first = raw
+			continue
+		}
+		if !bytes.Equal(first, raw) {
+			t.Fatalf("run %d differs", i)
+		}
+	}
+}
+
+func TestCRDAccuracy(t *testing.T) {
+	base := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: string}}}}}}
+    - name: v1alpha1
+      served: true
+      storage: false
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: string}}}}}}
+`)
+	changed := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: string}}}}}}
+    - name: v1alpha1
+      served: true
+      storage: false
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: integer}}}}}}
+`)
+	widget := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo}\nspec: {size: large}\n")
+	findings, _ := Compare(append(base, widget...), append(changed, widget...), Options{})
+	requireRule(t, findings, "crd.schema.incompatible", verdict.SeverityWarning)
+	rejectSeverity(t, findings, "crd.existing_object_invalid", verdict.SeverityBlocker)
+
+	oldReq := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {color: {type: string}, size: {type: string}}}}}}
+`)
+	newReq := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, required: [color], properties: {color: {type: string}, size: {type: string}}}}}}
+`)
+	set := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo}\nspec: {color: blue, size: large}\n")
+	kept, _ := Compare(append(oldReq, set...), append(newReq, set...), Options{})
+	requireRule(t, kept, "crd.schema.incompatible", verdict.SeverityWarning)
+	rejectSeverity(t, kept, "crd.existing_object_invalid", verdict.SeverityBlocker)
+	missing := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo}\nspec: {size: large}\n")
+	missed, _ := Compare(append(oldReq, missing...), append(newReq, missing...), Options{})
+	requireRule(t, missed, "crd.existing_object_invalid", verdict.SeverityBlocker)
+
+	oldEnum := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {color: {type: string, enum: [kept, dropped-token]}}}}}}
+`)
+	newEnum := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {color: {type: string, enum: [kept]}}}}}}
+`)
+	still := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo}\nspec: {color: kept}\n")
+	narrow, _ := Compare(append(oldEnum, still...), append(newEnum, still...), Options{})
+	requireRule(t, narrow, "crd.schema.incompatible", verdict.SeverityWarning)
+	rejectSeverity(t, narrow, "crd.existing_object_invalid", verdict.SeverityBlocker)
+	gone := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo}\nspec: {color: dropped-token}\n")
+	removed, _ := Compare(append(oldEnum, gone...), append(newEnum, gone...), Options{})
+	requireRule(t, removed, "crd.existing_object_invalid", verdict.SeverityBlocker)
+	if strings.Contains(joined(removed, "crd.existing_object_invalid"), "dropped-token") {
+		t.Fatalf("enum value leaked: %+v", removed)
+	}
+
+	a := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo-a}\nspec: {size: large}\n")
+	b := parseDocs(t, "apiVersion: example.com/v1\nkind: Widget\nmetadata: {name: demo-b}\nspec: {size: large}\n")
+	oldType := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: string}}}}}}
+`)
+	newType := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {size: {type: integer}}}}}}
+`)
+	both, _ := Compare(append(append(oldType, a...), b...), append(append(newType, a...), b...), Options{})
+	var hits []string
+	for _, f := range both {
+		if f.RuleID == "crd.existing_object_invalid" {
+			hits = append(hits, f.Resource)
+		}
+	}
+	if strings.Join(hits, ",") != "Widget/default/demo-a,Widget/default/demo-b" {
+		t.Fatalf("both custom resources must be named: %v", hits)
+	}
+}
+
+func TestVersionAndProperty(t *testing.T) {
+	ver, prop := versionAndProperty("removed field : v1alpha1.^.spec.size")
+	if ver != "v1alpha1" || prop != "^.spec.size" {
+		t.Fatalf("got %s %s", ver, prop)
+	}
+	got := listFromDetail(`new required fields: [color size]`)
+	if strings.Join(got, ",") != "color,size" {
+		t.Fatalf("required list: %#v", got)
+	}
+	got = listFromDetail(`allowed enum values removed : ["dropped-token"]`)
+	if strings.Join(got, ",") != "dropped-token" {
+		t.Fatalf("enum list: %#v", got)
+	}
+}
+
+func TestLoadDirCRDsWalksNested(t *testing.T) {
+	dir := t.TempDir()
+	nested := filepath.Join(dir, "crds", "sub")
+	if err := os.MkdirAll(nested, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	sub := filepath.Join(dir, "charts", "extra", "crds")
+	if err := os.MkdirAll(sub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	body := []byte("apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata: {name: widgets.example.com}\nspec: {group: example.com, names: {kind: Widget, plural: widgets}}\n")
+	if err := os.WriteFile(filepath.Join(nested, "widgets.yaml"), body, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	other := []byte("apiVersion: apiextensions.k8s.io/v1\nkind: CustomResourceDefinition\nmetadata: {name: gadgets.example.com}\nspec: {group: example.com, names: {kind: Gadget, plural: gadgets}}\n")
+	if err := os.WriteFile(filepath.Join(sub, "gadgets.yaml"), other, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	got := loadDirCRDs(dir)
+	if _, ok := got["widgets.example.com"]; !ok {
+		t.Fatalf("nested crds/ file missing: %v", got)
+	}
+	if _, ok := got["gadgets.example.com"]; !ok {
+		t.Fatalf("subchart crds/ file missing: %v", got)
+	}
+}
+
+func parseDocs(t *testing.T, raw string) []k8sschema.ManifestObject {
+	t.Helper()
+	objs, err := k8sschema.ParseManifestStream(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return objs
+}
+
+func crdWith(t *testing.T, versions string) []k8sschema.ManifestObject {
+	t.Helper()
+	return parseDocs(t, `
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  versions:
+`+versions)
 }
 
 func requireRule(t *testing.T, findings []verdict.Finding, id string, sev verdict.Severity) {

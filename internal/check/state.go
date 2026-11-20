@@ -19,7 +19,8 @@ type State struct {
 	APIServerRan     bool
 	APIServerVersion string
 	NextAPIServerRan bool
-	Stored           [][]byte
+	StoredBefore     [][]byte
+	StoredAfter      [][]byte
 }
 
 func (s *State) stop(runtimeOK, couldNotCheck bool) {

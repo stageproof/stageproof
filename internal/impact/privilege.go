@@ -10,7 +10,8 @@ import (
 
 func privilege(before, after map[string]obj) []verdict.Finding {
 	var findings []verdict.Finding
-	for k, neu := range after {
+	for _, k := range orderedKeys(after) {
+		neu := after[k]
 		old, ok := before[k]
 		switch neu.Kind {
 		case "ClusterRole", "Role":
@@ -310,14 +311,20 @@ func ctxOf(m map[string]any) map[string]any {
 }
 
 func weakerContext(old, neu map[string]any) []string {
-	if neu == nil {
+	if old == nil && neu == nil {
 		return nil
+	}
+	if old == nil {
+		old = map[string]any{}
+	}
+	if neu == nil {
+		neu = map[string]any{}
 	}
 	var fields []string
 	if truthy(neu["privileged"]) && !truthy(old["privileged"]) {
 		fields = append(fields, "privileged")
 	}
-	if old != nil && old["allowPrivilegeEscalation"] == false && neu["allowPrivilegeEscalation"] != false {
+	if old["allowPrivilegeEscalation"] == false && neu["allowPrivilegeEscalation"] != false {
 		fields = append(fields, "allowPrivilegeEscalation")
 	}
 	if truthy(old["runAsNonRoot"]) && !truthy(neu["runAsNonRoot"]) {

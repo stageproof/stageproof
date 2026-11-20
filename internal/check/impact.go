@@ -16,7 +16,8 @@ func Impact(in Input, st *State) {
 		BeforeDir:    in.BaseDir,
 		AfterDir:     in.HeadDir,
 		APIServerRan: st.APIServerRan,
-		Stored:       st.Stored,
+		StoredBefore: st.StoredBefore,
+		StoredAfter:  st.StoredAfter,
 	})
 	blockers, warns := 0, 0
 	for _, f := range findings {

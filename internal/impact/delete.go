@@ -10,14 +10,22 @@ import (
 
 func deletes(before, after map[string]obj) []verdict.Finding {
 	var created []obj
-	for k, o := range after {
+	for _, k := range orderedKeys(after) {
+		o := after[k]
+		if isHook(o) {
+			continue
+		}
 		if _, ok := before[k]; !ok {
 			created = append(created, o)
 		}
 	}
 	used := map[string]bool{}
 	var gone []obj
-	for k, o := range before {
+	for _, k := range orderedKeys(before) {
+		o := before[k]
+		if isHook(o) {
+			continue
+		}
 		if _, ok := after[k]; ok || kept(o) {
 			continue
 		}

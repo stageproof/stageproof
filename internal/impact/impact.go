@@ -16,7 +16,8 @@ type Options struct {
 	BeforeDir     string
 	AfterDir      string
 	APIServerRan  bool
-	Stored        [][]byte
+	StoredBefore  [][]byte
+	StoredAfter   [][]byte
 	ClusterStored map[string][]string
 }
 
@@ -51,8 +52,8 @@ func Compare(before, after []k8sschema.ManifestObject, opt Options) ([]verdict.F
 
 func rawBeforeList(in map[string]obj) []obj {
 	out := make([]obj, 0, len(in))
-	for _, o := range in {
-		out = append(out, o)
+	for _, k := range orderedKeys(in) {
+		out = append(out, in[k])
 	}
 	return out
 }
@@ -63,7 +64,8 @@ type formSet struct {
 }
 
 func chooseForms(rawBefore, rawAfter map[string]obj, opt Options) (formSet, string) {
-	storedBefore, storedAfter := splitStored(rawBefore, rawAfter, opt.Stored)
+	storedBefore := indexStored(opt.StoredBefore, rawBefore)
+	storedAfter := indexStored(opt.StoredAfter, rawAfter)
 	f := formSet{before: map[string]obj{}, after: map[string]obj{}}
 	paired, fromStored := 0, 0
 	seen := map[string]bool{}
@@ -100,37 +102,19 @@ func chooseForms(rawBefore, rawAfter map[string]obj, opt Options) (formSet, stri
 	return f, sourceSummary(opt.APIServerRan, paired, fromStored)
 }
 
-func splitStored(rawBefore, rawAfter map[string]obj, blobs [][]byte) (map[string]obj, map[string]obj) {
-	before := map[string]obj{}
-	after := map[string]obj{}
-	seen := map[string]int{}
+func indexStored(blobs [][]byte, rendered map[string]obj) map[string]obj {
+	out := map[string]obj{}
 	for _, blob := range blobs {
 		o, ok := fromJSON(blob)
 		if !ok {
 			continue
 		}
-		_, inBefore := rawBefore[o.Key]
-		_, inAfter := rawAfter[o.Key]
-		if !inBefore && !inAfter {
+		if _, renderedOK := rendered[o.Key]; !renderedOK {
 			continue
 		}
-		seen[o.Key]++
-		if inBefore && inAfter {
-			if seen[o.Key] == 1 {
-				before[o.Key] = o
-			} else {
-				after[o.Key] = o
-			}
-			continue
-		}
-		if inBefore {
-			before[o.Key] = o
-		}
-		if inAfter {
-			after[o.Key] = o
-		}
+		out[o.Key] = o
 	}
-	return before, after
+	return out
 }
 
 func sourceSummary(api bool, paired, stored int) string {
