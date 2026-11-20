@@ -624,8 +624,10 @@ func runCheckCollect(args []string, collected *[]*verdict.Report) int {
 		}
 	}
 	// --live was asked for. A file check that passed while the chart never
-	// came up is not PASSED. PASSED stays for a run that did not attempt --live.
-	if effLive && !runtimeOK {
+	// came up is not PASSED, unless the report already names why the rehearsal
+	// stopped. Those reasons stay PASSED, and --require-rehearsal turns them
+	// into NOT CHECKED. PASSED also stays for a run that did not attempt --live.
+	if effLive && !runtimeOK && len(rep.Skipped) == 0 {
 		inconclusive = true
 	}
 
