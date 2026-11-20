@@ -121,6 +121,25 @@ func TestHardImageFailureLeavesTransientPullsAlone(t *testing.T) {
 	}
 }
 
+func TestCurrentRevisionPodsAreTheOnesThatCount(t *testing.T) {
+	current := newestTemplateHashes([]replicaSetRev{
+		{Revision: "1", Hash: "oldhash"},
+		{Revision: "2", Hash: "newhash"},
+	})
+	if !keepPod(map[string]string{"pod-template-hash": "newhash"}, false, current) {
+		t.Fatal("the current revision counts")
+	}
+	if keepPod(map[string]string{"pod-template-hash": "oldhash"}, false, current) {
+		t.Fatal("the previous revision is the release being replaced")
+	}
+	if keepPod(map[string]string{"pod-template-hash": "newhash"}, true, current) {
+		t.Fatal("a pod that is being deleted does not count")
+	}
+	if !keepPod(nil, false, nil) {
+		t.Fatal("a chart without a deployment still counts its pods")
+	}
+}
+
 func TestPrivateRegistryComesFromThePullError(t *testing.T) {
 	if privateRegistryPull("failed to pull registry.example/app:1: connection reset by peer") {
 		t.Fatal("a host name is not a private registry")

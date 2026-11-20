@@ -642,6 +642,7 @@ func newFailure(now, before map[string]string) string {
 
 type containerStateItem struct {
 	Name         string `json:"name"`
+	Image        string `json:"image"`
 	Ready        bool   `json:"ready"`
 	RestartCount int    `json:"restartCount"`
 	State        struct {
@@ -692,13 +693,17 @@ func diagnoseNamespaceFailure(ctx context.Context, kubeconfig, ns, helmErr strin
 								"Check with a values file (`-f`) that does not mount that Secret or ConfigMap, so the chart can start in an empty cluster."
 						}
 						if r == "ImagePullBackOff" || r == "ErrImagePull" {
+							named := cs.Image
+							if named == "" {
+								named = truncateOneLine(msg, 160)
+							}
 							if privateRegistryPull(lmsg) {
-								return fmt.Sprintf("pod `%s` private registry image unreachable/unauthorized", p.Metadata.Name),
+								return fmt.Sprintf("pod `%s` private registry image unreachable/unauthorized: %s", p.Metadata.Name, named),
 									failExternalEnvGap,
 									"The temporary cluster cannot pull from a private registry. Check with a values file (`-f`) that uses an image it can pull."
 							}
 							if strings.Contains(lmsg, "not found") || strings.Contains(lmsg, "manifest unknown") {
-								return fmt.Sprintf("pod `%s` upstream image tag missing (%s)", p.Metadata.Name, truncateOneLine(msg, 100)),
+								return fmt.Sprintf("pod `%s` upstream image tag missing: %s", p.Metadata.Name, named),
 									failUpstreamDeadTag, defaultRem
 							}
 							return fmt.Sprintf("pod `%s` %s (%s)", p.Metadata.Name, r, truncateOneLine(msg, 90)), failRegression, defaultRem
@@ -1025,11 +1030,14 @@ func inspectPodHealth(ctx context.Context, kubeconfig, ns string) (totalRestarts
 	if err != nil {
 		return 0, nil
 	}
+	current := newestTemplateHashes(replicaSets(ctx, kubeconfig, ns))
 	var podList struct {
 		Items []struct {
 			Metadata struct {
-				Name        string            `json:"name"`
-				Annotations map[string]string `json:"annotations"`
+				Name              string            `json:"name"`
+				Labels            map[string]string `json:"labels"`
+				Annotations       map[string]string `json:"annotations"`
+				DeletionTimestamp *string           `json:"deletionTimestamp"`
 			} `json:"metadata"`
 			Status struct {
 				Phase             string               `json:"phase"`
@@ -1044,6 +1052,9 @@ func inspectPodHealth(ctx context.Context, kubeconfig, ns string) (totalRestarts
 		if _, isHook := p.Metadata.Annotations["helm.sh/hook"]; isHook {
 			continue
 		}
+		if !keepPod(p.Metadata.Labels, p.Metadata.DeletionTimestamp != nil, current) {
+			continue
+		}
 		if p.Status.Phase == "Succeeded" {
 			continue
 		}
@@ -1055,6 +1066,80 @@ func inspectPodHealth(ctx context.Context, kubeconfig, ns string) (totalRestarts
 		}
 	}
 	return totalRestarts, unhealthy
+}
+
+type replicaSetRev struct {
+	Revision string
+	Hash     string
+}
+
+func replicaSets(ctx context.Context, kubeconfig, ns string) []replicaSetRev {
+	raw, err := runCmd(ctx, kubeconfig, "kubectl", "get", "rs", "-n", ns, "-o", "json")
+	if err != nil {
+		return nil
+	}
+	var list struct {
+		Items []struct {
+			Metadata struct {
+				Labels      map[string]string `json:"labels"`
+				Annotations map[string]string `json:"annotations"`
+			} `json:"metadata"`
+		} `json:"items"`
+	}
+	if json.Unmarshal([]byte(raw), &list) != nil {
+		return nil
+	}
+	out := make([]replicaSetRev, 0, len(list.Items))
+	for _, item := range list.Items {
+		out = append(out, replicaSetRev{
+			Revision: item.Metadata.Annotations["deployment.kubernetes.io/revision"],
+			Hash:     item.Metadata.Labels["pod-template-hash"],
+		})
+	}
+	return out
+}
+
+// newestTemplateHashes is the pod-template-hash of the highest Deployment
+// revision. Pods from an older revision are the release being replaced.
+func newestTemplateHashes(sets []replicaSetRev) map[string]bool {
+	best := -1
+	var hashes []string
+	for _, rs := range sets {
+		n, err := strconv.Atoi(rs.Revision)
+		if err != nil || rs.Hash == "" {
+			continue
+		}
+		if n > best {
+			best = n
+			hashes = []string{rs.Hash}
+		} else if n == best {
+			hashes = append(hashes, rs.Hash)
+		}
+	}
+	if best < 0 {
+		return nil
+	}
+	out := map[string]bool{}
+	for _, hash := range hashes {
+		out[hash] = true
+	}
+	return out
+}
+
+// keepPod reports whether a pod belongs to the release just installed.
+// A pod that is being deleted, or that belongs to an older revision, does not.
+func keepPod(labels map[string]string, deleting bool, current map[string]bool) bool {
+	if deleting {
+		return false
+	}
+	if len(current) == 0 {
+		return true
+	}
+	hash := labels["pod-template-hash"]
+	if hash == "" {
+		return true
+	}
+	return current[hash]
 }
 
 func runCmd(ctx context.Context, kubeconfig, bin string, args ...string) (string, error) {
