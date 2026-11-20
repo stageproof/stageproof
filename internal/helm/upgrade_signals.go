@@ -125,7 +125,7 @@ func versionSignals(base, head chartDoc) []verdict.Finding {
 	var out []verdict.Finding
 	bv, hv := parseSemver(base.Version), parseSemver(head.Version)
 	if bv.ok && hv.ok && (hv.major > bv.major || (hv.major == bv.major && hv.minor > bv.minor+1)) {
-		msg := fmt.Sprintf("Chart version moves from %s to %s.", strings.TrimSpace(base.Version), strings.TrimSpace(head.Version))
+		var msg string
 		detail := "Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block."
 		if hv.major == bv.major {
 			skipped := hv.minor - bv.minor - 1

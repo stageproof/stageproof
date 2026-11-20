@@ -89,7 +89,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	}
 	kubeconfig := kubeconfigFile.Name()
 	_ = kubeconfigFile.Close()
-	defer os.Remove(kubeconfig)
+	defer func() { _ = os.Remove(kubeconfig) }()
 
 	createdCluster, nodeImage, cErr := ensureKindCluster(ctx, opts.ClusterName, kubeconfig, opts.KubernetesVersion)
 	if cErr != nil {
@@ -863,7 +863,7 @@ func resolveNodeImageOnce(ctx context.Context, k8sVersion string) (string, bool)
 	if err != nil {
 		return "", true
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		return "", true
 	}

@@ -46,10 +46,10 @@ func TestMinorOf(t *testing.T) {
 func TestResolveNodeImage(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Query().Get("name") != "v1.35." {
-			w.Write([]byte(`{"results":[]}`))
+			_, _ = w.Write([]byte(`{"results":[]}`))
 			return
 		}
-		w.Write([]byte(`{"results":[{"name":"v1.35.0"},{"name":"v1.35.8"},{"name":"v1.35.5"}]}`))
+		_, _ = w.Write([]byte(`{"results":[{"name":"v1.35.0"},{"name":"v1.35.8"},{"name":"v1.35.5"}]}`))
 	}))
 	defer srv.Close()
 	prev := nodeImageTagsURL
