@@ -1,0 +1,132 @@
+{
+  "verdict": "BLOCKED",
+  "exit_code": 1,
+  "reports": [
+    {
+      "verdict": "BLOCKED",
+      "exit_code": 1,
+      "adapter": "helm",
+      "target_k8s": "1.31",
+      "base_ref": "main:charts/api",
+      "head_ref": "charts/api",
+      "values_files": [
+        "charts/api/values-prod.yaml"
+      ],
+      "checked": "files",
+      "duration_ms": 0,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "checks": [
+        {
+          "name": "helm template",
+          "status": "pass",
+          "summary": "rendered 1 Kubernetes object cleanly"
+        },
+        {
+          "name": "values.yaml AST",
+          "status": "fail",
+          "summary": "1 silently dropped key across 1 overlay"
+        },
+        {
+          "name": "upgrade signals",
+          "status": "warn",
+          "summary": "1 named change"
+        },
+        {
+          "name": "k8s 1.31 compatibility",
+          "status": "pass",
+          "summary": "0 removed APIs or selector breaks on K8s 1.31"
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "helm.values.silently_dropped",
+          "severity": "blocker",
+          "resource": "config.logLevel",
+          "file": "charts/api/values-prod.yaml",
+          "message": "Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart."
+        },
+        {
+          "rule_id": "helm.release.version_span",
+          "severity": "warning",
+          "message": "Chart version moves from 1.0.0 to 2.0.0, a new major version.",
+          "detail": "Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block."
+        }
+      ]
+    },
+    {
+      "verdict": "PASSED",
+      "exit_code": 0,
+      "adapter": "helm",
+      "target_k8s": "1.31",
+      "base_ref": "main:charts/api",
+      "head_ref": "charts/api",
+      "values_files": [
+        "charts/api/values.yaml"
+      ],
+      "checked": "files",
+      "duration_ms": 0,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "checks": [
+        {
+          "name": "helm template",
+          "status": "pass",
+          "summary": "rendered 1 Kubernetes object cleanly"
+        },
+        {
+          "name": "values.yaml AST",
+          "status": "pass",
+          "summary": "every user key in 1 overlay is still read"
+        },
+        {
+          "name": "upgrade signals",
+          "status": "warn",
+          "summary": "1 named change"
+        },
+        {
+          "name": "k8s 1.31 compatibility",
+          "status": "pass",
+          "summary": "0 removed APIs or selector breaks on K8s 1.31"
+        }
+      ],
+      "findings": [
+        {
+          "rule_id": "helm.release.version_span",
+          "severity": "warning",
+          "message": "Chart version moves from 1.0.0 to 2.0.0, a new major version.",
+          "detail": "Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block."
+        }
+      ]
+    },
+    {
+      "verdict": "PASSED",
+      "exit_code": 0,
+      "adapter": "helm",
+      "target_k8s": "1.31",
+      "base_ref": "main:charts/web",
+      "head_ref": "charts/web",
+      "values_files": [
+        "charts/web/values.yaml"
+      ],
+      "checked": "files",
+      "duration_ms": 0,
+      "timestamp": "0001-01-01T00:00:00Z",
+      "checks": [
+        {
+          "name": "helm template",
+          "status": "pass",
+          "summary": "rendered 1 Kubernetes object cleanly"
+        },
+        {
+          "name": "values.yaml AST",
+          "status": "pass",
+          "summary": "every user key in 1 overlay is still read"
+        },
+        {
+          "name": "k8s 1.31 compatibility",
+          "status": "pass",
+          "summary": "0 removed APIs or selector breaks on K8s 1.31"
+        }
+      ]
+    }
+  ]
+}

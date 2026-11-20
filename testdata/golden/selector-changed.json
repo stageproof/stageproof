@@ -1,0 +1,37 @@
+{
+  "verdict": "BLOCKED",
+  "exit_code": 1,
+  "adapter": "helm",
+  "target_k8s": "1.33",
+  "base_ref": "testdata/selector/base",
+  "head_ref": "testdata/selector/head",
+  "checked": "files",
+  "duration_ms": 0,
+  "timestamp": "0001-01-01T00:00:00Z",
+  "checks": [
+    {
+      "name": "helm template",
+      "status": "pass",
+      "summary": "rendered 1 Kubernetes object cleanly"
+    },
+    {
+      "name": "values.yaml AST",
+      "status": "pass",
+      "summary": "no custom -f overlay passed (default chart values verified)"
+    },
+    {
+      "name": "k8s 1.33 compatibility",
+      "status": "fail",
+      "summary": "1 removed API or immutable upgrade blocker"
+    }
+  ],
+  "findings": [
+    {
+      "rule_id": "k8s.upgrade.immutable_selector_changed",
+      "severity": "blocker",
+      "resource": "Deployment/default/demo",
+      "message": "Immutable `spec.selector.matchLabels` changed from map[app:demo] to map[app:other]. An in-place `helm upgrade` will fail.",
+      "detail": "Kubernetes forbids mutating Deployment/StatefulSet/DaemonSet label selectors in-place without recreating the workload."
+    }
+  ]
+}

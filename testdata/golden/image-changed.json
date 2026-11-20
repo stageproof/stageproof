@@ -1,0 +1,41 @@
+{
+  "verdict": "PASSED",
+  "exit_code": 0,
+  "adapter": "helm",
+  "target_k8s": "1.33",
+  "base_ref": "testdata/image/base",
+  "head_ref": "testdata/image/head",
+  "checked": "files",
+  "duration_ms": 0,
+  "timestamp": "0001-01-01T00:00:00Z",
+  "checks": [
+    {
+      "name": "helm template",
+      "status": "pass",
+      "summary": "rendered 1 Kubernetes object cleanly"
+    },
+    {
+      "name": "values.yaml AST",
+      "status": "pass",
+      "summary": "no custom -f overlay passed (default chart values verified)"
+    },
+    {
+      "name": "upgrade signals",
+      "status": "warn",
+      "summary": "1 named change"
+    },
+    {
+      "name": "k8s 1.33 compatibility",
+      "status": "pass",
+      "summary": "0 removed APIs or selector breaks on K8s 1.33"
+    }
+  ],
+  "findings": [
+    {
+      "rule_id": "helm.image.changed",
+      "severity": "warning",
+      "message": "1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to nginx:1.28-alpine.",
+      "detail": "The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists."
+    }
+  ]
+}
