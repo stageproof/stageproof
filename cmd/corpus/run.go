@@ -9,7 +9,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"sort"
-	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -164,7 +163,7 @@ func verdictMatches(verdict string, rules []string, want string, wantRules []str
 
 func checkCharts(bin, before, after, k8s, values string) (string, []string, error) {
 	out := filepath.Join(os.TempDir(), "stageproof-corpus-"+filepath.Base(after)+".json")
-	defer os.Remove(out)
+	defer func() { _ = os.Remove(out) }()
 	args := []string{"check", "--current-chart", before, "--new-chart", after, "--current-k8s", k8s, "--format", "json", "--out", out}
 	if values != "" {
 		args = append(args, "-f", values)
@@ -300,14 +299,4 @@ func loadYAML(path string, dest any) error {
 		return err
 	}
 	return yaml.Unmarshal(raw, dest)
-}
-
-func hostOf(repo string) string {
-	repo = strings.TrimPrefix(repo, "https://")
-	repo = strings.TrimPrefix(repo, "http://")
-	repo = strings.TrimPrefix(repo, "oci://")
-	if i := strings.IndexByte(repo, '/'); i >= 0 {
-		return repo[:i]
-	}
-	return repo
 }
