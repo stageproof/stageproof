@@ -1,0 +1,601 @@
+archives:
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      version: 93.5.0
+      sha256: 62e901ea0d3e0e13060231221914ee90d1499bccbb7958bba6adf42e075a0836
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      version: 93.6.0
+      sha256: 4a87c1548d9b6a56558ed0c028f266e6b70312b5d62f277f33ce78342a05a783
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      version: 92.22.0
+      sha256: 5969ad38f5b3c05065374a990327ac76bfdc4283b6a76ffe9dd5c7f20f602ad7
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      version: 10.17.2
+      sha256: c516b221a2380074bd2a3ed04ff6830a19fb07c3719070aa456ed02778767c4f
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      version: 10.18.2
+      sha256: 6900d104854a18c733616a56853012eb9a136f2256a9d35de73cda03689a59d1
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      version: 9.7.1
+      sha256: 185e9de6c8c7a74c260ae16df088d740b3c6ea7608f47bbef25e1a9aec2bf8c6
+    - repo: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      version: 4.14.5
+      sha256: 93ea7cf2677577a489e14fc94d6026a1194cf2e453dc86bf43da7162109f0d59
+    - repo: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      version: 4.15.1
+      sha256: 3eff0bd18151d6e6b1c441463410571443dda1ac78292cb189346628de784f0c
+    - repo: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      version: 3.41.0
+      sha256: 1ff69a827fdf054b01347ef494b32f87acd0648e7344805d41e6e7d13a1344e2
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      version: 29.47.2
+      sha256: ed5e5fc1f051637f6dad1306c30feba2a1cba3644ccdd1df5c0af0e42662ea1a
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      version: 29.48.0
+      sha256: fcb4f7ff7cff30a8b66d75a3352c949e06c6afb6c2171a624cdfa60b573810ce
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      version: 28.16.0
+      sha256: 03df1aab5a43f2be329986fe795efd0ac80dfeafc39546e7bd42774147ebf851
+    - repo: https://charts.bitnami.com/bitnami
+      chart: redis
+      version: 28.2.4
+      sha256: 06a9bd163968e163602383982d9b7f3a010fc1dbc5a8b5330c0f09e615ffd138
+    - repo: https://charts.bitnami.com/bitnami
+      chart: redis
+      version: 28.3.12
+      sha256: 26dfb7fd4bf7cc6915ec951d637c902da58ceba40b037fa30334f02589f337b7
+    - repo: https://charts.bitnami.com/bitnami
+      chart: redis
+      version: 27.0.18
+      sha256: 730923406ac358938540a7b78265cd6e79ffe3751b4d76377f4b7f9b2187e375
+    - repo: https://traefik.github.io/charts
+      chart: traefik
+      version: 42.3.2
+      sha256: d9994bb80d5b486c3e8904a5f572b5e0b18e53acadfc987dbc68d019b026c33a
+    - repo: https://traefik.github.io/charts
+      chart: traefik
+      version: 42.4.1
+      sha256: 80ea7246b74d5bcd1f86ac598feca6ba516a110dc0ad9e95dfda28d933b4acdb
+    - repo: https://traefik.github.io/charts
+      chart: traefik
+      version: 41.7.1
+      sha256: f9edd5ca699ff0f5eab14df6e4feefa15f7597a9b56f0b1c01f6089b1eecbaf1
+    - repo: https://grafana.github.io/helm-charts
+      chart: loki
+      version: 7.6.0
+      sha256: 9a2d779cb749c2d5dab7bc900578c7288aacc198248687acc6de363ddef6e605
+    - repo: https://grafana.github.io/helm-charts
+      chart: loki
+      version: 7.7.0
+      sha256: 174c803546f65879a5b4dac60d2780621fd69bc790c1e66de936046e43ccbc43
+    - repo: https://grafana.github.io/helm-charts
+      chart: loki
+      version: 6.55.0
+      sha256: f0026f251da5b49cea636a24143dbbadf15b39f51fc4639c9e0d08a4bc975ee3
+    - repo: http://charts.gitlab.io/
+      chart: gitlab
+      version: 10.5.9
+      sha256: f882b1dc28becc417647e2f194c5e00a651aeb8275c0af1070493095e675e50b
+    - repo: http://charts.gitlab.io/
+      chart: gitlab
+      version: 10.6.1
+      sha256: aa3647b697372ee16760a2750f38b8a21a7b6c5e50e04bf838c698e94c4f2849
+    - repo: http://charts.gitlab.io/
+      chart: gitlab
+      version: 9.11.16
+      sha256: a6db57c08e30238d4e819744624abbfe484748853d61e03f1ba1312efbb97a31
+    - repo: https://charts.bitnami.com/bitnami
+      chart: keycloak
+      version: 25.1.2
+      sha256: 7d8e606f86bf2be4c73feea2f3b6f5b49e5cd254a4e2d5e3b925d21b9f479e34
+    - repo: https://charts.bitnami.com/bitnami
+      chart: keycloak
+      version: 25.2.0
+      sha256: 572b6173dcad490f7b7d2f463eaa186e512d0afbd3a24629d150156a9438d89c
+    - repo: https://charts.bitnami.com/bitnami
+      chart: keycloak
+      version: 24.9.0
+      sha256: 320e1dc00b43a06f7bae0a441f91bfd606e98f8ccabfb26de7eda0d648203c51
+    - repo: https://charts.jenkins.io/
+      chart: jenkins
+      version: 5.12.0
+      sha256: 49cf886b3e336c5c54d57d4aa1764330c10f50a8e6caf85072b9807aa5450ec0
+    - repo: https://charts.jenkins.io/
+      chart: jenkins
+      version: 5.13.3
+      sha256: 90ba804e982aa2c413b88a76c62980d33838282a4200a1b2720f0a9d489287e7
+    - repo: https://charts.jenkins.io/
+      chart: jenkins
+      version: 4.12.1
+      sha256: f4e14240e4cc9267a820fa5b404a5e3c0e2abf05188540ba4813d13f4d568229
+    - repo: https://charts.external-secrets.io/
+      chart: external-secrets
+      version: 2.14.0
+      sha256: 0a6d9e91b1ff50adfdbf24b50b582babfa7c5b7df42b21974ca4b3fb88ee5e34
+    - repo: https://charts.external-secrets.io/
+      chart: external-secrets
+      version: 2.15.0
+      sha256: ed94d41cc67e392ea45e370345eb491b0fdc21387f1aaaefcf8e2e6c85089e1d
+    - repo: https://charts.external-secrets.io/
+      chart: external-secrets
+      version: 1.3.2
+      sha256: fdbf9d6d1a050a9b05548847b2462c0635f2584ecc456340ece47da9b95e8722
+    - repo: https://charts.bitnami.com/bitnami
+      chart: kafka
+      version: 32.3.14
+      sha256: 4df0b1b9f8408c7fda154ca2b91bc060d1f710b5f043087339122f9b256115fa
+    - repo: https://charts.bitnami.com/bitnami
+      chart: kafka
+      version: 32.4.3
+      sha256: fe39cc71f350929c35561b30c1c7f3e16019de69edab9b82d656d0aca7667a64
+    - repo: https://charts.bitnami.com/bitnami
+      chart: kafka
+      version: 31.5.0
+      sha256: 687cd1b0550f6ad8820f2f9f45783b52713579335baed2a6c9fe5167f1efb599
+    - repo: https://vmware-tanzu.github.io/helm-charts/
+      chart: velero
+      version: 12.1.0
+      sha256: cd23589ad1b2d25cdd3220f6866b3f6f4c5683c4c09494e76a14700b33f81f83
+    - repo: https://vmware-tanzu.github.io/helm-charts/
+      chart: velero
+      version: 12.2.5
+      sha256: faf074aacc580ddffa63e85582cafd54b3dde018442af9623a710a3825f644b8
+    - repo: https://vmware-tanzu.github.io/helm-charts/
+      chart: velero
+      version: 11.4.0
+      sha256: b15aca7e21bfc6bba68a37eb4026582d920c379ea1f376163c4319823cc3784a
+    - repo: https://nextcloud.github.io/helm/
+      chart: nextcloud
+      version: 9.3.0
+      sha256: 42ed80ff2d8dd86490f19e99aeafc953f8a339a033d6e695ed94e02b8c378127
+    - repo: https://nextcloud.github.io/helm/
+      chart: nextcloud
+      version: 9.4.5
+      sha256: 4858c8bf8961f334ae0e9a76e7bc281a1c3150ca33fe244873b2289927b0a8d3
+    - repo: https://nextcloud.github.io/helm/
+      chart: nextcloud
+      version: 8.9.1
+      sha256: 72338b35e8b2900d5331ab7343ba21cae891fbcc758a0d215a4c24fdff14a93d
+    - repo: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      version: 3.9.2
+      sha256: f6fe7184544d5e2ee33a77808c09e67aa603ce6560cc197038fde31d727c861e
+    - repo: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      version: 3.10.0
+      sha256: 55961392dc0821eb367323f0e9585c061dd4407ef7ada921bd56ea1642c2a301
+    - repo: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      version: 2.7.5
+      sha256: 8dd81b8b993d070977322bacbda3ff811b03ea62f812bda33357551b60b9222d
+    - repo: https://SonarSource.github.io/helm-chart-sonarqube
+      chart: sonarqube
+      version: 2026.4.1
+      sha256: 336c4223bd957c14fa8f2abebd614025d7dbb71e8ec458fc749f047a83176ca7
+    - repo: https://SonarSource.github.io/helm-chart-sonarqube
+      chart: sonarqube
+      version: 2026.5.1007
+      sha256: bb40a13d8e66e1d673cec43ab2a06132adab6bc17310e37078d82d45c7dd13eb
+    - repo: https://SonarSource.github.io/helm-chart-sonarqube
+      chart: sonarqube
+      version: 2025.6.1
+      sha256: be469317706d181ec710cf05d54b924f7e0841d594e3eb2defbb047aff006e01
+    - repo: https://dl.gitea.com/charts
+      chart: gitea
+      version: 12.6.0
+      sha256: bcfe40141cacdb93bbc4974cab8ab0cf37b79254f2d171b928386b5cfbc8be62
+    - repo: https://dl.gitea.com/charts
+      chart: gitea
+      version: 12.7.0
+      sha256: 5881ef9c59400bee2d5547e77c4cd0efb925143c2f5d93fb4f38446db76b0167
+    - repo: https://dl.gitea.com/charts
+      chart: gitea
+      version: 11.0.1
+      sha256: 39f9c83688e62795e1534543fb8148dc22a108d8c1aff6f4982b84b73eb49ec7
+    - repo: https://helm.datadoghq.com
+      chart: datadog
+      version: 3.275.1
+      sha256: a3bf5fdd716f145d21c801e75f39c1eb00fffa324f870d0315cb72344f869ea1
+    - repo: https://helm.datadoghq.com
+      chart: datadog
+      version: 3.276.0
+      sha256: 7f51f088994eee77a18fe51d3e89f2548b22eb8345e8f5b4835f91a63c3a8792
+    - repo: https://helm.datadoghq.com
+      chart: datadog
+      version: 2.37.9
+      sha256: 3f66648d8e37cba9ae72338fcb0e9a1a44b06a390594165b7f077a8a420175a7
+    - repo: https://charts.bitnami.com/bitnami
+      chart: nginx
+      version: 25.1.15
+      sha256: 594393a451aefa38b29e60c95d6b1c649769595ab2fa648996c9ae58e45b60bb
+    - repo: https://charts.bitnami.com/bitnami
+      chart: nginx
+      version: 25.2.16
+      sha256: 87f9cc47946ecefc5de6760e568c510bf8139f67ffe0ff52d0ef48d954672f22
+    - repo: https://charts.bitnami.com/bitnami
+      chart: nginx
+      version: 24.0.4
+      sha256: 6040ee8d0da1aa514388845941d85b78cd38908eb375b2c551fbefbd1f3397d9
+    - repo: https://charts.bitnami.com/bitnami
+      chart: thanos
+      version: 17.2.6
+      sha256: 1f896dee229df89a44afdb86a643bcbe58d570f1ac3b2046555b073065f66d9c
+    - repo: https://charts.bitnami.com/bitnami
+      chart: thanos
+      version: 17.3.1
+      sha256: 805d2c3464ca1cf8311c2b0a7e391439acf05691ff05388afe968c74ac93e226
+    - repo: https://charts.bitnami.com/bitnami
+      chart: thanos
+      version: 16.0.7
+      sha256: 33bcea92bb952207156f9e33270ad3542944008f0effe708915654885c48eb49
+    - repo: https://charts.bitnami.com/bitnami
+      chart: wordpress
+      version: 34.1.4
+      sha256: 70a3079322478b7277f8588ab34bb5d38c8fc371927b82cd8f21f029e803af2f
+    - repo: https://charts.bitnami.com/bitnami
+      chart: wordpress
+      version: 34.2.9
+      sha256: dfe8284871b081cb9b399b8ab92f989639fc9409704a04de338b1a60c8f0ea47
+    - repo: https://charts.bitnami.com/bitnami
+      chart: wordpress
+      version: 33.1.2
+      sha256: 0c3b55f6206ca0ce2604502edd8464f8f4a4db0e326e52cf87fa04bfc66fd0b5
+    - repo: https://helm.nginx.com/stable
+      chart: nginx-ingress
+      version: 2.8.1
+      sha256: 55bab89a588930037237dd0190d455c178f7a533334c650a710275b17858edcc
+    - repo: https://helm.nginx.com/stable
+      chart: nginx-ingress
+      version: 2.9.0
+      sha256: 52c73e604f7fe0556e5f1c9e974cd9e26a57a630cd539ef405c8cd69d19b58d9
+    - repo: https://helm.nginx.com/stable
+      chart: nginx-ingress
+      version: 1.4.2
+      sha256: 564fb3fc5a7d724bb59e8a3bb7970da99ceb88b4191968ef43f6ae04d93b4e75
+    - repo: https://kedacore.github.io/charts
+      chart: keda
+      version: 2.20.2
+      sha256: db60b1fa60f0565fefa4ce2f87e855b6a8854363ee82962fbe28a12a70d64c4c
+    - repo: https://kedacore.github.io/charts
+      chart: keda
+      version: 2.21.1
+      sha256: 76b45621e48e18c9872cdc0c46295e4cbac1236fd379d06bca38ef91d8fb883e
+    - repo: https://kedacore.github.io/charts
+      chart: keda
+      version: 1.5.0
+      sha256: 07b15ddae4f1c40747de063100a668ac15d504cd0548eac0e1a04381fcaa3b37
+    - repo: https://artifacthub.github.io/helm-charts/
+      chart: artifact-hub
+      version: 1.23.0
+      sha256: a4c824ad73c364e5973ca564e3c22f7e1c63ce3e069329e18a9726bafb05755e
+    - repo: https://artifacthub.github.io/helm-charts/
+      chart: artifact-hub
+      version: 1.24.0
+      sha256: d82515cfd610093381b57eaa11cdfbd4892fd5a8f0a34e51bda23c169ae51ce3
+    - repo: https://artifacthub.github.io/helm-charts/
+      chart: artifact-hub
+      version: 0.20.0
+      sha256: 3e9d40f863795f5cabab83beb54fcfb2cb62f1d56baad8fd17fb2fc97ccf1528
+    - repo: https://community-charts.github.io/helm-charts
+      chart: n8n
+      version: 1.23.4
+      sha256: e94e70d1933064a181f5203ebe7b531ec3c63b7eecb8b7dada4cab93bb46f2f3
+    - repo: https://community-charts.github.io/helm-charts
+      chart: n8n
+      version: 1.24.43
+      sha256: f043e2df40061e1c0e9c4c9496817449af0f40370087eaee746c97b2d3cb5795
+    - repo: https://community-charts.github.io/helm-charts
+      chart: n8n
+      version: 0.3.1
+      sha256: 607c180ea02b7e5db9b6bab974dbce0ff69b684b4c8429d58621839a88514110
+    - repo: https://mojo2600.github.io/pihole-kubernetes/
+      chart: pihole
+      version: 2.38.0
+      sha256: f538b09e54095ecfc57a39b59fea5fdd38f3b999700f4521f0e7f25bc3217346
+    - repo: https://mojo2600.github.io/pihole-kubernetes/
+      chart: pihole
+      version: 2.39.0
+      sha256: 31995d156b2a3ce32b15eaad76f5632c0c0e99ae43fe277761184be567be0f0c
+    - repo: https://mojo2600.github.io/pihole-kubernetes/
+      chart: pihole
+      version: 1.10.0
+      sha256: ab543f7ce676b7be1c6ed11296e9e6ebe5a5b8be0905d063c40da5de7f34b9c2
+    - repo: https://helm.releases.hashicorp.com
+      chart: consul
+      version: 2.0.4
+      sha256: 4998e7622d45c7cf1fd299e063e8da86ef8be3ea523d0b76f77ddae3045495b8
+    - repo: https://helm.releases.hashicorp.com
+      chart: consul
+      version: 2.1.0
+      sha256: e75ec2ab6580c0960173530d8aab8e4af7773fc48af565eb132b48ec70534a80
+    - repo: https://helm.releases.hashicorp.com
+      chart: consul
+      version: 1.9.11
+      sha256: dc8560492ad638310adadad69d2f5e4708824ca211df387cb9c0f7d1e63a36f1
+    - repo: https://grafana.github.io/helm-charts
+      chart: alloy
+      version: 1.15.0
+      sha256: 2ecc96c05004cc01a45ab23cb390194ad5259ec9d02b42bf148d4468d013aaa3
+    - repo: https://grafana.github.io/helm-charts
+      chart: alloy
+      version: 1.16.0
+      sha256: efb95c875245af3c73a93b50331dfcece7cd573d5f788d934748a741c9c1747a
+    - repo: https://grafana.github.io/helm-charts
+      chart: alloy
+      version: 0.12.6
+      sha256: 1b5c70c28457eb30f4fdc922d165125d2c317297ad41cd1523d21d053bf49ec4
+    - repo: https://charts.bitnami.com/bitnami
+      chart: mariadb
+      version: 28.0.3
+      sha256: e655ce31bf1bf961f55846373ee469fa6ac73f922a50fbc4f00d4faa95490c85
+    - repo: https://charts.bitnami.com/bitnami
+      chart: mariadb
+      version: 28.1.6
+      sha256: c77a41c69c237be80f8d4f83cd39779df53013b3e71c8ca1bfcbb717c6e6afa5
+    - repo: https://charts.bitnami.com/bitnami
+      chart: mariadb
+      version: 27.3.0
+      sha256: ce32dc51b6006a69dfd25cb78b008a31b20a53a179597a1712196f38fbf89239
+    - repo: https://stakater.github.io/stakater-charts
+      chart: reloader
+      version: 2.1.5
+      sha256: 700a25a826f21221f316c73e9607ce3dbc64d6cdc37a214e1500455b5f697ad5
+    - repo: https://stakater.github.io/stakater-charts
+      chart: reloader
+      version: 2.2.20
+      sha256: 4d7f46ec0fe7357ada046ee65be465f13d12849731ce06d7914b922afacc1fe2
+    - repo: https://stakater.github.io/stakater-charts
+      chart: reloader
+      version: 1.3.0
+      sha256: b69e75a3323c4712240c16609cd45343d54ca5226a6e368b372cec2cd4b0ffa4
+    - repo: https://helm.elastic.co
+      chart: eck-operator
+      version: 3.4.1
+      sha256: 07e194d9830a780c775c3c3781f70da3217b1f8e1d58d32721b7cecc67f64095
+    - repo: https://helm.elastic.co
+      chart: eck-operator
+      version: 3.5.0
+      sha256: eda9ec502c786fc1ad293e7f4235fdef43b2c741dcc977ab1f62377d72b5173f
+    - repo: https://helm.elastic.co
+      chart: eck-operator
+      version: 2.16.1
+      sha256: fefb27516f60d1673087b58c7cdc15364fee8e194ee242e6b0b8ec7fab12e632
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      version: 11.20.2
+      sha256: b5116657063fe1776a04dd6ec0922066cee3a2c6860cd575811400f146f706b1
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      version: 11.21.3
+      sha256: cfa0e007b6aa34ad9a4141fb6b85f7dd4d409b4a241dc842dda650d82fd1c8fa
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      version: 10.1.0
+      sha256: d68211906ac2f37a534ab298c1a69a9d2bbf709998cc4a45dea67d27a76c3f8a
+    - repo: oci://ghcr.io/argoproj/argo-helm/argo-cd
+      chart: argo-cd
+      version: 10.17.2
+      sha256: c516b221a2380074bd2a3ed04ff6830a19fb07c3719070aa456ed02778767c4f
+    - repo: oci://ghcr.io/argoproj/argo-helm/argo-cd
+      chart: argo-cd
+      version: 10.18.2
+      sha256: 6900d104854a18c733616a56853012eb9a136f2256a9d35de73cda03689a59d1
+    - repo: oci://ghcr.io/argoproj/argo-helm/argo-cd
+      chart: argo-cd
+      version: 9.7.1
+      sha256: 185e9de6c8c7a74c260ae16df088d740b3c6ea7608f47bbef25e1a9aec2bf8c6
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      version: 2.42.0
+      sha256: d3a4ff76978290eca71f95125281c7c90b1f058a809574d39502a26143865bda
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      version: 2.43.12
+      sha256: 168cc101a210affb29bfe6c1e84db5675d77432592974caa346ad999a3429c5e
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      version: 1.0.4
+      sha256: 28c9d155b6a2b367a715756159cb7a2bf02fe71f789d119c365d2f7eeeb38906
+    - repo: https://jaegertracing.github.io/helm-charts
+      chart: jaeger
+      version: 4.18.0
+      sha256: a52e7f4acdc863b54a93acc16dbae8d39d75495739a8bb5ea48797d82ab0b516
+    - repo: https://jaegertracing.github.io/helm-charts
+      chart: jaeger
+      version: 4.19.0
+      sha256: c3a3e6e95c5a45e76fabb6626d0fdda2b6925ee76b93058818a022a613c0a441
+    - repo: https://jaegertracing.github.io/helm-charts
+      chart: jaeger
+      version: 3.4.1
+      sha256: 21129f23b3b72413fd3cecef463a7a37a3d659ff1034d2729c3862d8118c7c2d
+    - repo: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      version: 22.0.15
+      sha256: ebc28765be2885d3926b340977632e49c6ce158ec63f9f9fd0ba623d3820722f
+    - repo: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      version: 22.1.6
+      sha256: 5c9db533f891fc52fbea44bd15d2782b38c78ad943b80e9afff35103daf10e6a
+    - repo: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      version: 21.6.3
+      sha256: a9802b00f543952e3805dec029ea1764d795fc8c05891cc52ec5b7a883c8fdd9
+    - repo: https://jupyterhub.github.io/helm-chart/
+      chart: jupyterhub
+      version: 4.3.5
+      sha256: 4d07481b403670cfdcf11586341018b83046992a95a5ec204aadd88d397aff59
+    - repo: https://jupyterhub.github.io/helm-chart/
+      chart: jupyterhub
+      version: 4.4.5
+      sha256: 27ad182c708244537f425a7ec3354d1a098776e7acd96b7f0d9a4d38f0cda415
+    - repo: https://jupyterhub.github.io/helm-chart/
+      chart: jupyterhub
+      version: 3.3.8
+      sha256: ac4dd85c814a322353d68e1a322ba1a5ea0ada6cd8945affcebc46f6ccb2b645
+    - repo: https://grafana.github.io/helm-charts
+      chart: mimir-distributed
+      version: 6.1.1
+      sha256: 4633dcb5ca913a55b52751230ee1a78f74410a62251cc4a68581253748bd044f
+    - repo: https://grafana.github.io/helm-charts
+      chart: mimir-distributed
+      version: 6.2.2
+      sha256: 1bdf72185d42edc4a68589247011cb8c26dcde928f3878e07d6631868d151a52
+    - repo: https://grafana.github.io/helm-charts
+      chart: mimir-distributed
+      version: 5.8.1
+      sha256: 3552f768f144886e90a4b03fb56f2b3a1e01f4a72219e4e47c32008a527dd9a8
+    - repo: https://charts.bitnami.com/bitnami
+      chart: metrics-server
+      version: 7.3.5
+      sha256: 648cabf46e031a942636d892f140d7f39f01d4da824637b54dd29cde69734ac1
+    - repo: https://charts.bitnami.com/bitnami
+      chart: metrics-server
+      version: 7.4.12
+      sha256: 3d3e5772384b621fa615f32557d8e909deffe5b9f8eb768d8e105bbd4f9a273d
+    - repo: https://charts.bitnami.com/bitnami
+      chart: metrics-server
+      version: 6.13.1
+      sha256: da7dc0b947ff1e90745f493e08ed1401696bb3a9acf58aabc2012f1fd6d421f7
+    - repo: https://pmint93.github.io/helm-charts
+      chart: metabase
+      version: 2.26.0
+      sha256: dd1c2398f979e923fddc39833c8082d2d80734a1ab15877a6d662c2c31e1bec0
+    - repo: https://pmint93.github.io/helm-charts
+      chart: metabase
+      version: 2.27.8
+      sha256: 35c77ac5b016b7356ee7f676972ce93669eaad57d70aa6906ac062315d9f6062
+    - repo: https://pmint93.github.io/helm-charts
+      chart: metabase
+      version: 1.4.2
+      sha256: 9e963e42f8f86a9c2000f69c8afc31dbfb45a411702d91b7a36d43de861412aa
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      version: 1.4.2
+      sha256: d5720ff78e1dcce7df5245a3717b3ef8f785fa17f370ce404f5ce5ff8edec0d5
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      version: 1.5.0
+      sha256: b36e5a4a3307c2c51fb4450ae597b289430f4d01a507059e1f66ee8185cb5318
+    - repo: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      version: 0.14.0
+      sha256: f0cd361979eb3b0230731fe179e4ac4c12b57ec118c0a31906dfd5017d8786f0
+    - repo: https://nats-io.github.io/k8s/helm/charts/
+      chart: nats
+      version: 2.14.6
+      sha256: 72f7412d6856a6c75c80d4aa4a1ed88c3846f5728fa8e0cc134a76da0febe3d9
+    - repo: https://nats-io.github.io/k8s/helm/charts/
+      chart: nats
+      version: 2.15.3
+      sha256: 3dc7d544cac9b7ce351cc33529fcae33c16f59a95647012efd3eaec3f92c14f8
+    - repo: https://nats-io.github.io/k8s/helm/charts/
+      chart: nats
+      version: 1.3.16
+      sha256: 65cfd9be5b3867d0a1a1fa2cc8ab4e77e2a231fb96d2f9510e3156805d8c8365
+    - repo: https://dirsigler.github.io/uptime-kuma-helm
+      chart: uptime-kuma
+      version: 4.1.0
+      sha256: 443ce64a2a1c70e76f232b8de4c258fd7d923a0a6b058759d1908c1f10b351fe
+    - repo: https://dirsigler.github.io/uptime-kuma-helm
+      chart: uptime-kuma
+      version: 4.2.0
+      sha256: 0ded713fbe6842d6d8d993353611cbc1eb47ff6b813cd77f0e215a3d0462b885
+    - repo: https://dirsigler.github.io/uptime-kuma-helm
+      chart: uptime-kuma
+      version: 3.0.0
+      sha256: 19ea041912169c74f817798713abac2f5932c36d166a0dc53fbb3cc766467604
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: alertmanager
+      version: 2.4.0
+      sha256: 8b810bb0db0b9ff3521ab38a935e49d6307da3cd26afe14859172fe52a66684e
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: alertmanager
+      version: 2.5.1
+      sha256: 951fb66e648e9edd1fe5851e5a9cb93c2161ec070c087a12542fe16d3672942c
+    - repo: https://prometheus-community.github.io/helm-charts
+      chart: alertmanager
+      version: 1.43.3
+      sha256: 6f07fef1d5cffc6379e1cb7fde8f366559c8ece731276e5381c6a8cf268a9818
+    - repo: https://airflow-helm.github.io/charts
+      chart: airflow
+      version: 8.8.0
+      sha256: e9f8ca925d3f99ce989c4a1fa09ed6bfc8b20437a67699d7dd310081c90b392d
+    - repo: https://airflow-helm.github.io/charts
+      chart: airflow
+      version: 8.9.0
+      sha256: f2a4c74727b084502a43b237333cb173b25aab722fe35d41b31c9d3871373103
+    - repo: https://airflow-helm.github.io/charts
+      chart: airflow
+      version: 7.16.0
+      sha256: 4d8c0b85be2c1d06f0807bfccd23e8508662261fca2caabdc12d5c2523f7f1e0
+    - repo: https://falcosecurity.github.io/charts
+      chart: falco
+      version: 9.1.0
+      sha256: 2a767d6aeccf2392c5e263ae1f5e0950520affe3a9908ff7986ac213649c45b4
+    - repo: https://falcosecurity.github.io/charts
+      chart: falco
+      version: 9.2.2
+      sha256: b8a1aa984c3d513ab1639be760e6a07a9eb203d4da77a45a1512d382b6d3687d
+    - repo: https://falcosecurity.github.io/charts
+      chart: falco
+      version: 8.0.5
+      sha256: 57b06bf9c5567c3ba16a65de76a8e3c3bd976b130ef2110a6644e517b444e2a8
+    - repo: https://otwld.github.io/ollama-helm/
+      chart: ollama
+      version: 1.94.0
+      sha256: a945bd71d910de9c61903cfb2f5b1488a305e7c74a2f2b839bbdc1088471cacf
+    - repo: https://otwld.github.io/ollama-helm/
+      chart: ollama
+      version: 1.95.0
+      sha256: 176d8d22ab6eb853285d803fddcac0dc54d52450a53b5020c4048457f549bf0e
+    - repo: https://otwld.github.io/ollama-helm/
+      chart: ollama
+      version: 0.69.0
+      sha256: 3505c4840438d037adf2b343d9950d537dbd614550d7ca09c9e7a8161a2d8e1f
+    - repo: https://charts.bitnami.com/bitnami
+      chart: postgresql-ha
+      version: 16.2.3
+      sha256: 336b7b6d5389be6566805e524356d05dc142bf16612ca9cc577af7f92c1e86c1
+    - repo: https://charts.bitnami.com/bitnami
+      chart: postgresql-ha
+      version: 16.3.2
+      sha256: 2e26aa25e9bcd9eb4160be1dc1af6682b9f8f6fb03d74d3e29e41da1a774eac3
+    - repo: https://charts.bitnami.com/bitnami
+      chart: postgresql-ha
+      version: 15.3.17
+      sha256: 3b453717d0a74fbc0e40b1743cff2f49ab957ffea6856b4dbde162781d159797
+    - repo: https://charts.konghq.com
+      chart: kong
+      version: 3.3.0
+      sha256: 6c546e8243728b69a215f6e6fc1799d757507b3355ff4f3f922ff2c5e8ff64e7
+    - repo: https://charts.konghq.com
+      chart: kong
+      version: 3.4.1
+      sha256: 2c7dbf6bc59846d0c779e2509f45d041cc0dba5af85d6728294b9f37cd02e1d7
+    - repo: https://charts.konghq.com
+      chart: kong
+      version: 2.52.0
+      sha256: d531501f1ce6baf2906fb2a625208342ededb5e28ad7347f1376934b4bc948c7
+    - repo: https://chartmuseum.github.io/charts
+      chart: chartmuseum
+      version: 3.9.3
+      sha256: a8412e8fbe6527372a5d65e69b71a62447f90d52118252cc011fe21c85937069
+    - repo: https://chartmuseum.github.io/charts
+      chart: chartmuseum
+      version: 3.10.4
+      sha256: 8e1aa5c173adbe7b91f4b0c546f146019b6918d83487e5e71591b73dafa0d9b3
+    - repo: https://chartmuseum.github.io/charts
+      chart: chartmuseum
+      version: 2.16.0
+      sha256: f39257a448716bb970bbc44c25919bdad20008e7c7c19b4d5b72eb7b4ed49488

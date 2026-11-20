@@ -1,0 +1,8 @@
+id: conversion-webhook-breaks-api
+summary: An invalid stored custom resource can make a conversion webhook fail, and that failure breaks watches for the whole API server.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [crd.existing_object_invalid]}
+control_expect: {verdict: PASSED}
+status: unreproduced
+needs: "1.5"
+source: https://github.com/open-telemetry/opentelemetry-operator/issues/4288

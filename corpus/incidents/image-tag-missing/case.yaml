@@ -1,0 +1,8 @@
+id: image-tag-missing
+summary: The new chart references an image tag that does not exist, so the pods never start.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [supply.image.missing]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.6"
+source: a pull of a missing tag fails and does not become ready

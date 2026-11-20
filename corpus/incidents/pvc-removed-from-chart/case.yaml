@@ -1,0 +1,8 @@
+id: pvc-removed-from-chart
+summary: The new chart no longer renders a PersistentVolumeClaim. Helm deletes it.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [impact.delete.pvc]}
+control_expect: {verdict: PASSED}
+status: expected-fail
+needs: "1.5"
+source: Helm deletes a templated claim that the new chart does not render

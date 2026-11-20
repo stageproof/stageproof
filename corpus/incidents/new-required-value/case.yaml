@@ -1,0 +1,7 @@
+id: new-required-value
+summary: The new chart calls required on a key the values do not set.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [helm.values.new_required_unset]}
+control_expect: {verdict: PASSED}
+status: active
+source: Helm required fails the render when the value is unset

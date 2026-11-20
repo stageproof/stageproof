@@ -1,0 +1,8 @@
+id: values-key-silently-dropped
+summary: The current chart reads a values key that the new chart does not read.
+k8s: "1.35"
+values: values.yaml
+expect: {verdict: BLOCKED, rules: [helm.values.silently_dropped]}
+control_expect: {verdict: PASSED}
+status: active
+source: the values check compares template reads

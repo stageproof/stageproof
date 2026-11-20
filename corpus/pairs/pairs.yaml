@@ -1,0 +1,701 @@
+pairs:
+    - id: prometheus-community-kube-prometheus-stack-minor
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      from: 93.5.0
+      to: 93.6.0
+      kind: minor
+      pr: true
+    - id: prometheus-community-kube-prometheus-stack-major
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: kube-prometheus-stack
+      from: 92.22.0
+      to: 93.6.0
+      kind: major
+      pr: true
+    - id: argo-argo-cd-minor
+      repo: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      from: 10.17.2
+      to: 10.18.2
+      kind: minor
+      pr: true
+    - id: argo-argo-cd-major
+      repo: https://argoproj.github.io/argo-helm
+      chart: argo-cd
+      from: 9.7.1
+      to: 10.18.2
+      kind: major
+      pr: true
+    - id: ingress-nginx-ingress-nginx-minor
+      repo: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      from: 4.14.5
+      to: 4.15.1
+      kind: minor
+      pr: true
+    - id: ingress-nginx-ingress-nginx-major
+      repo: https://kubernetes.github.io/ingress-nginx
+      chart: ingress-nginx
+      from: 3.41.0
+      to: 4.15.1
+      kind: major
+      pr: true
+    - id: prometheus-community-prometheus-minor
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      from: 29.47.2
+      to: 29.48.0
+      kind: minor
+      pr: true
+    - id: prometheus-community-prometheus-major
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus
+      from: 28.16.0
+      to: 29.48.0
+      kind: major
+      pr: true
+    - id: bitnami-redis-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: redis
+      from: 28.2.4
+      to: 28.3.12
+      kind: minor
+      pr: true
+    - id: bitnami-redis-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: redis
+      from: 27.0.18
+      to: 28.3.12
+      kind: major
+      pr: true
+    - id: traefik-traefik-minor
+      repo: https://traefik.github.io/charts
+      chart: traefik
+      from: 42.3.2
+      to: 42.4.1
+      kind: minor
+      pr: true
+    - id: traefik-traefik-major
+      repo: https://traefik.github.io/charts
+      chart: traefik
+      from: 41.7.1
+      to: 42.4.1
+      kind: major
+      pr: true
+    - id: grafana-loki-minor
+      repo: https://grafana.github.io/helm-charts
+      chart: loki
+      from: 7.6.0
+      to: 7.7.0
+      kind: minor
+      pr: true
+    - id: grafana-loki-major
+      repo: https://grafana.github.io/helm-charts
+      chart: loki
+      from: 6.55.0
+      to: 7.7.0
+      kind: major
+      pr: true
+    - id: gitlab-gitlab-minor
+      repo: http://charts.gitlab.io/
+      chart: gitlab
+      from: 10.5.9
+      to: 10.6.1
+      kind: minor
+      pr: true
+    - id: gitlab-gitlab-major
+      repo: http://charts.gitlab.io/
+      chart: gitlab
+      from: 9.11.16
+      to: 10.6.1
+      kind: major
+      pr: true
+    - id: bitnami-keycloak-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: keycloak
+      from: 25.1.2
+      to: 25.2.0
+      kind: minor
+      pr: true
+    - id: bitnami-keycloak-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: keycloak
+      from: 24.9.0
+      to: 25.2.0
+      kind: major
+      pr: true
+    - id: jenkinsci-jenkins-minor
+      repo: https://charts.jenkins.io/
+      chart: jenkins
+      from: 5.12.0
+      to: 5.13.3
+      kind: minor
+      pr: true
+    - id: jenkinsci-jenkins-major
+      repo: https://charts.jenkins.io/
+      chart: jenkins
+      from: 4.12.1
+      to: 5.13.3
+      kind: major
+      pr: true
+    - id: external-secrets-operator-external-secrets-minor
+      repo: https://charts.external-secrets.io/
+      chart: external-secrets
+      from: 2.14.0
+      to: 2.15.0
+      kind: minor
+      pr: false
+    - id: external-secrets-operator-external-secrets-major
+      repo: https://charts.external-secrets.io/
+      chart: external-secrets
+      from: 1.3.2
+      to: 2.15.0
+      kind: major
+      pr: false
+    - id: bitnami-kafka-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: kafka
+      from: 32.3.14
+      to: 32.4.3
+      kind: minor
+      pr: false
+    - id: bitnami-kafka-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: kafka
+      from: 31.5.0
+      to: 32.4.3
+      kind: major
+      pr: false
+    - id: vmware-tanzu-velero-minor
+      repo: https://vmware-tanzu.github.io/helm-charts/
+      chart: velero
+      from: 12.1.0
+      to: 12.2.5
+      kind: minor
+      pr: false
+    - id: vmware-tanzu-velero-major
+      repo: https://vmware-tanzu.github.io/helm-charts/
+      chart: velero
+      from: 11.4.0
+      to: 12.2.5
+      kind: major
+      pr: false
+    - id: nextcloud-nextcloud-minor
+      repo: https://nextcloud.github.io/helm/
+      chart: nextcloud
+      from: 9.3.0
+      to: 9.4.5
+      kind: minor
+      pr: false
+    - id: nextcloud-nextcloud-major
+      repo: https://nextcloud.github.io/helm/
+      chart: nextcloud
+      from: 8.9.1
+      to: 9.4.5
+      kind: major
+      pr: false
+    - id: kyverno-kyverno-minor
+      repo: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      from: 3.9.2
+      to: 3.10.0
+      kind: minor
+      pr: false
+    - id: kyverno-kyverno-major
+      repo: https://kyverno.github.io/kyverno/
+      chart: kyverno
+      from: 2.7.5
+      to: 3.10.0
+      kind: major
+      pr: false
+    - id: sonarqube-sonarqube-minor
+      repo: https://SonarSource.github.io/helm-chart-sonarqube
+      chart: sonarqube
+      from: 2026.4.1
+      to: 2026.5.1007
+      kind: minor
+      pr: false
+    - id: sonarqube-sonarqube-major
+      repo: https://SonarSource.github.io/helm-chart-sonarqube
+      chart: sonarqube
+      from: 2025.6.1
+      to: 2026.5.1007
+      kind: major
+      pr: false
+    - id: gitea-gitea-minor
+      repo: https://dl.gitea.com/charts
+      chart: gitea
+      from: 12.6.0
+      to: 12.7.0
+      kind: minor
+      pr: false
+    - id: gitea-gitea-major
+      repo: https://dl.gitea.com/charts
+      chart: gitea
+      from: 11.0.1
+      to: 12.7.0
+      kind: major
+      pr: false
+    - id: datadog-datadog-minor
+      repo: https://helm.datadoghq.com
+      chart: datadog
+      from: 3.275.1
+      to: 3.276.0
+      kind: minor
+      pr: false
+    - id: datadog-datadog-major
+      repo: https://helm.datadoghq.com
+      chart: datadog
+      from: 2.37.9
+      to: 3.276.0
+      kind: major
+      pr: false
+    - id: bitnami-nginx-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: nginx
+      from: 25.1.15
+      to: 25.2.16
+      kind: minor
+      pr: false
+    - id: bitnami-nginx-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: nginx
+      from: 24.0.4
+      to: 25.2.16
+      kind: major
+      pr: false
+    - id: bitnami-thanos-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: thanos
+      from: 17.2.6
+      to: 17.3.1
+      kind: minor
+      pr: false
+    - id: bitnami-thanos-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: thanos
+      from: 16.0.7
+      to: 17.3.1
+      kind: major
+      pr: false
+    - id: bitnami-wordpress-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: wordpress
+      from: 34.1.4
+      to: 34.2.9
+      kind: minor
+      pr: false
+    - id: bitnami-wordpress-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: wordpress
+      from: 33.1.2
+      to: 34.2.9
+      kind: major
+      pr: false
+    - id: nginx-nginx-ingress-minor
+      repo: https://helm.nginx.com/stable
+      chart: nginx-ingress
+      from: 2.8.1
+      to: 2.9.0
+      kind: minor
+      pr: false
+    - id: nginx-nginx-ingress-major
+      repo: https://helm.nginx.com/stable
+      chart: nginx-ingress
+      from: 1.4.2
+      to: 2.9.0
+      kind: major
+      pr: false
+    - id: kedacore-keda-minor
+      repo: https://kedacore.github.io/charts
+      chart: keda
+      from: 2.20.2
+      to: 2.21.1
+      kind: minor
+      pr: false
+    - id: kedacore-keda-major
+      repo: https://kedacore.github.io/charts
+      chart: keda
+      from: 1.5.0
+      to: 2.21.1
+      kind: major
+      pr: false
+    - id: artifact-hub-artifact-hub-minor
+      repo: https://artifacthub.github.io/helm-charts/
+      chart: artifact-hub
+      from: 1.23.0
+      to: 1.24.0
+      kind: minor
+      pr: false
+    - id: artifact-hub-artifact-hub-major
+      repo: https://artifacthub.github.io/helm-charts/
+      chart: artifact-hub
+      from: 0.20.0
+      to: 1.24.0
+      kind: major
+      pr: false
+    - id: community-charts-n8n-minor
+      repo: https://community-charts.github.io/helm-charts
+      chart: n8n
+      from: 1.23.4
+      to: 1.24.43
+      kind: minor
+      pr: false
+    - id: community-charts-n8n-major
+      repo: https://community-charts.github.io/helm-charts
+      chart: n8n
+      from: 0.3.1
+      to: 1.24.43
+      kind: major
+      pr: false
+    - id: mojo2600-pihole-minor
+      repo: https://mojo2600.github.io/pihole-kubernetes/
+      chart: pihole
+      from: 2.38.0
+      to: 2.39.0
+      kind: minor
+      pr: false
+    - id: mojo2600-pihole-major
+      repo: https://mojo2600.github.io/pihole-kubernetes/
+      chart: pihole
+      from: 1.10.0
+      to: 2.39.0
+      kind: major
+      pr: false
+    - id: hashicorp-consul-minor
+      repo: https://helm.releases.hashicorp.com
+      chart: consul
+      from: 2.0.4
+      to: 2.1.0
+      kind: minor
+      pr: false
+    - id: hashicorp-consul-major
+      repo: https://helm.releases.hashicorp.com
+      chart: consul
+      from: 1.9.11
+      to: 2.1.0
+      kind: major
+      pr: false
+    - id: grafana-alloy-minor
+      repo: https://grafana.github.io/helm-charts
+      chart: alloy
+      from: 1.15.0
+      to: 1.16.0
+      kind: minor
+      pr: false
+    - id: grafana-alloy-major
+      repo: https://grafana.github.io/helm-charts
+      chart: alloy
+      from: 0.12.6
+      to: 1.16.0
+      kind: major
+      pr: false
+    - id: bitnami-mariadb-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: mariadb
+      from: 28.0.3
+      to: 28.1.6
+      kind: minor
+      pr: false
+    - id: bitnami-mariadb-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: mariadb
+      from: 27.3.0
+      to: 28.1.6
+      kind: major
+      pr: false
+    - id: stakater-reloader-minor
+      repo: https://stakater.github.io/stakater-charts
+      chart: reloader
+      from: 2.1.5
+      to: 2.2.20
+      kind: minor
+      pr: false
+    - id: stakater-reloader-major
+      repo: https://stakater.github.io/stakater-charts
+      chart: reloader
+      from: 1.3.0
+      to: 2.2.20
+      kind: major
+      pr: false
+    - id: elastic-eck-operator-minor
+      repo: https://helm.elastic.co
+      chart: eck-operator
+      from: 3.4.1
+      to: 3.5.0
+      kind: minor
+      pr: false
+    - id: elastic-eck-operator-major
+      repo: https://helm.elastic.co
+      chart: eck-operator
+      from: 2.16.1
+      to: 3.5.0
+      kind: major
+      pr: false
+    - id: prometheus-community-prometheus-blackbox-exporter-minor
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      from: 11.20.2
+      to: 11.21.3
+      kind: minor
+      pr: false
+    - id: prometheus-community-prometheus-blackbox-exporter-major
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: prometheus-blackbox-exporter
+      from: 10.1.0
+      to: 11.21.3
+      kind: major
+      pr: false
+    - id: argo-cd-oci-argo-cd-minor
+      repo: oci://ghcr.io/argoproj/argo-helm/argo-cd
+      chart: argo-cd
+      from: 10.17.2
+      to: 10.18.2
+      kind: minor
+      pr: false
+    - id: argo-cd-oci-argo-cd-major
+      repo: oci://ghcr.io/argoproj/argo-helm/argo-cd
+      chart: argo-cd
+      from: 9.7.1
+      to: 10.18.2
+      kind: major
+      pr: false
+    - id: argo-argo-rollouts-minor
+      repo: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      from: 2.42.0
+      to: 2.43.12
+      kind: minor
+      pr: false
+    - id: argo-argo-rollouts-major
+      repo: https://argoproj.github.io/argo-helm
+      chart: argo-rollouts
+      from: 1.0.4
+      to: 2.43.12
+      kind: major
+      pr: false
+    - id: jaegertracing-jaeger-minor
+      repo: https://jaegertracing.github.io/helm-charts
+      chart: jaeger
+      from: 4.18.0
+      to: 4.19.0
+      kind: minor
+      pr: false
+    - id: jaegertracing-jaeger-major
+      repo: https://jaegertracing.github.io/helm-charts
+      chart: jaeger
+      from: 3.4.1
+      to: 4.19.0
+      kind: major
+      pr: false
+    - id: bitnami-elasticsearch-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      from: 22.0.15
+      to: 22.1.6
+      kind: minor
+      pr: false
+    - id: bitnami-elasticsearch-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: elasticsearch
+      from: 21.6.3
+      to: 22.1.6
+      kind: major
+      pr: false
+    - id: jupyterhub-jupyterhub-minor
+      repo: https://jupyterhub.github.io/helm-chart/
+      chart: jupyterhub
+      from: 4.3.5
+      to: 4.4.5
+      kind: minor
+      pr: false
+    - id: jupyterhub-jupyterhub-major
+      repo: https://jupyterhub.github.io/helm-chart/
+      chart: jupyterhub
+      from: 3.3.8
+      to: 4.4.5
+      kind: major
+      pr: false
+    - id: grafana-mimir-distributed-minor
+      repo: https://grafana.github.io/helm-charts
+      chart: mimir-distributed
+      from: 6.1.1
+      to: 6.2.2
+      kind: minor
+      pr: false
+    - id: grafana-mimir-distributed-major
+      repo: https://grafana.github.io/helm-charts
+      chart: mimir-distributed
+      from: 5.8.1
+      to: 6.2.2
+      kind: major
+      pr: false
+    - id: bitnami-metrics-server-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: metrics-server
+      from: 7.3.5
+      to: 7.4.12
+      kind: minor
+      pr: false
+    - id: bitnami-metrics-server-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: metrics-server
+      from: 6.13.1
+      to: 7.4.12
+      kind: major
+      pr: false
+    - id: pmint93-metabase-minor
+      repo: https://pmint93.github.io/helm-charts
+      chart: metabase
+      from: 2.26.0
+      to: 2.27.8
+      kind: minor
+      pr: false
+    - id: pmint93-metabase-major
+      repo: https://pmint93.github.io/helm-charts
+      chart: metabase
+      from: 1.4.2
+      to: 2.27.8
+      kind: major
+      pr: false
+    - id: argo-argocd-image-updater-minor
+      repo: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      from: 1.4.2
+      to: 1.5.0
+      kind: minor
+      pr: false
+    - id: argo-argocd-image-updater-major
+      repo: https://argoproj.github.io/argo-helm
+      chart: argocd-image-updater
+      from: 0.14.0
+      to: 1.5.0
+      kind: major
+      pr: false
+    - id: nats-nats-minor
+      repo: https://nats-io.github.io/k8s/helm/charts/
+      chart: nats
+      from: 2.14.6
+      to: 2.15.3
+      kind: minor
+      pr: false
+    - id: nats-nats-major
+      repo: https://nats-io.github.io/k8s/helm/charts/
+      chart: nats
+      from: 1.3.16
+      to: 2.15.3
+      kind: major
+      pr: false
+    - id: uptime-kuma-uptime-kuma-minor
+      repo: https://dirsigler.github.io/uptime-kuma-helm
+      chart: uptime-kuma
+      from: 4.1.0
+      to: 4.2.0
+      kind: minor
+      pr: false
+    - id: uptime-kuma-uptime-kuma-major
+      repo: https://dirsigler.github.io/uptime-kuma-helm
+      chart: uptime-kuma
+      from: 3.0.0
+      to: 4.2.0
+      kind: major
+      pr: false
+    - id: prometheus-community-alertmanager-minor
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: alertmanager
+      from: 2.4.0
+      to: 2.5.1
+      kind: minor
+      pr: false
+    - id: prometheus-community-alertmanager-major
+      repo: https://prometheus-community.github.io/helm-charts
+      chart: alertmanager
+      from: 1.43.3
+      to: 2.5.1
+      kind: major
+      pr: false
+    - id: airflow-helm-airflow-minor
+      repo: https://airflow-helm.github.io/charts
+      chart: airflow
+      from: 8.8.0
+      to: 8.9.0
+      kind: minor
+      pr: false
+    - id: airflow-helm-airflow-major
+      repo: https://airflow-helm.github.io/charts
+      chart: airflow
+      from: 7.16.0
+      to: 8.9.0
+      kind: major
+      pr: false
+    - id: falcosecurity-falco-minor
+      repo: https://falcosecurity.github.io/charts
+      chart: falco
+      from: 9.1.0
+      to: 9.2.2
+      kind: minor
+      pr: false
+    - id: falcosecurity-falco-major
+      repo: https://falcosecurity.github.io/charts
+      chart: falco
+      from: 8.0.5
+      to: 9.2.2
+      kind: major
+      pr: false
+    - id: ollama-helm-ollama-minor
+      repo: https://otwld.github.io/ollama-helm/
+      chart: ollama
+      from: 1.94.0
+      to: 1.95.0
+      kind: minor
+      pr: false
+    - id: ollama-helm-ollama-major
+      repo: https://otwld.github.io/ollama-helm/
+      chart: ollama
+      from: 0.69.0
+      to: 1.95.0
+      kind: major
+      pr: false
+    - id: bitnami-postgresql-ha-minor
+      repo: https://charts.bitnami.com/bitnami
+      chart: postgresql-ha
+      from: 16.2.3
+      to: 16.3.2
+      kind: minor
+      pr: false
+    - id: bitnami-postgresql-ha-major
+      repo: https://charts.bitnami.com/bitnami
+      chart: postgresql-ha
+      from: 15.3.17
+      to: 16.3.2
+      kind: major
+      pr: false
+    - id: kong-kong-minor
+      repo: https://charts.konghq.com
+      chart: kong
+      from: 3.3.0
+      to: 3.4.1
+      kind: minor
+      pr: false
+    - id: kong-kong-major
+      repo: https://charts.konghq.com
+      chart: kong
+      from: 2.52.0
+      to: 3.4.1
+      kind: major
+      pr: false
+    - id: chartmuseum-chartmuseum-minor
+      repo: https://chartmuseum.github.io/charts
+      chart: chartmuseum
+      from: 3.9.3
+      to: 3.10.4
+      kind: minor
+      pr: false
+    - id: chartmuseum-chartmuseum-major
+      repo: https://chartmuseum.github.io/charts
+      chart: chartmuseum
+      from: 2.16.0
+      to: 3.10.4
+      kind: major
+      pr: false
