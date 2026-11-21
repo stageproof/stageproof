@@ -70,7 +70,7 @@
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
               <td>Pull request check</td>
-              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed chart and Argo CD Application, and writes one comment and one JSON report.</td>
+              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed chart, Argo CD Application, and Flux HelmRelease, and writes one comment and one JSON report. The v0.1.8 binary does not read a HelmRelease.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
@@ -78,9 +78,14 @@
               <td><code>--live</code> installs, upgrades, and rolls back in a temporary kind cluster on the machine that runs the command. Result <code>PROVEN</code> when that succeeds. <code>--require-rehearsal</code> makes a missing rehearsal <code>NOT CHECKED</code>.</td>
             </tr>
             <tr>
+              <td><span class="verdict-badge ok">Ships</span></td>
+              <td>Flux HelmRelease</td>
+              <td>Source on main reads <code>spec.chart</code>, <code>spec.chartRef</code>, <code>spec.values</code>, <code>spec.valuesFrom</code>, and <code>spec.upgrade.crds</code>. A chart in another Git repository is <code>NOT CHECKED</code>. The v0.1.8 binary does not.</td>
+            </tr>
+            <tr>
               <td><span class="verdict-badge warn">Planned</span></td>
               <td>An engine people can measure</td>
-              <td>The accuracy corpus, the local API server proof, and the impact report ship. The impact report leads with deletes and CRD breaks. Still planned: values proof by rendering, Flux, Kustomize, and any two rendered manifests.</td>
+              <td>The accuracy corpus, the local API server proof, and the impact report ship. Rendered manifests ship in source on main. The impact report leads with deletes and CRD breaks. Still planned: values proof by rendering, and Kustomize.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge warn">Planned</span></td>

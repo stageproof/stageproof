@@ -12,6 +12,7 @@ Usage:
   stageproof init     [--dir .] [--out .stageproof.yaml]
   stageproof check    --current-chart <dir> --new-chart <dir> [flags]
   stageproof check    --argocd-file <app.yaml> --current-git <git-ref> [flags]
+  stageproof check    --flux-file <helmrelease.yaml> --current-git <git-ref> [flags]
   stageproof check    --before <dir|file> --after <dir|file> [flags]
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
   stageproof fetch-apiserver --k8s <minor> --out <dir>
@@ -28,6 +29,9 @@ Chart, Argo CD & Values:
   --argocd-file <file>     Argo CD Application YAML / .yaml.tmpl. A remote chart is pulled. A Git path in this checkout is read locally.
   --current-argocd-file <file>
                            Previously deployed Argo CD Application, compared with --argocd-file
+  --flux-file <file>       Flux HelmRelease. A HelmRepository or OCI chart is pulled. A GitRepository in this checkout is read locally.
+  --current-flux-file <file>
+                           Previously deployed Flux HelmRelease, compared with --flux-file
   --current-git <ref>      Extract current chart / Argo CD file from git ref (e.g. origin/main)
   --before <dir|file>      Rendered manifests before the change (.yaml, .yml, or a directory)
   --after <dir|file>       Rendered manifests after the change. Not a Helm chart, and not combined with --live.

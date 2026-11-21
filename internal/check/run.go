@@ -41,6 +41,9 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	if note := placeholderFinding(in.PlaceholderTokens); note != nil {
 		st.Report.Findings = append(st.Report.Findings, *note)
 	}
+	if gap := valuesGapFinding(in.ValueGaps); gap != nil {
+		st.Report.Findings = append(st.Report.Findings, *gap)
+	}
 	if in.ManifestMode && in.Live {
 		st.Report.Skipped = append(st.Report.Skipped, verdict.SkipNotice{
 			Code:        "manifest_live",
@@ -143,5 +146,27 @@ func placeholderFinding(tokens []string) *verdict.Finding {
 		Severity: verdict.SeverityInfo,
 		Message:  "A placeholder was used for " + strings.Join(uniq, ", ") + ".",
 		Detail:   "An unresolved ${...} token outside the chart repository, name, and version was replaced with stageproof-placeholder.",
+	}
+}
+
+func valuesGapFinding(refs []string) *verdict.Finding {
+	seen := map[string]bool{}
+	var sorted []string
+	for _, ref := range refs {
+		if ref == "" || seen[ref] {
+			continue
+		}
+		seen[ref] = true
+		sorted = append(sorted, ref)
+	}
+	if len(sorted) == 0 {
+		return nil
+	}
+	sort.Strings(sorted)
+	return &verdict.Finding{
+		RuleID:   "flux.values.unreadable",
+		Severity: verdict.SeverityWarning,
+		Message:  "Helm values are incomplete. " + strings.Join(sorted, " "),
+		Detail:   "A valuesFrom ConfigMap or Secret was not read. The chart was still rendered. The missing reference was not filled in, and a rehearsal does not make this result PROVEN.",
 	}
 }

@@ -38,6 +38,6 @@ func usage() {
   go run ./cmd/corpus compare results.json corpus/baseline.json
   go run ./cmd/corpus fetch
 
-Replay waits for the Flux adapter. fetch writes pairs/pairs.yaml and pairs/pairs.lock.
+Replay is not built yet. fetch writes pairs/pairs.yaml and pairs/pairs.lock.
 `)
 }

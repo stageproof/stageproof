@@ -9,6 +9,9 @@ type Input struct {
 	Adapter       string
 	ArgoSkipCrds  *bool
 	FluxCRDPolicy string
+	// ValueGaps are valuesFrom references that were not read. The chart is
+	// still rendered. The result is not PROVEN.
+	ValueGaps []string
 	// ManifestMode reads rendered YAML from ManifestBefore and ManifestAfter.
 	// Those paths are files or directories, not Helm charts.
 	ManifestMode   bool

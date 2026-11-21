@@ -82,7 +82,7 @@ stageproof check \
 | Can the upgrade be applied on top of the old release? | The local API server dry-runs the new objects on top of the current ones. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED`, unless the object has `helm.sh/resource-policy: keep`. A CRD schema change that an existing object uses is `BLOCKED`. A restart is named and does not block. A label selector Kubernetes will not change is `BLOCKED`. |
 | Does the new release start, and can it roll back? | `--live`, on the temporary cluster above. |
 
-`check-pr` finds every changed chart, and every changed Argo CD Application, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`.
+`check-pr` finds every changed chart, every changed Argo CD Application, and every changed Flux HelmRelease, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. A source object or a `valuesFrom` file that a HelmRelease names is part of that check too. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`. One HelmRelease on its own is `stageproof check --flux-file`. The released binary is v0.1.8 and does not read a HelmRelease.
 
 ## Install
 
@@ -141,7 +141,7 @@ go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.8
 
 Your cluster stays as it is. You pass the Kubernetes version it runs.
 
-Flux, Kustomize, and Helmfile are skipped. Source on main compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
+Kustomize and Helmfile are skipped. Source on main reads a Flux HelmRelease and compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
 
 The values check reads the templates. A key that is mentioned and then ignored can still look used. The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
