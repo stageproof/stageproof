@@ -13,6 +13,10 @@ func Impact(in Input, st *State) {
 	if !in.ManifestMode && in.BaseDir == "" {
 		return
 	}
+	var stored map[string][]string
+	if in.Facts != nil {
+		stored = in.Facts.StoredVersions()
+	}
 	findings, summary := impact.Compare(st.BaseObjs, st.HeadObjs, impact.Options{
 		Adapter:       st.Report.Adapter,
 		FluxCRDPolicy: in.FluxCRDPolicy,
@@ -22,6 +26,7 @@ func Impact(in Input, st *State) {
 		APIServerRan:  st.APIServerRan,
 		StoredBefore:  st.StoredBefore,
 		StoredAfter:   st.StoredAfter,
+		ClusterStored: stored,
 	})
 	blockers, warns := 0, 0
 	for _, f := range findings {

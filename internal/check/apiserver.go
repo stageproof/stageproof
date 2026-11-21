@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/stageproof/stageproof/internal/apiserver"
+	"github.com/stageproof/stageproof/internal/facts"
 	"github.com/stageproof/stageproof/internal/helm"
 	"github.com/stageproof/stageproof/internal/k8sschema"
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -52,8 +53,18 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	}
 	defer func() { _ = srv.Stop() }()
 
+	preload, preloadErr := clusterPreload(in.Facts)
+	if preloadErr != nil {
+		st.Report.Skipped = append(st.Report.Skipped, verdict.SkipNotice{
+			Code:        "cluster_facts",
+			Reason:      "Cluster facts could not be read as custom resource definitions.",
+			Remediation: "Run `stageproof facts export` again and pass that file to `--cluster-facts`.",
+		})
+		st.stop(false, true)
+		return
+	}
 	strict := strictUnknown(in.ServerSideApply, helm.Major(ctx), in.ManifestMode, in.BaseDir != "")
-	opt := apiserver.ProofOptions{StrictUnknown: strict}
+	opt := apiserver.ProofOptions{StrictUnknown: strict, Preload: preload}
 	res, err := srv.Prove(ctx, manifests(st.BaseObjs), manifests(st.HeadObjs), crdManifests(in.BaseDir), crdManifests(in.HeadDir), opt)
 	if err != nil {
 		if mode == "require" {
@@ -111,6 +122,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 		StrictUnknown: strict,
 		CreatesOnly:   true,
 		Warnings:      true,
+		Preload:       preload,
 	})
 	if nerr != nil {
 		return
@@ -124,6 +136,21 @@ func checkedWithAPIServer(in Input, version string) string {
 		return verdict.CheckedManifests + ", API server " + version
 	}
 	return "files, API server " + version
+}
+
+func clusterPreload(doc *facts.Document) ([]apiserver.Manifest, error) {
+	if doc == nil {
+		return nil, nil
+	}
+	objs, err := doc.CRDObjects()
+	if err != nil {
+		return nil, err
+	}
+	out := make([]apiserver.Manifest, 0, len(objs))
+	for _, obj := range objs {
+		out = append(out, apiserver.Manifest{Raw: obj})
+	}
+	return out, nil
 }
 
 func manifests(objs []k8sschema.ManifestObject) []apiserver.Manifest {

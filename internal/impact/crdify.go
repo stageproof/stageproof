@@ -48,7 +48,7 @@ func (crdifySchema) Compare(old, new map[string]any, stored []string) ([]schemaC
 }
 
 // Charts do not carry status.storedVersions. The version marked storage is
-// that version. Cluster facts, when a later task has them, are added here.
+// that version. extra is status.storedVersions from a cluster facts file.
 func decodeCRD(body map[string]any, extra []string) (*apiextensionsv1.CustomResourceDefinition, error) {
 	raw, err := json.Marshal(body)
 	if err != nil {

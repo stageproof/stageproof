@@ -167,6 +167,67 @@ func TestCRDSafety(t *testing.T) {
 	rejectPrefix(t, same, "crd.")
 }
 
+func TestClusterFactsStoredVersion(t *testing.T) {
+	raw := `apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: widgets.example.com
+spec:
+  group: example.com
+  scope: Namespaced
+  names:
+    kind: Widget
+    plural: widgets
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+    - name: v1beta1
+      served: true
+      storage: false
+      schema:
+        openAPIV3Schema:
+          type: object
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: widgets.example.com
+spec:
+  group: example.com
+  scope: Namespaced
+  names:
+    kind: Widget
+    plural: widgets
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+`
+	objs, err := k8sschema.ParseManifestStream(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(objs) != 2 {
+		t.Fatalf("docs: %d", len(objs))
+	}
+	quiet, _ := Compare(objs[:1], objs[1:], Options{})
+	rejectRule(t, quiet, "crd.existing_object_invalid")
+	hit, _ := Compare(objs[:1], objs[1:], Options{ClusterStored: map[string][]string{
+		"widgets.example.com": {"v1beta1"},
+	}})
+	requireRule(t, hit, "crd.existing_object_invalid", verdict.SeverityBlocker)
+	if !hasMessage(hit, "crd.existing_object_invalid", "v1beta1") {
+		t.Fatalf("stored version was not named: %+v", hit)
+	}
+}
+
 func TestCRDsDirectory(t *testing.T) {
 	root := filepath.Join("testdata", "crds-helm")
 	findings, _ := Compare(nil, nil, Options{

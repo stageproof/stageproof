@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/api/meta"
@@ -55,6 +56,19 @@ func CacheRoot() (string, error) {
 	return filepath.Join(base, "stageproof", "envtest"), nil
 }
 
+// auditPolicy logs every request at Metadata. The body is not written.
+const auditPolicy = `apiVersion: audit.k8s.io/v1
+kind: Policy
+rules:
+- level: Metadata
+`
+
+type startOptions struct {
+	// AuditLogPath turns on the API server audit log. The facts test uses it
+	// to show the exporter's verbs. A normal proof does not set it.
+	AuditLogPath string
+}
+
 // Start runs kube-apiserver and etcd for the newest published patch of version.
 // version is a minor ("1.35") or a patch ("1.35.0"). binDir, when set, is a
 // directory that already contains kube-apiserver, etcd, and kubectl. Nothing
@@ -62,6 +76,10 @@ func CacheRoot() (string, error) {
 //
 // Canceling ctx stops the processes. Stop is safe to call more than once.
 func Start(ctx context.Context, version, binDir string) (*Server, error) {
+	return start(ctx, version, binDir, startOptions{})
+}
+
+func start(ctx context.Context, version, binDir string, opt startOptions) (*Server, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -90,6 +108,20 @@ func Start(ctx context.Context, version, binDir string) (*Server, error) {
 		env.BinaryAssetsDirectory = root
 		env.DownloadBinaryAssets = true
 		env.DownloadBinaryAssetsVersion = version
+	}
+	if opt.AuditLogPath != "" {
+		env.ControlPlaneStartTimeout = 60 * time.Second
+		env.ControlPlaneStopTimeout = 30 * time.Second
+		policy := filepath.Join(filepath.Dir(opt.AuditLogPath), "audit-policy.yaml")
+		if err := os.WriteFile(policy, []byte(auditPolicy), 0o644); err != nil {
+			return nil, err
+		}
+		// envtest already runs with RBAC. These flags add the audit log.
+		env.ControlPlane.GetAPIServer().Configure().
+			Set("audit-policy-file", policy).
+			Set("audit-log-path", opt.AuditLogPath).
+			Set("audit-log-format", "json").
+			Set("audit-log-mode", "blocking")
 	}
 	cfg, err := env.Start()
 	if err != nil {

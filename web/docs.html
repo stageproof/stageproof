@@ -834,9 +834,9 @@ verdict  PASSED (exit 0)  · 373ms · 0 AI calls
 <p class="docs-lede">Tell Stageproof which Kubernetes version your cluster runs. It then reports any resource in the chart that uses an API your cluster no longer serves.</p>
 
 <dl class="doc-facts">
-  <div><dt>Use it when</dt><dd>Always. Give the version on every check, with <code>--current-k8s</code> or once in the <a href="#config">configuration file</a>. Without it, Stageproof assumes Kubernetes <code>1.33</code>.</dd></div>
+  <div><dt>Use it when</dt><dd>Always. Give the version with <code>--current-k8s</code>, with <code>--cluster-facts</code>, or once in the <a href="#config">configuration file</a>. The flag wins, then the facts file, then the configuration file. Without any of them, Stageproof assumes Kubernetes <code>1.33</code>.</dd></div>
   <div><dt>Finds</dt><dd>Resources that use a removed API, and resources that use a deprecated one.</dd></div>
-  <div><dt>Needs</dt><dd>Helm. No cluster. Stageproof does not connect to your cluster to read its version.</dd></div>
+  <div><dt>Needs</dt><dd>Helm, or manifests you already rendered. The check does not connect to a cluster. <code>stageproof facts export</code> does, when you give it a kubeconfig. See <a href="#cluster-facts">Read a cluster</a>.</dd></div>
 </dl>
 
 <h2>The example</h2>
@@ -926,6 +926,122 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
 <p>When a row names the kind of a resource, that row decides. A row for all kinds applies only to kinds that have no row of their own.</p>
 <p>APIs added by a CRD, for example a <code>ServiceMonitor</code>, are not in this list. Stageproof does not judge their versions.</p>
 <p>To look ahead to the version you plan to upgrade the cluster to, see <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</p>
+  </template>
+
+  <template data-topic="cluster-facts" data-group="Guides" data-title="Read a cluster">
+<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.1.8 and does not have this command.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>You want the Kubernetes version, the stored custom resource versions, and the node architectures to come from the cluster, instead of being typed on the command.</dd></div>
+  <div><dt>Reads</dt><dd>Server version, node architecture, custom resource definitions, validating admission policies and bindings, StorageClass names, Argo CD Application chart versions, and Flux HelmRelease chart versions. Helm release Secrets are read only with <code>--helm-releases</code>.</dd></div>
+  <div><dt>Does not read</dt><dd>Secret values, Helm values, or <code>stringData</code>. The calls are <code>get</code> and <code>list</code>. The role is <code>deploy/facts-clusterrole.yaml</code>.</dd></div>
+</dl>
+
+<h2>Export</h2>
+<p>Pass a kubeconfig file and a context. The default kubeconfig is not opened. This run used the local API server, with <code>--helm-releases</code>. The context name was <code>facts</code>.</p>
+<pre data-kind="cmd">
+stageproof facts export --kubeconfig &lt;kubeconfig&gt; --context facts --out /tmp/sp-facts.json --helm-releases</pre>
+<pre data-kind="out">
+1.35.0
+/tmp/sp-facts.json</pre>
+<p>The file it wrote:</p>
+<pre data-kind="out">
+{
+  "schema_version": 1,
+  "server_version": "1.35.0",
+  "nodes": [
+    {
+      "name": "worker-a",
+      "architecture": "arm64",
+      "operating_system": "linux"
+    },
+    {
+      "name": "worker-b",
+      "architecture": "amd64",
+      "operating_system": "linux"
+    }
+  ],
+  "crds": [
+    {
+      "name": "widgets.example.com",
+      "served_versions": [
+        "v1"
+      ],
+      "storage_version": "v1",
+      "stored_versions": [
+        "v1"
+      ],
+      "spec": {
+        "group": "example.com",
+        "names": {
+          "plural": "widgets",
+          "singular": "widget",
+          "kind": "Widget",
+          "listKind": "WidgetList"
+        },
+        "scope": "Namespaced",
+        "versions": [
+          {
+            "name": "v1",
+            "served": true,
+            "storage": true,
+            "schema": {
+              "openAPIV3Schema": {
+                "type": "object",
+                "properties": {
+                  "size": {
+                    "type": "integer"
+                  }
+                }
+              }
+            }
+          }
+        ],
+        "conversion": {
+          "strategy": "None"
+        }
+      }
+    }
+  ],
+  "validating_admission_policies": [],
+  "validating_admission_policy_bindings": [],
+  "storage_classes": [
+    "fast"
+  ],
+  "charts": [
+    {
+      "source": "helm-release",
+      "name": "web",
+      "version": "1.2.3",
+      "app_version": "9.9.9",
+      "release": "web",
+      "namespace": "default"
+    }
+  ]
+}</pre>
+<p>An Application or a HelmRelease that is not installed is an empty list, not an error. A forbidden request exits 2. The command does not print <code>PROVEN</code>, <code>PASSED</code>, <code>BLOCKED</code>, or <code>NOT CHECKED</code>.</p>
+
+<h2>Use the file in a check</h2>
+<p><code>--current-k8s</code> wins. When that flag is absent, the server version in the file wins over <code>currentKubernetes</code> in <code>.stageproof.yaml</code>. When the file is absent too, the version is <code>1.33</code>. The same file preloads its custom resource definitions into the local API server, passes <code>stored_versions</code> into the CRD check, and turns each node's operating system and architecture into a required image platform. No nodes leaves the platform at <code>linux/amd64</code>.</p>
+<p>This check did not pass <code>--current-k8s</code>. The version is the one in the file.</p>
+<pre data-kind="cmd">
+stageproof check --before before.yaml --after after.yaml --cluster-facts /tmp/sp-facts.json --api-server off --offline</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  before.yaml -> after.yaml
+k8s  1.35  ·  checked: rendered manifests
+
+  ○ SKIP  required values gate     Skipped. These inputs are rendered manifests, not Helm charts.
+  ○ SKIP  helm template            Skipped. The manifests were already rendered.
+  ○ SKIP  values.yaml AST          Skipped. There is no chart template to read.
+  ○ SKIP  upgrade signals          Skipped. There is no chart to compare.
+  ✓ PASS  image tags               Registry checks skipped (--offline). --api-server is unchanged.
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+verdict  PASSED (exit 0)  · 0ms · 0 AI calls</pre>
+<p><code>check-pr</code> takes the same flag and passes that path to each chart. It does not look for <code>facts.json</code> in the pull request.</p>
   </template>
 
   <template data-topic="impact" data-group="Guides" data-title="See what the upgrade deletes">
@@ -1566,7 +1682,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>explain</code>, or <code>fetch-apiserver</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>--cluster-facts</code>, <code>explain</code>, <code>fetch-apiserver</code>, or <code>facts export</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1577,6 +1693,7 @@ workflow:
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
     <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>. Not in the v0.1.8 binary.</td></tr>
     <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. Not in the v0.1.8 binary. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1616,7 +1733,8 @@ workflow:
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
-    <tr><td><code>--current-k8s &lt;version&gt;</code></td><td><code>currentKubernetes</code> from the configuration file, else <code>1.33</code></td><td>The Kubernetes version your cluster runs. See <a href="#cluster-version">Check against your Kubernetes version</a>.</td></tr>
+    <tr><td><code>--current-k8s &lt;version&gt;</code></td><td>The flag, else <code>--cluster-facts</code>, else <code>currentKubernetes</code>, else <code>1.33</code></td><td>The Kubernetes version your cluster runs. See <a href="#cluster-version">Check against your Kubernetes version</a>.</td></tr>
+    <tr><td><code>--cluster-facts &lt;file&gt;</code></td><td>Not set</td><td>JSON from <code>stageproof facts export</code>. Sets the version when the flag above is absent, preloads those custom resource definitions, and passes stored versions and node architectures into the check. Not in the v0.1.8 binary.</td></tr>
     <tr><td><code>--next-k8s &lt;version&gt;</code></td><td>Not set</td><td>The Kubernetes version you plan to upgrade the cluster to. See <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</td></tr>
     <tr><td><code>--api-server auto|off|require</code></td><td><code>auto</code></td><td>Ask a local API server of <code>--current-k8s</code> whether the upgrade is accepted. <code>auto</code> uses the built-in table when the binaries cannot be downloaded, and the report says so. <code>require</code> is <code>NOT CHECKED</code> in that case. <code>off</code> uses only the table.</td></tr>
     <tr><td><code>--api-server-dir &lt;dir&gt;</code></td><td>The user cache</td><td>A directory that already contains <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code>. Nothing is downloaded. Fill it with <code>stageproof fetch-apiserver --k8s 1.35 --out &lt;dir&gt;</code>.</td></tr>

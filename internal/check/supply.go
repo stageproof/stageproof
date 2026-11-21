@@ -14,8 +14,13 @@ import (
 func Supply(ctx context.Context, in Input, st *State) {
 	before := helm.ImageUses(st.BaseObjs)
 	after := helm.ImageUses(st.HeadObjs)
+	var platforms []string
+	if in.Facts != nil {
+		platforms = in.Facts.Platforms()
+	}
 	findings := supply.Check(ctx, before, after, supply.ChartDeprecated(in.HeadDir), supply.Options{
-		Offline: in.Offline,
+		Offline:   in.Offline,
+		Platforms: platforms,
 	})
 	st.Report.Findings = append(st.Report.Findings, findings...)
 	blockers := 0
