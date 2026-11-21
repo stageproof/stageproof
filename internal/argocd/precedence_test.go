@@ -312,7 +312,7 @@ spec:
     - repoURL: https://example.test/stageproof.git
       ref: values
 `)
-	got := ApplicationsReferencing(root, []string{"values/prod.yaml"})
+	got := ApplicationsReferencing(root, []string{"values/prod.yaml"}, nil)
 	if len(got) != 1 || !strings.HasSuffix(got[0], filepath.Join("apps", "web.yaml")) {
 		t.Fatalf("got %v", got)
 	}

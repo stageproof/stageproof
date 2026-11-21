@@ -934,7 +934,7 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want the Kubernetes version, the stored custom resource versions, and the node architectures to come from the cluster, instead of being typed on the command.</dd></div>
   <div><dt>Reads</dt><dd>Server version, node architecture, custom resource definitions, validating admission policies and bindings, StorageClass names, Argo CD Application chart versions, and Flux HelmRelease chart versions. Helm release Secrets are read only with <code>--helm-releases</code>.</dd></div>
-  <div><dt>Does not read</dt><dd>Secret values, Helm values, or <code>stringData</code>. The calls are <code>get</code> and <code>list</code>. The role is <code>deploy/facts-clusterrole.yaml</code>.</dd></div>
+  <div><dt>Does not read</dt><dd>Secret values, Helm values, or <code>stringData</code>. The calls are <code>get</code> and <code>list</code>. The default role is <code>deploy/facts-clusterrole.yaml</code> and it does not include Secrets. <code>--helm-releases</code> also needs <code>deploy/facts-helm-releases-clusterrole.yaml</code>.</dd></div>
 </dl>
 
 <h2>Export</h2>

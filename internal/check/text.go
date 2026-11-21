@@ -16,7 +16,7 @@ func counted(n int, singular, plural string) string {
 func countBlockers(findings []verdict.Finding) int {
 	n := 0
 	for _, f := range findings {
-		if f.Severity == verdict.SeverityBlocker {
+		if f.Severity == verdict.SeverityBlocker && !f.Ignored {
 			n++
 		}
 	}

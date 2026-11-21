@@ -18,12 +18,12 @@ func TestDiscoverKeepsADeletedChartFile(t *testing.T) {
 	if err := os.Remove(gone); err != nil {
 		t.Fatal(err)
 	}
-	got := New(root).Discover(root, []string{"charts/api/templates/pvc.yaml"})
+	got := mustNew(t, root).Discover(root, []string{"charts/api/templates/pvc.yaml"})
 	if len(got) != 1 || got[0].Kind != KindHelm || got[0].Path != "charts/api" {
 		t.Fatalf("deleted template = %+v", got)
 	}
 
-	outside := New(root).Discover(root, []string{"README.md"})
+	outside := mustNew(t, root).Discover(root, []string{"README.md"})
 	if len(outside) != 0 {
 		t.Fatalf("a deleted file outside a chart must not be a target: %+v", outside)
 	}
@@ -33,7 +33,7 @@ func TestDiscoverSubchartBelongsToParent(t *testing.T) {
 	root := t.TempDir()
 	write(t, filepath.Join(root, "charts", "api", "Chart.yaml"), "apiVersion: v2\nname: api\nversion: 1.0.0\n")
 	write(t, filepath.Join(root, "charts", "api", "charts", "db", "Chart.yaml"), "apiVersion: v2\nname: db\nversion: 1.0.0\n")
-	got := New(root).Discover(root, []string{"charts/api/charts/db/templates/svc.yaml"})
+	got := mustNew(t, root).Discover(root, []string{"charts/api/charts/db/templates/svc.yaml"})
 	if len(got) != 1 || got[0].Path != "charts/api" {
 		t.Fatalf("subchart change = %+v", got)
 	}
@@ -72,18 +72,18 @@ spec:
 	git(t, "commit", "-q", "-m", "base")
 	write(t, filepath.Join(root, "version.txt"), "chart: 1.2.5\n")
 
-	got := New(root).Discover(root, []string{"apps/demo.yaml", "version.txt"})
+	got := mustNew(t, root).Discover(root, []string{"apps/demo.yaml", "version.txt"})
 	if len(got) != 2 {
 		t.Fatalf("targets = %+v", got)
 	}
-	if got[0].Kind != KindArgoCD || got[0].Path != filepath.Join(root, "apps", "demo.yaml") {
+	if got[0].Kind != KindArgoCD || got[0].Path != "apps/demo.yaml" {
 		t.Fatalf("argo target = %+v", got[0])
 	}
 	if got[1].Kind != KindApplication || got[1].Name != "billing" {
 		t.Fatalf("application target = %+v", got[1])
 	}
 
-	resolved, err := New(root).Resolve(context.Background(), got[1], "main")
+	resolved, err := mustNew(t, root).Resolve(context.Background(), got[1], "main")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,6 +103,23 @@ spec:
 	}
 	if !strings.Contains(string(newRaw), "replicas: 2") {
 		t.Fatalf("values were not copied:\n%s", newRaw)
+	}
+}
+
+func mustNew(t *testing.T, root string) *Set {
+	t.Helper()
+	set, err := New(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return set
+}
+
+func TestNewRejectsABrokenConfig(t *testing.T) {
+	root := t.TempDir()
+	write(t, filepath.Join(root, ".stageproof.yaml"), "currentKubernetes: [\n")
+	if _, err := New(root); err == nil {
+		t.Fatal("a config that does not parse was accepted")
 	}
 }
 

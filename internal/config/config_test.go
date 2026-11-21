@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -59,15 +60,23 @@ func TestValuesFilesForReturnsOnlyExistingFilesOfThatChart(t *testing.T) {
 		{Name: "api", Path: "charts/api", ValuesFiles: []string{"charts/api/values.yaml"}},
 	}}
 
-	got := cfg.ValuesFilesFor("./charts/webapp/")
-	if len(got) != 1 || got[0] != "charts/webapp/values-prod.yaml" {
-		t.Fatalf("ValuesFilesFor(charts/webapp) = %v", got)
+	if _, err := cfg.ValuesFilesFor("./charts/webapp/"); err == nil || !strings.Contains(err.Error(), "values-gone.yaml") {
+		t.Fatalf("a listed missing values file must be an error, got %v", err)
 	}
-	if got := cfg.ValuesFilesFor("charts/unknown"); got != nil {
-		t.Fatalf("an unlisted chart has no configured values files, got %v", got)
+	cfg.Charts[0].ValuesFiles = []string{"charts/webapp/values-prod.yaml"}
+	got, err := cfg.ValuesFilesFor("./charts/webapp/")
+	if err != nil || len(got) != 1 || got[0] != "charts/webapp/values-prod.yaml" {
+		t.Fatalf("ValuesFilesFor(charts/webapp) = %v %v", got, err)
+	}
+	if got, err := cfg.ValuesFilesFor("charts/unknown"); err != nil || got != nil {
+		t.Fatalf("an unlisted chart has no configured values files, got %v %v", got, err)
 	}
 	var none *Config
-	if got := none.ValuesFilesFor("charts/webapp"); got != nil {
-		t.Fatalf("a missing config has no values files, got %v", got)
+	if got, err := none.ValuesFilesFor("charts/webapp"); err != nil || got != nil {
+		t.Fatalf("a missing config has no values files, got %v %v", got, err)
+	}
+	empty := &Config{Charts: []Chart{{Name: "webapp", Path: "charts/webapp"}}}
+	if got, err := empty.ValuesFilesFor("charts/webapp"); err != nil || got != nil {
+		t.Fatalf("a chart with no valuesFiles list falls back, got %v %v", got, err)
 	}
 }

@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/stageproof/stageproof/internal/config"
+	"gopkg.in/yaml.v3"
 )
 
 type appAdapter struct {
@@ -125,7 +127,16 @@ func versionFrom(path, pattern, gitRef string) (string, error) {
 }
 
 func readValues(cfg *config.Config, paths []string, gitRef string) (string, error) {
-	var b strings.Builder
+	if len(paths) == 0 {
+		return "", nil
+	}
+	ph := placeholderMap(cfg)
+	var keys []string
+	for key := range ph {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	merged := map[string]any{}
 	for _, path := range paths {
 		var raw []byte
 		var err error
@@ -138,15 +149,42 @@ func readValues(cfg *config.Config, paths []string, gitRef string) (string, erro
 			return "", err
 		}
 		text := string(raw)
-		for key, val := range placeholderMap(cfg) {
-			text = strings.ReplaceAll(text, key, val)
+		for _, key := range keys {
+			text = strings.ReplaceAll(text, key, ph[key])
 		}
-		b.WriteString(text)
-		if !strings.HasSuffix(text, "\n") {
-			b.WriteByte('\n')
+		if strings.TrimSpace(text) == "" {
+			continue
 		}
+		var doc map[string]any
+		if err := yaml.Unmarshal([]byte(text), &doc); err != nil {
+			return "", fmt.Errorf("%s: %w", path, err)
+		}
+		merged = mergeYAML(merged, doc)
 	}
-	return b.String(), nil
+	if len(merged) == 0 {
+		return "", nil
+	}
+	buf, err := yaml.Marshal(merged)
+	if err != nil {
+		return "", err
+	}
+	return string(buf), nil
+}
+
+func mergeYAML(dst, src map[string]any) map[string]any {
+	if dst == nil {
+		dst = map[string]any{}
+	}
+	for k, v := range src {
+		srcMap, srcOK := v.(map[string]any)
+		dstMap, dstOK := dst[k].(map[string]any)
+		if srcOK && dstOK {
+			dst[k] = mergeYAML(dstMap, srcMap)
+			continue
+		}
+		dst[k] = v
+	}
+	return dst
 }
 
 func applicationYAML(app config.Application, version, values string) string {

@@ -14,12 +14,17 @@ import (
 	"testing"
 	"time"
 
+	admissionv1 "k8s.io/api/admissionregistration/v1"
 	corev1 "k8s.io/api/core/v1"
 	rbacv1 "k8s.io/api/rbac/v1"
 	storagev1 "k8s.io/api/storage/v1"
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	extclient "k8s.io/apiextensions-apiserver/pkg/client/clientset/clientset"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
+	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -58,7 +63,7 @@ func TestAPIServerFactsExport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := installFactsFixtures(ctx, admin, ext); err != nil {
+	if err := installFactsFixtures(ctx, admin, ext, srv.cfg); err != nil {
 		t.Fatal(err)
 	}
 	auth, err := srv.env.AddUser(envtest.User{Name: factsUser}, &rest.Config{})
@@ -68,6 +73,25 @@ func TestAPIServerFactsExport(t *testing.T) {
 	userCfg := auth.Config()
 	if len(userCfg.CertData) == 0 || bytes.Equal(userCfg.CertData, srv.cfg.CertData) {
 		t.Fatal("exporter is using the admin certificate")
+	}
+	nobody, err := srv.env.AddUser(envtest.User{Name: "facts-nobody"}, &rest.Config{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := facts.Export(ctx, nobody.Config(), facts.ExportOptions{}); !isForbidden(err) {
+		t.Fatalf("unbound user: %v", err)
+	}
+	if err := bindClusterRole(ctx, admin, "stageproof-facts-binding", "stageproof-facts", factsUser); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := facts.Export(ctx, userCfg, facts.ExportOptions{HelmReleases: true}); !isForbidden(err) {
+		t.Fatalf("helm releases without the secrets role: %v", err)
+	}
+	if _, err := facts.Export(ctx, userCfg, facts.ExportOptions{}); err != nil {
+		t.Fatal(err)
+	}
+	if err := bindClusterRole(ctx, admin, "stageproof-facts-helm-binding", "stageproof-facts-helm-releases", factsUser); err != nil {
+		t.Fatal(err)
 	}
 
 	offset := auditSize(t, logPath)
@@ -127,7 +151,7 @@ func TestAPIServerFactsExport(t *testing.T) {
 	}
 }
 
-func installFactsFixtures(ctx context.Context, admin kubernetes.Interface, ext extclient.Interface) error {
+func installFactsFixtures(ctx context.Context, admin kubernetes.Interface, ext extclient.Interface, cfg *rest.Config) error {
 	_, file, _, ok := runtime.Caller(0)
 	if !ok {
 		return os.ErrInvalid
@@ -143,20 +167,15 @@ func installFactsFixtures(ctx context.Context, admin kubernetes.Interface, ext e
 	if _, err := admin.RbacV1().ClusterRoles().Create(ctx, &role, metav1.CreateOptions{}); err != nil {
 		return err
 	}
-	binding := &rbacv1.ClusterRoleBinding{
-		ObjectMeta: metav1.ObjectMeta{Name: factsUser},
-		RoleRef: rbacv1.RoleRef{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "ClusterRole",
-			Name:     role.Name,
-		},
-		Subjects: []rbacv1.Subject{{
-			APIGroup: "rbac.authorization.k8s.io",
-			Kind:     "User",
-			Name:     factsUser,
-		}},
+	helmRaw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "deploy", "facts-helm-releases-clusterrole.yaml"))
+	if err != nil {
+		return err
 	}
-	if _, err := admin.RbacV1().ClusterRoleBindings().Create(ctx, binding, metav1.CreateOptions{}); err != nil {
+	var helmRole rbacv1.ClusterRole
+	if err := yaml.Unmarshal(helmRaw, &helmRole); err != nil {
+		return err
+	}
+	if _, err := admin.RbacV1().ClusterRoles().Create(ctx, &helmRole, metav1.CreateOptions{}); err != nil {
 		return err
 	}
 	for _, item := range []*corev1.Node{node("worker-a", "arm64"), node("worker-b", "amd64")} {
@@ -210,6 +229,185 @@ func installFactsFixtures(ctx context.Context, admin kubernetes.Interface, ext e
 	} {
 		if _, err := admin.CoreV1().Secrets("default").Create(ctx, secret, metav1.CreateOptions{}); err != nil {
 			return err
+		}
+	}
+	if err := installAdmissionFixtures(ctx, admin); err != nil {
+		return err
+	}
+	return installGitOpsFixtures(ctx, cfg, ext)
+}
+
+func bindClusterRole(ctx context.Context, admin kubernetes.Interface, bindingName, roleName, user string) error {
+	binding := &rbacv1.ClusterRoleBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: bindingName},
+		RoleRef: rbacv1.RoleRef{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "ClusterRole",
+			Name:     roleName,
+		},
+		Subjects: []rbacv1.Subject{{
+			APIGroup: "rbac.authorization.k8s.io",
+			Kind:     "User",
+			Name:     user,
+		}},
+	}
+	_, err := admin.RbacV1().ClusterRoleBindings().Create(ctx, binding, metav1.CreateOptions{})
+	return err
+}
+
+func isForbidden(err error) bool {
+	return err != nil && (apierrors.IsForbidden(err) || strings.Contains(strings.ToLower(err.Error()), "forbidden"))
+}
+
+func namedPolicy(list []facts.Policy, name string) bool {
+	for _, item := range list {
+		if item.Name == name {
+			return true
+		}
+	}
+	return false
+}
+
+func installAdmissionFixtures(ctx context.Context, admin kubernetes.Interface) error {
+	fail := admissionv1.Fail
+	policy := &admissionv1.ValidatingAdmissionPolicy{
+		ObjectMeta: metav1.ObjectMeta{Name: "demo-policy"},
+		Spec: admissionv1.ValidatingAdmissionPolicySpec{
+			FailurePolicy: &fail,
+			MatchConstraints: &admissionv1.MatchResources{
+				ResourceRules: []admissionv1.NamedRuleWithOperations{{
+					ResourceNames: []string{},
+					RuleWithOperations: admissionv1.RuleWithOperations{
+						Operations: []admissionv1.OperationType{admissionv1.Create},
+						Rule: admissionv1.Rule{
+							APIGroups:   []string{""},
+							APIVersions: []string{"v1"},
+							Resources:   []string{"configmaps"},
+						},
+					},
+				}},
+			},
+			Validations: []admissionv1.Validation{{Expression: "true"}},
+		},
+	}
+	if _, err := admin.AdmissionregistrationV1().ValidatingAdmissionPolicies().Create(ctx, policy, metav1.CreateOptions{}); err != nil {
+		return err
+	}
+	binding := &admissionv1.ValidatingAdmissionPolicyBinding{
+		ObjectMeta: metav1.ObjectMeta{Name: "demo-binding"},
+		Spec: admissionv1.ValidatingAdmissionPolicyBindingSpec{
+			PolicyName:        "demo-policy",
+			ValidationActions: []admissionv1.ValidationAction{admissionv1.Deny},
+		},
+	}
+	_, err := admin.AdmissionregistrationV1().ValidatingAdmissionPolicyBindings().Create(ctx, binding, metav1.CreateOptions{})
+	return err
+}
+
+func installGitOpsFixtures(ctx context.Context, cfg *rest.Config, ext extclient.Interface) error {
+	preserve := true
+	schemaProps := &apiextensionsv1.JSONSchemaProps{Type: "object", XPreserveUnknownFields: &preserve}
+	defs := []*apiextensionsv1.CustomResourceDefinition{
+		gitOpsCRD("applications.argoproj.io", "argoproj.io", "v1alpha1", "applications", "application", "Application", schemaProps),
+		gitOpsCRD("helmreleases.helm.toolkit.fluxcd.io", "helm.toolkit.fluxcd.io", "v2", "helmreleases", "helmrelease", "HelmRelease", schemaProps),
+	}
+	for _, crd := range defs {
+		if _, err := ext.ApiextensionsV1().CustomResourceDefinitions().Create(ctx, crd, metav1.CreateOptions{}); err != nil {
+			return err
+		}
+		if err := waitEstablished(ctx, ext, crd.Name); err != nil {
+			return err
+		}
+	}
+	return createGitOpsObjects(ctx, cfg, map[schema.GroupVersionResource]map[string]any{
+		{Group: "argoproj.io", Version: "v1alpha1", Resource: "applications"}: {
+			"apiVersion": "argoproj.io/v1alpha1",
+			"kind":       "Application",
+			"metadata":   map[string]any{"name": "shop", "namespace": "default"},
+			"spec": map[string]any{
+				"project": "default",
+				"source": map[string]any{
+					"repoURL":        "https://example.test/charts",
+					"chart":          "shop",
+					"targetRevision": "2.0.0",
+					"helm":           map[string]any{"values": "password: do-not-export-this\n"},
+				},
+				"destination": map[string]any{"server": "https://kubernetes.default.svc", "namespace": "default"},
+			},
+		},
+		{Group: "helm.toolkit.fluxcd.io", Version: "v2", Resource: "helmreleases"}: {
+			"apiVersion": "helm.toolkit.fluxcd.io/v2",
+			"kind":       "HelmRelease",
+			"metadata":   map[string]any{"name": "jobs", "namespace": "default"},
+			"spec": map[string]any{
+				"releaseName":     "jobs",
+				"targetNamespace": "default",
+				"chart": map[string]any{
+					"spec": map[string]any{"chart": "jobs", "version": "3.1.0"},
+				},
+				"values": map[string]any{"password": "do-not-export-this"},
+			},
+		},
+	})
+}
+
+func gitOpsCRD(name, group, version, plural, singular, kind string, props *apiextensionsv1.JSONSchemaProps) *apiextensionsv1.CustomResourceDefinition {
+	return &apiextensionsv1.CustomResourceDefinition{
+		ObjectMeta: metav1.ObjectMeta{Name: name},
+		Spec: apiextensionsv1.CustomResourceDefinitionSpec{
+			Group: group,
+			Scope: apiextensionsv1.NamespaceScoped,
+			Names: apiextensionsv1.CustomResourceDefinitionNames{Plural: plural, Singular: singular, Kind: kind},
+			Versions: []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name: version, Served: true, Storage: true,
+				Schema: &apiextensionsv1.CustomResourceValidation{OpenAPIV3Schema: props},
+			}},
+		},
+	}
+}
+
+func waitEstablished(ctx context.Context, ext extclient.Interface, name string) error {
+	for {
+		crd, err := ext.ApiextensionsV1().CustomResourceDefinitions().Get(ctx, name, metav1.GetOptions{})
+		if err == nil {
+			for _, cond := range crd.Status.Conditions {
+				if cond.Type == apiextensionsv1.Established && cond.Status == apiextensionsv1.ConditionTrue {
+					return nil
+				}
+			}
+		}
+		select {
+		case <-ctx.Done():
+			if err != nil {
+				return err
+			}
+			return ctx.Err()
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
+}
+
+func createGitOpsObjects(ctx context.Context, cfg *rest.Config, objs map[schema.GroupVersionResource]map[string]any) error {
+	dc, err := dynamic.NewForConfig(cfg)
+	if err != nil {
+		return err
+	}
+	for gvr, obj := range objs {
+		u := &unstructured.Unstructured{Object: obj}
+		var last error
+		for try := 0; try < 20; try++ {
+			_, last = dc.Resource(gvr).Namespace("default").Create(ctx, u, metav1.CreateOptions{})
+			if last == nil {
+				break
+			}
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(200 * time.Millisecond):
+			}
+		}
+		if last != nil {
+			return last
 		}
 	}
 	return nil
@@ -280,8 +478,19 @@ func assertFacts(t *testing.T, doc *facts.Document, raw []byte) {
 	if !contains(doc.StorageClasses, "fast") {
 		t.Fatalf("storage classes: %v", doc.StorageClasses)
 	}
-	if len(doc.Charts) != 1 || doc.Charts[0].Name != "web" || doc.Charts[0].Version != "1.2.3" || doc.Charts[0].AppVersion != "9.9.9" || doc.Charts[0].Source != "helm-release" {
-		t.Fatalf("charts: %+v", doc.Charts)
+	charts := map[string]facts.Chart{}
+	for _, ch := range doc.Charts {
+		charts[ch.Source+"/"+ch.Name] = ch
+	}
+	web := charts["helm-release/web"]
+	if web.Version != "1.2.3" || web.AppVersion != "9.9.9" {
+		t.Fatalf("helm chart: %+v", doc.Charts)
+	}
+	if charts["argocd/shop"].Version != "2.0.0" || charts["flux/jobs"].Version != "3.1.0" {
+		t.Fatalf("gitops charts: %+v", doc.Charts)
+	}
+	if !namedPolicy(doc.ValidatingAdmissionPolicies, "demo-policy") || !namedPolicy(doc.ValidatingAdmissionPolicyBindings, "demo-binding") {
+		t.Fatalf("policies: %+v bindings: %+v", doc.ValidatingAdmissionPolicies, doc.ValidatingAdmissionPolicyBindings)
 	}
 	text := string(raw)
 	for _, secret := range []string{"do-not-export-this", "old-secret-value", "also-secret"} {

@@ -128,6 +128,43 @@ func TestRenderProofFixtures(t *testing.T) {
 		}
 	})
 
+	t.Run("volatile env does not hide a dropped tag", func(t *testing.T) {
+		base := t.TempDir()
+		head := t.TempDir()
+		deploy := func(mode string) string {
+			return `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: demo
+  template:
+    metadata:
+      labels:
+        app: demo
+    spec:
+      containers:
+        - name: app
+          image: nginx:{{ .Values.tag }}
+          env:
+            - name: TOKEN
+              value: {{ randAlpha 8 | quote }}
+            - name: MODE
+              value: ` + mode + `
+`
+		}
+		writeChart(t, base, "tag: \"1.0\"\nmode: quiet\n", deploy(`{{ .Values.mode | quote }}`))
+		writeChart(t, head, "tag: \"1.0\"\nmode: quiet\n", deploy(`"fixed"`))
+		findings := proveFull(t, base, head, "tag: \"1.2.3\"\nmode: loud\n")
+		f := mustRule(t, findings, "helm.values.silently_dropped")
+		if f.Resource != "mode" || f.Proof != "render" {
+			t.Fatalf("proof = %+v findings %+v", f, findings)
+		}
+	})
+
 	t.Run("verified rename", func(t *testing.T) {
 		base := t.TempDir()
 		head := t.TempDir()

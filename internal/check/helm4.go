@@ -83,8 +83,8 @@ func HelmCompare(ctx context.Context, in Input, st *State) {
 	var findings []verdict.Finding
 	for _, side := range sides {
 		secrets := helm.SecretStrings(side.opts.ValuesFiles)
-		secrets = append(secrets, side.opts.SetValues...)
-		secrets = append(secrets, side.opts.SetStrings...)
+		secrets = append(secrets, helm.SecretValuesFromSets(side.opts.SetValues)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(side.opts.SetStrings)...)
 		diff := helm.CompareRenders(ctx, "helm", in.HelmCompare, side.opts, secrets)
 		findings = append(findings, findingsFor(side.label, diff)...)
 	}

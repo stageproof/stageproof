@@ -20,9 +20,10 @@ import (
 // MaterializeOptions selects the checkout a Git path or a values object is read from.
 // GitRef empty is the working tree. Remotes, when non-nil, replaces `git remote`.
 type MaterializeOptions struct {
-	RepoRoot string
-	GitRef   string
-	Remotes  []string
+	RepoRoot     string
+	GitRef       string
+	Remotes      []string
+	Placeholders map[string]string
 }
 
 // Materialized is one side of a HelmRelease, ready for helm template.
@@ -78,6 +79,7 @@ func Materialize(ctx context.Context, rel *Release, opt MaterializeOptions) (mat
 	if err != nil {
 		return nil, err
 	}
+	idx.placeholders = opt.Placeholders
 	remotes := opt.Remotes
 	plan, err := resolveChart(rel, idx, remotes, root)
 	if err != nil {
@@ -121,6 +123,15 @@ func Materialize(ctx context.Context, rel *Release, opt MaterializeOptions) (mat
 		}
 		if _, statErr := os.Stat(filepath.Join(mat.ChartDir, "Chart.yaml")); statErr != nil {
 			return nil, &NotCheckedError{Reason: fmt.Sprintf("%s path %s has no Chart.yaml. The chart was not rendered from defaults.", rel.Label, relPath)}
+		}
+		// valuesFiles are written into values.yaml. A checkout with no git
+		// revision is the working tree, so copy the chart before that write.
+		if opt.GitRef == "" && len(plan.valuesFiles) > 0 {
+			dest := filepath.Join(tmp, "chart")
+			if err = copyTree(mat.ChartDir, dest); err != nil {
+				return nil, err
+			}
+			mat.ChartDir = dest
 		}
 	case "oci":
 		dir, pullErr := pullOCI(ctx, plan.repoURL, plan.version, filepath.Join(tmp, "chart"), plan.insecure)
@@ -209,7 +220,7 @@ func resolveRef(rel *Release, idx *objectIndex, remotes []string, root string) (
 		if err != nil {
 			return chartPlan{}, err
 		}
-		oci, err := parseOCI(raw, rel.Label)
+		oci, err := parseOCI(raw, rel.Label, idx.placeholders)
 		if err != nil {
 			return chartPlan{}, err
 		}
@@ -223,7 +234,7 @@ func resolveRef(rel *Release, idx *objectIndex, remotes []string, root string) (
 		if err != nil {
 			return chartPlan{}, err
 		}
-		spec, err := parseHelmChart(raw, rel.Label)
+		spec, err := parseHelmChart(raw, rel.Label, idx.placeholders)
 		if err != nil {
 			return chartPlan{}, err
 		}
@@ -243,7 +254,7 @@ func resolveSource(label string, ref ObjectRef, chartName, version string, value
 		if err != nil {
 			return chartPlan{}, missingSource(label, ref, ns, err)
 		}
-		repo, err := parseHelmRepository(raw, label)
+		repo, err := parseHelmRepository(raw, label, idx.placeholders)
 		if err != nil {
 			return chartPlan{}, err
 		}
@@ -263,7 +274,7 @@ func resolveSource(label string, ref ObjectRef, chartName, version string, value
 		if err != nil {
 			return chartPlan{}, missingSource(label, ref, ns, err)
 		}
-		oci, err := parseOCI(raw, label)
+		oci, err := parseOCI(raw, label, idx.placeholders)
 		if err != nil {
 			return chartPlan{}, err
 		}
@@ -280,7 +291,7 @@ func resolveSource(label string, ref ObjectRef, chartName, version string, value
 		if err != nil {
 			return chartPlan{}, missingSource(label, ref, ns, err)
 		}
-		repoURL, err := parseGitURL(raw, label)
+		repoURL, err := parseGitURL(raw, label, idx.placeholders)
 		if err != nil {
 			return chartPlan{}, err
 		}
@@ -333,6 +344,30 @@ func ociVersion(tag, semver, digest string) (string, error) {
 		return tag, nil
 	}
 	return semver, nil
+}
+
+func copyTree(src, dst string) error {
+	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
+		rel, relErr := filepath.Rel(src, path)
+		if relErr != nil {
+			return relErr
+		}
+		target := filepath.Join(dst, rel)
+		if d.IsDir() {
+			return os.MkdirAll(target, 0o755)
+		}
+		raw, readErr := os.ReadFile(path)
+		if readErr != nil {
+			return readErr
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			return err
+		}
+		return os.WriteFile(target, raw, 0o644)
+	})
 }
 
 func applyChartValues(plan chartPlan, repoRoot, gitRef, chartDir string) error {
@@ -411,7 +446,7 @@ func releaseValues(rel *Release, idx *objectIndex, namespace string) (map[string
 			gaps = append(gaps, fmt.Sprintf("%s/%s/%s key %s is not in this repository.", ref.Kind, namespaceOrDefault(namespace), ref.Name, key))
 			continue
 		}
-		text, markers := substitute(string(raw), nil)
+		text, markers := substitute(string(raw), idx.placeholders)
 		restored, hit := restore(text, markers)
 		used = append(used, hit...)
 		part, gap, rErr := readObjectValues([]byte(restored), ref, namespace)
@@ -451,8 +486,8 @@ type helmChartSpec struct {
 	ignoreMissing  bool
 }
 
-func parseHelmRepository(raw []byte, label string) (helmRepo, error) {
-	text, markers := substitute(string(raw), nil)
+func parseHelmRepository(raw []byte, label string, ph map[string]string) (helmRepo, error) {
+	text, markers := substitute(string(raw), ph)
 	var doc struct {
 		Spec struct {
 			URL      string `yaml:"url"`
@@ -470,8 +505,8 @@ func parseHelmRepository(raw []byte, label string) (helmRepo, error) {
 	return helmRepo{url: strings.TrimSpace(url), kind: doc.Spec.Type, insecure: doc.Spec.Insecure}, nil
 }
 
-func parseGitURL(raw []byte, label string) (string, error) {
-	text, markers := substitute(string(raw), nil)
+func parseGitURL(raw []byte, label string, ph map[string]string) (string, error) {
+	text, markers := substitute(string(raw), ph)
 	var doc struct {
 		Spec struct {
 			URL string `yaml:"url"`
@@ -491,8 +526,8 @@ func parseGitURL(raw []byte, label string) (string, error) {
 	return url, nil
 }
 
-func parseOCI(raw []byte, label string) (OCIRef, error) {
-	text, markers := substitute(string(raw), nil)
+func parseOCI(raw []byte, label string, ph map[string]string) (OCIRef, error) {
+	text, markers := substitute(string(raw), ph)
 	var doc struct {
 		Spec struct {
 			URL      string `yaml:"url"`
@@ -521,8 +556,8 @@ func parseOCI(raw []byte, label string) (OCIRef, error) {
 	}, nil
 }
 
-func parseHelmChart(raw []byte, label string) (helmChartSpec, error) {
-	text, markers := substitute(string(raw), nil)
+func parseHelmChart(raw []byte, label string, ph map[string]string) (helmChartSpec, error) {
+	text, markers := substitute(string(raw), ph)
 	var doc struct {
 		Spec struct {
 			Chart                    string   `yaml:"chart"`
@@ -562,7 +597,8 @@ func parseHelmChart(raw []byte, label string) (helmChartSpec, error) {
 }
 
 type objectIndex struct {
-	items map[string][]indexedObj
+	items        map[string][]indexedObj
+	placeholders map[string]string
 }
 
 type indexedObj struct {
@@ -714,7 +750,7 @@ func buildIndex(root, gitRef string) (*objectIndex, error) {
 // ReleasesReferencing returns HelmRelease files whose chart source, chart path,
 // or valuesFrom object includes one of changed. A deleted path is still matched
 // when git can show the file that was removed.
-func ReleasesReferencing(repoRoot string, changed []string) []string {
+func ReleasesReferencing(repoRoot string, changed []string, ph map[string]string) []string {
 	if repoRoot == "" {
 		repoRoot = "."
 	}
@@ -733,6 +769,7 @@ func ReleasesReferencing(repoRoot string, changed []string) []string {
 	if err != nil {
 		return nil
 	}
+	idx.placeholders = ph
 	for rel := range want {
 		if _, statErr := os.Stat(filepath.Join(repoRoot, filepath.FromSlash(rel))); statErr == nil {
 			continue
@@ -765,7 +802,7 @@ func ReleasesReferencing(repoRoot string, changed []string) []string {
 			return nil
 		}
 		rel = filepath.ToSlash(rel)
-		relObj, _, parseErr := ParseFile(abs, nil)
+		relObj, _, parseErr := ParseFile(abs, ph)
 		if parseErr != nil || relObj == nil {
 			return nil
 		}
@@ -782,7 +819,7 @@ func ReleasesReferencing(repoRoot string, changed []string) []string {
 		if readErr != nil {
 			continue
 		}
-		if _, _, parseErr := ParseBytes(raw, rel, nil); parseErr == nil || len(UnresolvedTokens(parseErr)) > 0 || isNotChecked(parseErr) {
+		if _, _, parseErr := ParseBytes(raw, rel, ph); parseErr == nil || len(UnresolvedTokens(parseErr)) > 0 || isNotChecked(parseErr) {
 			found = append(found, rel)
 		}
 	}
@@ -803,7 +840,7 @@ func releaseTouches(rel *Release, idx *objectIndex, want map[string]bool, root s
 		}
 		if rel.Chart.Ref.Kind == "HelmChart" {
 			if raw, _, err := idx.lookup("HelmChart", firstNonEmpty(rel.Chart.Ref.Namespace, ns), rel.Chart.Ref.Name); err == nil {
-				if spec, err := parseHelmChart(raw, rel.Label); err == nil {
+				if spec, err := parseHelmChart(raw, rel.Label, idx.placeholders); err == nil {
 					if path, ok := objectPath(idx, spec.source.Kind, firstNonEmpty(spec.source.Namespace, ns), spec.source.Name); ok && want[path] {
 						return true
 					}

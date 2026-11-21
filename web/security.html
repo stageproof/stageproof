@@ -84,7 +84,7 @@
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Your clusters are not the target</h3>
-            <p>The rehearsal uses a kubeconfig file that Stageproof creates for that run. It does not read or change your default kubeconfig, and it does not point kubectl at a cluster you already have. <code>facts export</code> is the command that reads a cluster you name. You pass <code>--kubeconfig</code> and <code>--context</code>. The calls are <code>get</code> and <code>list</code>.</p>
+            <p>The rehearsal uses a kubeconfig file that Stageproof creates for that run. It does not read or change your default kubeconfig, and it does not point kubectl at a cluster you already have. <code>facts export</code> is the command that reads a cluster you name. You pass <code>--kubeconfig</code> and <code>--context</code>. The calls are <code>get</code> and <code>list</code>. The default role does not include Secrets. <code>--helm-releases</code> needs a second role, <code>deploy/facts-helm-releases-clusterrole.yaml</code>, and lists only Secrets of type <code>helm.sh/release.v1</code>.</p>
           </article>
           <article class="doc-card">
             <h3>CI is the same command</h3>

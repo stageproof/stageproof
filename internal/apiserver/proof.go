@@ -120,10 +120,12 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 		var preload []*unstructured.Unstructured
 		for _, u := range filter(docs(opt.Preload), keep) {
 			if u.GetKind() == "CustomResourceDefinition" {
-				preload = append(preload, u)
+				preload = append(preload, withoutConversion(u))
 			}
 		}
-		s.installCRDs(ctx, preload, installed, &result, opt)
+		// A preload failure is not a finding about the chart.
+		var ignored ProofResult
+		s.installCRDs(ctx, preload, installed, &ignored, opt)
 	}
 	if opt.CreatesOnly {
 		s.installCRDs(ctx, afterCRDs, installed, &result, opt)
@@ -170,6 +172,9 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 		// Current objects are stored under the old CRDs. Upgrade the CRDs
 		// only after that, then check the stored custom resources.
 		byName := map[string]*unstructured.Unstructured{}
+		for name, crd := range installed {
+			byName[name] = crd
+		}
 		for _, crd := range beforeCRDs {
 			byName[crd.GetName()] = crd
 		}
@@ -288,6 +293,16 @@ func (s *Server) putExisting(ctx context.Context, u *unstructured.Unstructured, 
 	}
 	f, _ := s.finding(ctx, u, err, opt, true)
 	return nil, f
+}
+
+func withoutConversion(crd *unstructured.Unstructured) *unstructured.Unstructured {
+	if crd == nil {
+		return nil
+	}
+	body := crd.DeepCopy()
+	unstructured.RemoveNestedField(body.Object, "spec", "conversion")
+	_ = unstructured.SetNestedMap(body.Object, map[string]any{"strategy": "None"}, "spec", "conversion")
+	return body
 }
 
 func (s *Server) installCRDs(ctx context.Context, crds []*unstructured.Unstructured, installed map[string]*unstructured.Unstructured, result *ProofResult, opt ProofOptions) {

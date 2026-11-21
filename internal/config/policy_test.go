@@ -151,3 +151,30 @@ func TestHeadIgnoreIsNotThisPackage(t *testing.T) {
 		t.Fatal("a config with no ignore marked the finding")
 	}
 }
+
+func TestApplyNewDoesNotRepeatAnExpiredIgnore(t *testing.T) {
+	cfg, err := LoadBytes("x", []byte("ignores:\n  - rule: impact.restart\n    reason: old\n    expires: \"2020-01-01\"\npolicy:\n      impact.delete: warn\n"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 11, 21, 0, 0, 0, 0, time.UTC)
+	rep := &verdict.Report{Findings: []verdict.Finding{
+		{RuleID: "impact.delete", Severity: verdict.SeverityBlocker, Message: "gone"},
+	}}
+	Apply(cfg, rep, now)
+	n := len(rep.Findings)
+	rep.Findings = append(rep.Findings, verdict.Finding{RuleID: "impact.delete", Severity: verdict.SeverityBlocker, Message: "later"})
+	ApplyNew(cfg, rep, n, now)
+	expired := 0
+	for _, f := range rep.Findings {
+		if f.RuleID == "config.ignore_expired" {
+			expired++
+		}
+	}
+	if expired != 1 {
+		t.Fatalf("expired warnings: %+v", rep.Findings)
+	}
+	if rep.Findings[n].Severity != verdict.SeverityWarning {
+		t.Fatalf("new finding was not downgraded: %+v", rep.Findings[n])
+	}
+}

@@ -177,7 +177,9 @@ func consumeValue(s string) (int, bool) {
 	if i := strings.Index(s, ": "); i >= 0 {
 		return i, true
 	}
-	return 0, false
+	// An unquoted value with no ": " still has to leave the message.
+	// Otherwise the rejected value is printed.
+	return len(s), true
 }
 
 func consumeQuoted(s string) (int, bool) {

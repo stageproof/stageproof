@@ -149,6 +149,13 @@ func TestChartValuesFilesReplaceTheChartDefault(t *testing.T) {
 	if !strings.Contains(out, `color: "second"`) || !strings.Contains(out, `size: "first"`) || strings.Contains(out, `size: "chart"`) {
 		t.Fatalf("last file should win and the chart default should be absent:\n%s", out)
 	}
+	kept, err := os.ReadFile(filepath.Join(root, "charts/web/values.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(kept) != "color: chart\nsize: chart\n" {
+		t.Fatalf("working tree values.yaml was overwritten: %s", kept)
+	}
 }
 
 func TestValuesFromOrderThenInlineThenTargetPath(t *testing.T) {
@@ -302,7 +309,7 @@ func TestReleasesReferencingFindsTheConfigMap(t *testing.T) {
 	writeFile(t, filepath.Join(root, "values/prod.yaml"), "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: prod-values\ndata:\n  values.yaml: |\n    color: blue\n")
 	raw := strings.Replace(betaRelease(), "spec:\n  chart:", "spec:\n  valuesFrom:\n    - kind: ConfigMap\n      name: prod-values\n  chart:", 1)
 	writeFile(t, filepath.Join(root, "apps/web.yaml"), raw)
-	got := ReleasesReferencing(root, []string{"values/prod.yaml"})
+	got := ReleasesReferencing(root, []string{"values/prod.yaml"}, nil)
 	if len(got) != 1 || got[0] != "apps/web.yaml" {
 		t.Fatalf("got %v", got)
 	}

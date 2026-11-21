@@ -87,22 +87,26 @@ func NewWithConfig(cfg *config.Config) *Set {
 }
 
 // New loads .stageproof.yaml from root when it exists. A missing file is an
-// empty config, not an error.
-func New(root string) *Set {
+// empty config. A file that is present and cannot be parsed is an error.
+func New(root string) (*Set, error) {
 	path := ".stageproof.yaml"
 	if root != "" && root != "." {
 		path = filepath.Join(root, ".stageproof.yaml")
 	}
 	cfg, err := config.Load(path)
 	if err != nil {
-		cfg = &config.Config{}
+		if os.IsNotExist(err) {
+			cfg = &config.Config{}
+		} else {
+			return nil, err
+		}
 	}
 	return &Set{
 		argo: argoAdapter{cfg: cfg},
 		flux: fluxAdapter{cfg: cfg},
 		apps: appAdapter{cfg: cfg},
 		helm: helmAdapter{cfg: cfg},
-	}
+	}, nil
 }
 
 // Discover lists Helm charts first, in path order, then Argo CD files and
@@ -237,7 +241,11 @@ func (h helmAdapter) Resolve(_ context.Context, target Target, gitRef string) (R
 	}
 	var values []string
 	if h.cfg != nil {
-		values = h.cfg.ValuesFilesFor(target.Path)
+		listed, err := h.cfg.ValuesFilesFor(target.Path)
+		if err != nil {
+			return ResolvedTarget{}, err
+		}
+		values = listed
 	}
 	if len(values) == 0 {
 		if vf := filepath.Join(target.Path, "values.yaml"); fileExists(vf) {
@@ -287,13 +295,13 @@ func (a argoAdapter) Discover(repoRoot string, changedFiles []string) []Target {
 		}
 		path := joinRoot(repoRoot, f)
 		if a.matches(path) {
-			add(path)
+			add(relToRoot(repoRoot, path))
 		}
 	}
 	// A values file or a chart file can change without the Application file
 	// itself changing. Match those paths. Do not stat the changed path first:
 	// a deleted values file is still a change.
-	for _, path := range argocd.ApplicationsReferencing(repoRoot, changedFiles) {
+	for _, path := range argocd.ApplicationsReferencing(repoRoot, changedFiles, placeholderMap(a.cfg)) {
 		add(path)
 	}
 	return out
@@ -356,7 +364,7 @@ func (a fluxAdapter) Discover(repoRoot string, changedFiles []string) []Target {
 			add(relToRoot(repoRoot, path))
 		}
 	}
-	for _, path := range flux.ReleasesReferencing(repoRoot, changedFiles) {
+	for _, path := range flux.ReleasesReferencing(repoRoot, changedFiles, placeholderMap(a.cfg)) {
 		add(path)
 	}
 	return out
