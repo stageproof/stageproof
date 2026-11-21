@@ -12,6 +12,7 @@ Usage:
   stageproof init     [--dir .] [--out .stageproof.yaml]
   stageproof check    --current-chart <dir> --new-chart <dir> [flags]
   stageproof check    --argocd-file <app.yaml> --current-git <git-ref> [flags]
+  stageproof check    --before <dir|file> --after <dir|file> [flags]
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
   stageproof fetch-apiserver --k8s <minor> --out <dir>
 
@@ -28,6 +29,8 @@ Chart, Argo CD & Values:
   --current-argocd-file <file>
                            Previously deployed Argo CD Application, compared with --argocd-file
   --current-git <ref>      Extract current chart / Argo CD file from git ref (e.g. origin/main)
+  --before <dir|file>      Rendered manifests before the change (.yaml, .yml, or a directory)
+  --after <dir|file>       Rendered manifests after the change. Not a Helm chart, and not combined with --live.
   -f, --values <file>      Your values.yaml file(s) (repeatable)
   --base-values <file>     Optional separate values.yaml for --current-chart (defaults to -f)
   --set <k=v>              Explicit Helm --set override(s) (repeatable)
@@ -59,5 +62,8 @@ Examples:
 
   # 2. Check a pull request from its git diff. Exit 0 is green. Exit 1 and 2 fail CI.
   stageproof check-pr --current-git "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --current-k8s 1.35 --next-k8s 1.36 --comment-file comment.md
+
+  # 3. Compare two directories of rendered manifests. Helm is not called.
+  stageproof check --before ./before --after ./after --current-k8s 1.35
 `)
 }

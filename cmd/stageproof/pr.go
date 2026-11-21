@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/stageproof/stageproof/internal/argocd"
+	"github.com/stageproof/stageproof/internal/adapter"
 	"github.com/stageproof/stageproof/internal/config"
 	"github.com/stageproof/stageproof/internal/report"
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -236,58 +236,18 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		}
 	}
 
-	seenCharts := make(map[string]bool)
-	var chartDirs []string
-	var argoFiles []string
-
+	// A deleted file is still a change. Stat would hide a template that the
+	// pull request removed and nothing else in the chart touched.
+	var changed []string
 	for _, line := range strings.Split(strings.TrimSpace(string(diffBytes)), "\n") {
 		f := strings.TrimSpace(line)
-		if f == "" {
-			continue
-		}
-		if _, stErr := os.Stat(f); stErr != nil {
-			continue
-		}
-
-		// 1. Check if file is an Argo CD Application YAML / .yaml.tmpl
-		if strings.HasSuffix(f, ".yaml") || strings.HasSuffix(f, ".yml") || strings.HasSuffix(f, ".yaml.tmpl") {
-			if _, _, aErr := argocd.ParseApplicationFile(f, templatePlaceholders()); aErr == nil || len(argocd.UnresolvedTokens(aErr)) > 0 {
-				argoFiles = append(argoFiles, f)
-				continue
-			}
-		}
-
-		if app := configuredApplication(f); app != nil {
-			key := "app:" + app.Name
-			if !seenCharts[key] {
-				seenCharts[key] = true
-				argoFiles = append(argoFiles, key)
-			}
-			continue
-		}
-
-		// 3. Walk upward to find enclosing Helm `Chart.yaml`
-		dir := filepath.Dir(f)
-		for dir != "." && dir != "/" {
-			if _, cErr := os.Stat(filepath.Join(dir, "Chart.yaml")); cErr == nil {
-				// Walk up once more if inside `charts/<subchart>`
-				parent := filepath.Dir(filepath.Dir(dir))
-				if filepath.Base(filepath.Dir(dir)) == "charts" {
-					if _, pErr := os.Stat(filepath.Join(parent, "Chart.yaml")); pErr == nil {
-						dir = parent
-					}
-				}
-				if !seenCharts[dir] {
-					seenCharts[dir] = true
-					chartDirs = append(chartDirs, dir)
-				}
-				break
-			}
-			dir = filepath.Dir(dir)
+		if f != "" {
+			changed = append(changed, f)
 		}
 	}
-
-	if len(chartDirs) == 0 && len(argoFiles) == 0 {
+	set := adapter.New(".")
+	targets := set.Discover(".", changed)
+	if len(targets) == 0 {
 		fmt.Printf("stageproof check-pr: no Helm charts or Argo CD Applications modified between %s and %s.\n", *currentGit, *newGit)
 		return 0
 	}
@@ -345,45 +305,37 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		note(reports[len(reports)-1].Verdict)
 	}
 
-	cfg, _ := config.Load(".stageproof.yaml")
-	for _, cd := range chartDirs {
-		target := []string{"--new-chart", cd, "--current-git", *currentGit}
-		valuesFiles := cfg.ValuesFilesFor(cd)
-		if len(valuesFiles) == 0 {
-			if vf := filepath.Join(cd, "values.yaml"); fileExists(vf) {
-				valuesFiles = []string{vf}
-			}
-		}
-		if len(valuesFiles) == 0 {
-			runTarget(cd, target)
+	for _, target := range targets {
+		resolved, rErr := set.Resolve(ctx, target, *currentGit)
+		if rErr != nil {
+			fmt.Fprintf(os.Stderr, "stageproof check-pr: %s: %v\n", target.Path, rErr)
+			reports = append(reports, incompleteReport(*currentGit, target.Path))
+			note(verdict.NotChecked)
 			continue
 		}
-		// Each values file is one deployment of the chart, so each gets its own check.
-		for _, vf := range valuesFiles {
-			runTarget(cd, append(append([]string(nil), target...), "-f", vf))
+		if resolved.Cleanup != nil {
+			defer resolved.Cleanup()
 		}
-	}
-
-	for _, af := range argoFiles {
-		if strings.HasPrefix(af, "app:") {
-			app := configuredApplicationByName(strings.TrimPrefix(af, "app:"))
-			if app == nil {
-				reports = append(reports, incompleteReport(*currentGit, af))
-				note(verdict.NotChecked)
+		switch resolved.Adapter {
+		case "argocd":
+			args := []string{"--argocd-file", resolved.ArgoFile}
+			if resolved.CurrentArgo != "" {
+				args = append(args, "--current-argocd-file", resolved.CurrentArgo)
+			} else {
+				args = append(args, "--current-git", *currentGit)
+			}
+			runTarget(target.Path, args)
+		default:
+			base := []string{"--new-chart", resolved.HeadChart, "--current-git", *currentGit}
+			if len(resolved.Values) == 0 {
+				runTarget(resolved.HeadChart, base)
 				continue
 			}
-			newPath, oldPath, cleanup, sErr := synthesizeConfiguredApp(*app, *currentGit)
-			if sErr != nil {
-				fmt.Fprintf(os.Stderr, "stageproof check-pr: %s: %v\n", app.Name, sErr)
-				reports = append(reports, incompleteReport(*currentGit, app.VersionFrom.File))
-				note(verdict.NotChecked)
-				continue
+			// Each values file is one deployment of the chart, so each gets its own check.
+			for _, vf := range resolved.Values {
+				runTarget(resolved.HeadChart, append(append([]string(nil), base...), "-f", vf))
 			}
-			defer cleanup()
-			runTarget(app.VersionFrom.File, []string{"--argocd-file", newPath, "--current-argocd-file", oldPath})
-			continue
 		}
-		runTarget(af, []string{"--argocd-file", af, "--current-git", *currentGit})
 	}
 
 	headSHA := ""
@@ -426,11 +378,6 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		}
 	}
 	return worst.ExitCode()
-}
-
-func fileExists(path string) bool {
-	_, err := os.Stat(path)
-	return err == nil
 }
 
 // incompleteReport stands in for a check that stopped before it had a report,
@@ -483,125 +430,6 @@ func templatePlaceholders() map[string]string {
 		return nil
 	}
 	return cfg.TemplatePlaceholders
-}
-
-func configuredApplication(path string) *config.Application {
-	cfg, err := config.Load(".stageproof.yaml")
-	if err != nil {
-		return nil
-	}
-	for i := range cfg.Applications {
-		if cfg.Applications[i].CoversFile(path) {
-			return &cfg.Applications[i]
-		}
-	}
-	return nil
-}
-
-func configuredApplicationByName(name string) *config.Application {
-	cfg, err := config.Load(".stageproof.yaml")
-	if err != nil {
-		return nil
-	}
-	for i := range cfg.Applications {
-		if cfg.Applications[i].Name == name {
-			return &cfg.Applications[i]
-		}
-	}
-	return nil
-}
-
-// synthesizeConfiguredApp builds the candidate Application from the working
-// tree and the current one from baseGitRef. The version and values files come
-// from .stageproof.yaml, not from a built-in path.
-func synthesizeConfiguredApp(app config.Application, baseGitRef string) (string, string, func(), error) {
-	noop := func() {}
-	newVer, err := versionFromFile(app.VersionFrom.File, app.VersionFrom.Regex, "")
-	if err != nil {
-		return "", "", noop, err
-	}
-	oldVer, err := versionFromFile(app.VersionFrom.File, app.VersionFrom.Regex, baseGitRef)
-	if err != nil {
-		return "", "", noop, err
-	}
-	newVals, err := readValues(app.ValuesFrom, "")
-	if err != nil {
-		return "", "", noop, err
-	}
-	oldVals, err := readValues(app.ValuesFrom, baseGitRef)
-	if err != nil {
-		return "", "", noop, err
-	}
-	tmp, err := os.MkdirTemp("", "sp-app-*")
-	if err != nil {
-		return "", "", noop, err
-	}
-	cleanup := func() { _ = os.RemoveAll(tmp) }
-	newPath := filepath.Join(tmp, "app-new.yaml")
-	oldPath := filepath.Join(tmp, "app-current.yaml")
-	if err := os.WriteFile(newPath, []byte(applicationYAML(app, newVer, newVals)), 0o644); err != nil {
-		cleanup()
-		return "", "", noop, err
-	}
-	if err := os.WriteFile(oldPath, []byte(applicationYAML(app, oldVer, oldVals)), 0o644); err != nil {
-		cleanup()
-		return "", "", noop, err
-	}
-	return newPath, oldPath, cleanup, nil
-}
-
-func versionFromFile(path, pattern, gitRef string) (string, error) {
-	var raw []byte
-	var err error
-	if gitRef == "" {
-		raw, err = os.ReadFile(path)
-	} else {
-		raw, err = readFileFromGitRef(gitRef, path)
-	}
-	if err != nil {
-		return "", err
-	}
-	got, err := config.FirstCapture(string(raw), pattern)
-	if err != nil {
-		return "", fmt.Errorf("%s: %w", path, err)
-	}
-	return got, nil
-}
-
-func readValues(paths []string, gitRef string) (string, error) {
-	var b strings.Builder
-	for _, path := range paths {
-		var raw []byte
-		var err error
-		if gitRef == "" {
-			raw, err = os.ReadFile(path)
-		} else {
-			raw, err = readFileFromGitRef(gitRef, path)
-		}
-		if err != nil {
-			return "", err
-		}
-		text := string(raw)
-		for key, val := range templatePlaceholders() {
-			text = strings.ReplaceAll(text, key, val)
-		}
-		b.WriteString(text)
-		if !strings.HasSuffix(text, "\n") {
-			b.WriteByte('\n')
-		}
-	}
-	return b.String(), nil
-}
-
-func applicationYAML(app config.Application, version, values string) string {
-	var b strings.Builder
-	fmt.Fprintf(&b, "apiVersion: argoproj.io/v1alpha1\nkind: Application\nmetadata:\n  name: %s\nspec:\n  source:\n    repoURL: %s\n    chart: %s\n    targetRevision: %s\n    helm:\n      values: |\n", app.Name, app.RepoURL, app.Chart, version)
-	for _, line := range strings.Split(values, "\n") {
-		b.WriteString("        ")
-		b.WriteString(line)
-		b.WriteString("\n")
-	}
-	return b.String()
 }
 
 // chartRefLabel renders chart@version. A synthesized Application under the

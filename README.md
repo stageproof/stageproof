@@ -141,7 +141,7 @@ go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.8
 
 Your cluster stays as it is. You pass the Kubernetes version it runs.
 
-Flux, Kustomize, Helmfile, and plain manifests are skipped. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
+Flux, Kustomize, and Helmfile are skipped. Source on main compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. Charts stay on the machine that runs the command.
 
 The values check reads the templates. A key that is mentioned and then ignored can still look used. The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 

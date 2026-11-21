@@ -171,6 +171,225 @@ charts:
 	}
 }
 
+func TestCheckPRDeletedTemplateIsBlocked(t *testing.T) {
+	for _, bin := range []string{"git", "helm"} {
+		if _, err := exec.LookPath(bin); err != nil {
+			t.Skipf("%s is not installed", bin)
+		}
+	}
+	repo := t.TempDir()
+	prev, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(repo); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(prev) })
+
+	chart(t, "charts/api", "api", "1.0.0", "config.logLevel")
+	writeFile(t, "charts/api/templates/pvc.yaml", `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+`)
+	git(t, "init", "-q", "-b", "main")
+	git(t, "add", "-A")
+	git(t, "commit", "-q", "-m", "baseline")
+	git(t, "checkout", "-q", "-b", "change")
+	if err := os.Remove("charts/api/templates/pvc.yaml"); err != nil {
+		t.Fatal(err)
+	}
+	git(t, "add", "-A")
+	git(t, "commit", "-q", "-m", "delete the claim")
+
+	code := runCheckPR([]string{"--current-git", "main", "--api-server", "off", "--format", "json", "--out", "report.json"})
+	if code != 1 {
+		t.Fatalf("deleting the only claim template must block, got exit %d", code)
+	}
+	raw, err := os.ReadFile("report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var combined report.Combined
+	if err := json.Unmarshal(raw, &combined); err != nil {
+		t.Fatal(err)
+	}
+	if combined.Verdict != verdict.Blocked || len(combined.Reports) != 1 {
+		t.Fatalf("combined = %s (%d reports)", combined.Verdict, len(combined.Reports))
+	}
+	if !combined.Reports[0].HasRule("impact.delete.pvc") {
+		t.Fatalf("missing impact.delete.pvc: %+v", combined.Reports[0].Findings)
+	}
+}
+
+func TestManifestModeAndLiveRejection(t *testing.T) {
+	dir := t.TempDir()
+	before := filepath.Join(dir, "before.yaml")
+	after := filepath.Join(dir, "after.yaml")
+	writeFile(t, before, `apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: data
+  namespace: demo
+spec:
+  accessModes: ["ReadWriteOnce"]
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+`)
+	writeFile(t, after, `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  namespace: demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: web
+  template:
+    metadata:
+      labels:
+        app: web
+    spec:
+      containers:
+        - name: web
+          image: nginx:1.27-alpine
+`)
+	out := filepath.Join(dir, "report.json")
+	code := runCheck([]string{"--before", before, "--after", after, "--api-server", "off", "--current-k8s", "1.35", "--format", "json", "--out", out})
+	if code != 1 {
+		t.Fatalf("manifest mode must block a dropped claim, got exit %d", code)
+	}
+	raw, err := os.ReadFile(out)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var rep verdict.Report
+	if err := json.Unmarshal(raw, &rep); err != nil {
+		t.Fatal(err)
+	}
+	if rep.Adapter != "manifests" || rep.Checked != verdict.CheckedManifests {
+		t.Fatalf("adapter %q checked %q", rep.Adapter, rep.Checked)
+	}
+	if !rep.HasRule("impact.delete.pvc") {
+		t.Fatalf("missing impact.delete.pvc: %+v", rep.Findings)
+	}
+	for _, f := range rep.Findings {
+		if f.RuleID == "impact.delete.pvc" && !strings.Contains(f.Message, "The new manifests drop") {
+			t.Fatalf("manifest delete message = %q", f.Message)
+		}
+	}
+	if code := runCheck([]string{"--before", before, "--after", after, "--live"}); code != 2 {
+		t.Fatalf("--live with rendered manifests must exit 2, got %d", code)
+	}
+	if code := runCheck([]string{"--before", before}); code != 2 {
+		t.Fatalf("--before alone must exit 2, got %d", code)
+	}
+	if code := runCheck([]string{"--before", before, "--after", after, "--new-chart", dir}); code != 2 {
+		t.Fatalf("manifest mode combined with a chart must exit 2, got %d", code)
+	}
+}
+
+func TestCheckPRFindsArgoAndConfiguredApplication(t *testing.T) {
+	for _, bin := range []string{"git", "helm"} {
+		if _, err := exec.LookPath(bin); err != nil {
+			t.Skipf("%s is not installed", bin)
+		}
+	}
+	repo := t.TempDir()
+	prev, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chdir(repo); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chdir(prev) })
+
+	writeFile(t, "apps/demo.yaml", `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo
+spec:
+  source:
+    repoURL: https://127.0.0.1:1
+    chart: demo
+    targetRevision: 1.0.0
+`)
+	writeFile(t, "version.txt", "chart: 1.0.0\n")
+	writeFile(t, "values.yaml", "replicas: 1\n")
+	writeFile(t, ".stageproof.yaml", `applications:
+  - name: billing
+    repoURL: https://127.0.0.1:1
+    chart: billing
+    versionFrom:
+      file: version.txt
+      regex: 'chart: (.*)'
+    valuesFrom:
+      - values.yaml
+`)
+	git(t, "init", "-q", "-b", "main")
+	git(t, "add", "-A")
+	git(t, "commit", "-q", "-m", "baseline")
+	git(t, "checkout", "-q", "-b", "change")
+	writeFile(t, "apps/demo.yaml", `apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: demo
+spec:
+  source:
+    repoURL: https://127.0.0.1:1
+    chart: demo
+    targetRevision: 1.1.0
+`)
+	writeFile(t, "version.txt", "chart: 1.1.0\n")
+	git(t, "add", "-A")
+	git(t, "commit", "-q", "-m", "bump both")
+
+	code := runCheckPR([]string{"--current-git", "main", "--api-server", "off", "--format", "json", "--out", "report.json"})
+	if code != 2 {
+		t.Fatalf("an Application and a configured chart that cannot be pulled must be NOT CHECKED, got exit %d", code)
+	}
+	raw, err := os.ReadFile("report.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var combined report.Combined
+	if err := json.Unmarshal(raw, &combined); err != nil {
+		t.Fatal(err)
+	}
+	if combined.Verdict != verdict.NotChecked || len(combined.Reports) != 2 {
+		t.Fatalf("combined = %s (%d reports)", combined.Verdict, len(combined.Reports))
+	}
+}
+
 func TestRequireRehearsalWithoutLiveIsNotChecked(t *testing.T) {
 	if _, err := exec.LookPath("helm"); err != nil {
 		t.Skip("helm is not installed")

@@ -13,15 +13,26 @@ import (
 // Run calls the stages in the order the check has always used.
 // A required value that is new stops the check before the charts are rendered.
 func Run(ctx context.Context, in Input) *verdict.Report {
+	adapter := in.Adapter
+	if adapter == "" {
+		adapter = "helm"
+		if in.ManifestMode {
+			adapter = "manifests"
+		}
+	}
+	checked := verdict.CheckedFiles
+	if in.ManifestMode {
+		checked = verdict.CheckedManifests
+	}
 	st := &State{
 		Report: &verdict.Report{
-			Adapter:     "helm",
+			Adapter:     adapter,
 			TargetK8s:   in.KubeVersion,
 			NextK8sEOL:  in.NextKubernetes,
 			BaseRef:     in.BaseRef,
 			HeadRef:     in.HeadRef,
 			ValuesFiles: labelPaths(in.HeadValues, in.ValueLabels),
-			Checked:     verdict.CheckedFiles,
+			Checked:     checked,
 			Timestamp:   in.Started.UTC(),
 		},
 		Started: in.Started,
@@ -30,18 +41,41 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	if note := placeholderFinding(in.PlaceholderTokens); note != nil {
 		st.Report.Findings = append(st.Report.Findings, *note)
 	}
+	if in.ManifestMode && in.Live {
+		st.Report.Skipped = append(st.Report.Skipped, verdict.SkipNotice{
+			Code:        "manifest_live",
+			Reason:      "--before and --after cannot be combined with a live rehearsal. Manifest mode does not install a chart.",
+			Remediation: "Compare the rendered manifests without --live.",
+		})
+		st.stop(false, true)
+		return st.Report
+	}
 
-	Gate(ctx, in, st)
-	if st.Stopped {
-		return st.Report
+	if in.ManifestMode {
+		skipChartStages(st)
+		base, bErr := loadRendered(in.ManifestBefore)
+		if bErr != nil {
+			return manifestFail(st, in.ManifestBefore, bErr)
+		}
+		head, hErr := loadRendered(in.ManifestAfter)
+		if hErr != nil {
+			return manifestFail(st, in.ManifestAfter, hErr)
+		}
+		st.BaseObjs = base
+		st.HeadObjs = head
+	} else {
+		Gate(ctx, in, st)
+		if st.Stopped {
+			return st.Report
+		}
+		Charts(ctx, in, st)
+		if st.Stopped {
+			return st.Report
+		}
+		Diff(in, st)
+		// Signals are recorded before compatibility findings, matching the previous order.
+		Changes(in, st)
 	}
-	Charts(ctx, in, st)
-	if st.Stopped {
-		return st.Report
-	}
-	Diff(in, st)
-	// Signals are recorded before compatibility findings, matching the previous order.
-	Changes(in, st)
 	ServerProof(ctx, in, st)
 	if st.Stopped {
 		return st.Report
@@ -60,6 +94,33 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	st.Report.Findings = report.OrderFindings(st.Report.Findings)
 	st.Report.DurationMs = time.Since(in.Started).Milliseconds()
 	st.Report.Finalize(runtimeOK, inconclusive, in.RequireRehearsal)
+	return st.Report
+}
+
+func skipChartStages(st *State) {
+	skipped := []verdict.CheckResult{
+		{Name: "required values gate", Status: "skip", Summary: "Skipped. These inputs are rendered manifests, not Helm charts."},
+		{Name: "helm template", Status: "skip", Summary: "Skipped. The manifests were already rendered."},
+		{Name: "values.yaml AST", Status: "skip", Summary: "Skipped. There is no chart template to read."},
+		{Name: "upgrade signals", Status: "skip", Summary: "Skipped. There is no chart to compare."},
+	}
+	st.Report.Checks = append(st.Report.Checks, skipped...)
+}
+
+func manifestFail(st *State, path string, err error) *verdict.Report {
+	st.Report.Findings = append(st.Report.Findings, verdict.Finding{
+		RuleID:   "manifest.invalid_yaml",
+		Severity: verdict.SeverityBlocker,
+		File:     path,
+		Message:  "The rendered manifests could not be read.",
+		Detail:   err.Error(),
+	})
+	st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
+		Name:    "rendered manifests",
+		Status:  "fail",
+		Summary: err.Error(),
+	})
+	st.stop(false, false)
 	return st.Report
 }
 

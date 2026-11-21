@@ -23,6 +23,7 @@ const (
 const (
 	CheckedFiles        = "files"
 	CheckedFilesAndLive = "files, live cluster"
+	CheckedManifests    = "rendered manifests"
 )
 
 func (s State) ExitCode() int {
