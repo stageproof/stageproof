@@ -1717,7 +1717,7 @@ workflow:
 <p class="docs-lede">Settings that should apply to every check can go in a file named <code>.stageproof.yaml</code>. The file is optional.</p>
 
 <h2>Where the file goes</h2>
-<p>Stageproof reads <code>.stageproof.yaml</code> from the directory in which you run the command. In a repository, put it in the top directory and run Stageproof from there. Both <code>stageproof check</code> and <code>stageproof check-pr</code> read it.</p>
+<p><code>stageproof check</code> reads <code>.stageproof.yaml</code> from the directory in which you run the command. In a repository, put it in the top directory and run Stageproof from there. <code>stageproof check-pr</code> reads that file from <code>--current-git</code>, the branch the pull request merges into. It does not read the copy in the pull request. If the pull request changes the file, the report includes <code>config.changed_in_pr</code>. An ignore added only on the branch does not hide a finding. The v0.1.8 release reads the working copy for both commands and does not read <code>ignores</code> or <code>policy</code>.</p>
 
 <h2>The settings</h2>
 <pre data-kind="file" data-label=".stageproof.yaml">
@@ -1742,10 +1742,57 @@ charts:
     <tr><td><code>liveTest</code></td><td>Rehearse every check in a temporary cluster. Same as <code>--live</code>.</td><td><code>true</code> in the file turns it on. A flag cannot turn it off.</td></tr>
     <tr><td><code>requireRehearsal</code></td><td>A check that was not rehearsed is <code>NOT CHECKED</code> (exit 2) instead of <code>PASSED</code>. Same as <code>--require-rehearsal</code>.</td><td><code>true</code> in the file turns it on. Passing the flag does the same.</td></tr>
     <tr><td><code>crdFiles</code></td><td>CRDs to install before a live rehearsal. Same as <code>--crd-file</code>.</td><td>The file is used when the flag is not given.</td></tr>
-    <tr><td><code>charts</code></td><td>The values files of each chart. Used by <code>stageproof check-pr</code>. See <a href="#values-files">Check each values file of a chart</a>.</td><td>There is no flag for it.</td></tr>
+    <tr><td><code>charts</code></td><td>The values files of each chart. Used by <code>stageproof check-pr</code>. See <a href="#values-files">Check each values file of a chart</a>.</td><td>There is no flag for it. <code>check-pr</code> uses the list on the base ref.</td></tr>
+    <tr><td><code>ignores</code></td><td>A finding that stays in the report and does not make the result <code>BLOCKED</code>. Each entry needs <code>rule</code>, <code>reason</code>, and <code>expires</code> (<code>YYYY-MM-DD</code>, and that date still matches). <code>resource</code> is a glob. <code>*</code> matches every resource. The rule is the exact id, not a prefix.</td><td>There is no flag for it. <code>check-pr</code> uses the entries on the base ref.</td></tr>
+    <tr><td><code>policy</code></td><td>A rule id or a prefix, mapped to <code>block</code>, <code>warn</code>, or <code>info</code>. The longest match wins. <code>impact.delete</code> matches <code>impact.delete.pvc</code>.</td><td>There is no flag for it. <code>check-pr</code> uses the map on the base ref.</td></tr>
   </tbody>
 </table></div>
 <p>Every setting is optional. Leave out the ones you do not need.</p>
+<h2>Ignore a finding</h2>
+<p>An ignore keeps the finding on the page and stops it from making the result <code>BLOCKED</code>. This file ignores the dropped key in the dropped-key fixture. The command exits 0. The finding is still printed.</p>
+<pre data-kind="file" data-label=".stageproof.yaml">
+ignores:
+  - rule: helm.values.silently_dropped
+    resource: "*"
+    reason: "The chart renamed this key."
+    expires: "2099-01-01"</pre>
+<pre data-kind="cmd">
+stageproof check \
+  --current-chart testdata/dropped/base \
+  --new-chart testdata/dropped/head \
+  -f testdata/dropped/values.yaml \
+  --current-k8s 1.33 \
+  --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  testdata/dropped/base -> testdata/dropped/head
+values  testdata/dropped/values.yaml
+k8s  1.33  ·  checked: files
+
+Values
+  ERROR  Values key `message` was consumed in baseline chart but is silently ignored in upgraded chart. Ignored until 2099-01-01: The chart renamed this key.
+
+Restarts
+  INFO  The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].args[0]. The pods will restart. A restart is normal for an upgrade.
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
+  ✓ PASS  image tags               no new or changed image
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+  ERROR  helm.values.silently_dropped
+         testdata/dropped/values.yaml (message)
+         Values key `message` was consumed in baseline chart but is silently ignored in upgraded chart.
+         ignored until 2099-01-01: The chart renamed this key.
+  INFO  impact.restart
+         Deployment/default/demo
+         The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].args[0]. The pods will restart. A restart is normal for an upgrade.
+
+verdict  PASSED (exit 0)  · 232ms · 0 AI calls
+</pre>
+
 
 <h2>Create a starter file</h2>
 <p>Run this in the top directory of the repository.</p>
@@ -1832,6 +1879,8 @@ Rename the key to what the new chart uses, or remove it.</pre>
     <tr><td><code>helm.config.placeholder_used</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A <code>${...}</code> token outside the chart repository, name, or version had no entry in <code>templatePlaceholders</code>. It was replaced with <code>stageproof-placeholder</code>.</td><td>Add the token to <code>templatePlaceholders</code> when the real value matters.</td></tr>
     <tr><td><code>helm.config.unresolved_placeholder</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>${...}</code> token is still in the chart repository, name, or version. The result is <code>NOT CHECKED</code> and the report names the token.</td><td>Set that token in <code>templatePlaceholders</code>.</td></tr>
     <tr><td><code>helm.dependency.not_updated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>Chart.yaml</code> dependency constraint changed, and the packaged chart under <code>charts/</code> did not.</td><td>Run <code>helm dependency update</code> so the render uses the new chart.</td></tr>
+    <tr><td><code>config.changed_in_pr</code></td><td><span class="verdict-badge warn">WARN</span></td><td>check-pr reads .stageproof.yaml from the base ref. A change in the pull request does not change ignores, policy, or the other settings for this check. The finding names the file and does not print the file.</td><td>Review that change on its own. An ignore added only in the pull request does not hide a finding.</td></tr>
+    <tr><td><code>config.ignore_expired</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An ignore whose expires date is before today no longer matches. The finding it named is reported as usual. The warning names the rule and the resource pattern.</td><td>Remove the entry, or set a new expires date in the file on the base branch.</td></tr>
     <tr><td><code>flux.values.unreadable</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>valuesFrom</code> ConfigMap or Secret is not a file in this repository, its key is missing, or the Secret is encrypted. The chart is still rendered. The result stays <code>PASSED</code>, including after a rehearsal. The report names the reference and does not print the value.</td><td>Commit the object this HelmRelease names, or set <code>optional: true</code> when a missing object should be skipped. A missing key is still named.</td></tr>
   </tbody>
 </table></div>

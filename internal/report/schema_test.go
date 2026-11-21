@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/santhosh-tekuri/jsonschema/v6"
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -111,6 +112,53 @@ func TestSARIFMatchesOfficialSchema(t *testing.T) {
 	}
 	if again.String() != raw {
 		t.Fatal("SARIF output is not stable")
+	}
+}
+
+func TestIgnoredFindingStaysInTheSchema(t *testing.T) {
+	rep := &verdict.Report{
+		SchemaVersion: 1,
+		Verdict:       verdict.Passed,
+		ExitCode:      0,
+		Adapter:       "helm",
+		TargetK8s:     "1.33",
+		BaseRef:       "base",
+		HeadRef:       "head",
+		Checked:       "files",
+		Timestamp:     time.Date(2026, 11, 21, 0, 0, 0, 0, time.UTC),
+		Checks:        []verdict.CheckResult{{Name: "values", Status: "fail", Summary: "1 key"}},
+		Findings: []verdict.Finding{{
+			RuleID:        "helm.values.silently_dropped",
+			Severity:      verdict.SeverityBlocker,
+			Message:       "dropped",
+			Detail:        "secret-value",
+			Ignored:       true,
+			IgnoreReason:  "The chart renamed this key.",
+			IgnoreExpires: "2099-01-01",
+		}},
+	}
+	var buf strings.Builder
+	if err := WriteJSON(&buf, rep); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "secret-value") || !strings.Contains(buf.String(), `"ignored": true`) {
+		t.Fatalf("json:\n%s", buf.String())
+	}
+	root := moduleRoot(t)
+	sch := compileSchema(t, filepath.Join(root, "docs", "report.schema.json"))
+	if err := validateJSON(sch, []byte(buf.String())); err != nil {
+		t.Fatal(err)
+	}
+	var sarif strings.Builder
+	if err := WriteSARIF(&sarif, []*verdict.Report{rep}, "dev", "PASSED", 0); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(sarif.String(), "helm.values.silently_dropped") || !strings.Contains(sarif.String(), "suppressions") || strings.Contains(sarif.String(), "secret-value") {
+		t.Fatalf("sarif:\n%s", sarif.String())
+	}
+	sarifSchema := compileSchema(t, filepath.Join(root, "docs", "sarif-schema-2.1.0.json"))
+	if err := validateJSON(sarifSchema, []byte(sarif.String())); err != nil {
+		t.Fatal(err)
 	}
 }
 

@@ -65,12 +65,18 @@ type sarifInvocation struct {
 }
 
 type sarifResult struct {
-	RuleID     string          `json:"ruleId"`
-	RuleIndex  int             `json:"ruleIndex"`
-	Level      string          `json:"level"`
-	Message    sarifMessage    `json:"message"`
-	Locations  []sarifLocation `json:"locations,omitempty"`
-	Properties map[string]any  `json:"properties,omitempty"`
+	RuleID       string             `json:"ruleId"`
+	RuleIndex    int                `json:"ruleIndex"`
+	Level        string             `json:"level"`
+	Message      sarifMessage       `json:"message"`
+	Locations    []sarifLocation    `json:"locations,omitempty"`
+	Suppressions []sarifSuppression `json:"suppressions,omitempty"`
+	Properties   map[string]any     `json:"properties,omitempty"`
+}
+
+type sarifSuppression struct {
+	Kind          string `json:"kind"`
+	Justification string `json:"justification,omitempty"`
 }
 
 type sarifMessage struct {
@@ -96,13 +102,14 @@ type sarifLogical struct {
 }
 
 type sarifItem struct {
-	id       string
-	level    string
-	message  string
-	file     string
-	resource string
-	props    map[string]any
-	rule     sarifRule
+	id          string
+	level       string
+	message     string
+	file        string
+	resource    string
+	props       map[string]any
+	rule        sarifRule
+	suppression string
 }
 
 func buildSARIF(reports []*verdict.Report, toolVersion, verdictName string, exitCode int) sarifLog {
@@ -148,6 +155,12 @@ func buildSARIF(reports []*verdict.Report, toolVersion, verdictName string, exit
 		}
 		if loc, ok := itemLocation(item); ok {
 			res.Locations = []sarifLocation{loc}
+		}
+		if item.suppression != "" {
+			res.Suppressions = []sarifSuppression{{
+				Kind:          "external",
+				Justification: item.suppression,
+			}}
 		}
 		results[i] = res
 	}
@@ -201,7 +214,7 @@ func findingItem(rep *verdict.Report, f verdict.Finding) sarifItem {
 	if f.Verified != nil {
 		props["verified"] = *f.Verified
 	}
-	return sarifItem{
+	item := sarifItem{
 		id:       f.RuleID,
 		level:    sarifLevel(f.Severity),
 		message:  msg,
@@ -210,6 +223,10 @@ func findingItem(rep *verdict.Report, f verdict.Finding) sarifItem {
 		props:    props,
 		rule:     ruleForFinding(f),
 	}
+	if f.Ignored {
+		item.suppression = "Ignored until " + f.IgnoreExpires + ": " + oneLine(f.IgnoreReason)
+	}
+	return item
 }
 
 func skipItem(rep *verdict.Report, s verdict.SkipNotice) sarifItem {

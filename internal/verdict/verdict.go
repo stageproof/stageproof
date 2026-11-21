@@ -78,6 +78,11 @@ type Finding struct {
 	Proof string `json:"proof,omitempty"`
 	// Verified is set on helm.values.renamed. False is a suggestion.
 	Verified *bool `json:"verified,omitempty"`
+	// Ignored is set when a base-config ignore entry matches.
+	// The finding stays in the report. It does not make the result BLOCKED.
+	Ignored       bool   `json:"ignored,omitempty"`
+	IgnoreReason  string `json:"ignore_reason,omitempty"`
+	IgnoreExpires string `json:"ignore_expires,omitempty"`
 }
 
 // SkipNotice explains why a live rehearsal did not finish.
@@ -129,6 +134,17 @@ func (r *Report) HasRule(id string) bool {
 	return false
 }
 
+// hasActive reports a finding that still counts. An ignored finding stays
+// in the report and does not change the result.
+func (r *Report) hasActive(id string) bool {
+	for _, f := range r.Findings {
+		if f.RuleID == id && !f.Ignored {
+			return true
+		}
+	}
+	return false
+}
+
 func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool) {
 	if r.Checked == "" {
 		r.Checked = CheckedFiles
@@ -136,7 +152,7 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 
 	hasBlocker := false
 	for _, f := range r.Findings {
-		if f.Severity == SeverityBlocker {
+		if f.Severity == SeverityBlocker && !f.Ignored {
 			hasBlocker = true
 			break
 		}
@@ -151,7 +167,7 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 		r.Checked = withLive(r.Checked)
 		// A green rehearsal is not proof when a valuesFrom reference was not read,
 		// and it is not proof of a dependency constraint that was never packaged.
-		if r.HasRule("helm.dependency.not_updated") || r.HasRule("flux.values.unreadable") {
+		if r.hasActive("helm.dependency.not_updated") || r.hasActive("flux.values.unreadable") {
 			r.Verdict = Passed
 		} else {
 			r.Verdict = Proven

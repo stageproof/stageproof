@@ -161,6 +161,9 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 				fmt.Fprintf(w, "         %s\n", paint(color, ansiDim, loc))
 			}
 			fmt.Fprintf(w, "         %s\n", f.Message)
+			if f.Ignored {
+				fmt.Fprintf(w, "         ignored until %s: %s\n", f.IgnoreExpires, oneLine(f.IgnoreReason))
+			}
 			if f.Detail != "" {
 				fmt.Fprintf(w, "         %s\n", paint(color, ansiDim, f.Detail))
 			}
@@ -339,7 +342,11 @@ func WriteMarkdown(w io.Writer, r *verdict.Report) {
 					loc = f.Resource
 				}
 			}
-			fmt.Fprintf(w, "- **[%s] `%s`** (%s): %s\n", strings.ToUpper(string(f.Severity)), f.RuleID, loc, f.Message)
+			line := f.Message
+			if f.Ignored {
+				line += " Ignored until " + f.IgnoreExpires + ": " + oneLine(f.IgnoreReason)
+			}
+			fmt.Fprintf(w, "- **[%s] `%s`** (%s): %s\n", strings.ToUpper(string(f.Severity)), f.RuleID, loc, line)
 		}
 	}
 

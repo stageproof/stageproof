@@ -77,6 +77,9 @@ func briefText(f verdict.Finding) string {
 	if text == "" {
 		text = f.RuleID
 	}
+	if f.Ignored {
+		text += " Ignored until " + f.IgnoreExpires + ": " + oneLine(f.IgnoreReason)
+	}
 	return text
 }
 

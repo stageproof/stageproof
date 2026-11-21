@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stageproof/stageproof/internal/config"
 	"github.com/stageproof/stageproof/internal/report"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
@@ -37,6 +38,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		},
 		Started: in.Started,
 		Require: in.RequireRehearsal,
+		Config:  in.Config,
 	}
 	if note := placeholderFinding(in.PlaceholderTokens); note != nil {
 		st.Report.Findings = append(st.Report.Findings, *note)
@@ -95,6 +97,9 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	// into NOT CHECKED. PASSED also stays for a run that did not attempt --live.
 	if in.Live && !runtimeOK && len(st.Report.Skipped) == 0 {
 		inconclusive = true
+	}
+	if in.Config != nil {
+		config.Apply(in.Config, st.Report, time.Now().UTC())
 	}
 	st.Report.Findings = report.OrderFindings(st.Report.Findings)
 	st.Report.DurationMs = time.Since(in.Started).Milliseconds()
