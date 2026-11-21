@@ -116,6 +116,7 @@ func writeTerminal(w io.Writer, r *verdict.Report, color bool) {
 		paint(color, ansiDim, "·"),
 		paint(color, ansiDim, "checked: "+checked),
 	)
+	writeBrief(w, r, color)
 
 	for _, ck := range r.Checks {
 		sym, code, label := "•", ansiDim, "    "
@@ -319,6 +320,7 @@ func WriteMarkdown(w io.Writer, r *verdict.Report) {
 		checked = verdict.CheckedFiles
 	}
 	fmt.Fprintf(w, "- **Checked:** `%s` · `%dms` · `0 AI calls`\n\n", checked, r.DurationMs)
+	writeBriefMarkdown(w, r)
 
 	fmt.Fprintln(w, "| Check | Status | Summary |")
 	fmt.Fprintln(w, "|---|---|---|")

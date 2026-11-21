@@ -150,6 +150,11 @@ kind cluster on this machine
               <td>Kustomize and loose manifests are ignored. A deleted file inside a chart is still that chart. A deleted HelmRelease is <code>NOT CHECKED</code>.</td>
             </tr>
             <tr>
+              <td>Brief</td>
+              <td>The terminal report and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. An empty section is left out.</td>
+              <td>The lines are the finding messages and the reasons a check did not finish. It does not call a model. The result line still says <code>0 AI calls</code>. The v0.1.8 binary does not print this summary.</td>
+            </tr>
+            <tr>
               <td>Explain</td>
               <td><code>stageproof explain</code> prints the level, the meaning, and what to do for one rule id. The findings page is the same text.</td>
               <td>It does not run a check and it does not use the network. An unknown id exits 2. The v0.1.8 binary does not have this command.</td>
