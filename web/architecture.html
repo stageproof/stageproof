@@ -155,6 +155,11 @@ kind cluster on this machine
               <td>The lines are the finding messages and the reasons a check did not finish. It does not call a model. The result line still says <code>0 AI calls</code>. The v0.1.8 binary does not print this summary.</td>
             </tr>
             <tr>
+              <td>SARIF</td>
+              <td><code>--format sarif</code> prints one SARIF 2.1.0 log. A pull request check puts every chart in that log. <code>--out</code> stays the JSON report, and that JSON matches <code>docs/report.schema.json</code>.</td>
+              <td>A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. The exit code is unchanged. The v0.1.8 binary does not have this format.</td>
+            </tr>
+            <tr>
               <td>Explain</td>
               <td><code>stageproof explain</code> prints the level, the meaning, and what to do for one rule id. The findings page is the same text.</td>
               <td>It does not run a check and it does not use the network. An unknown id exits 2. The v0.1.8 binary does not have this command.</td>

@@ -286,11 +286,133 @@ stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
   <thead><tr><th>Flag</th><th>What you get</th></tr></thead>
   <tbody>
     <tr><td><code>--format markdown</code></td><td>The report as Markdown on standard output.</td></tr>
-    <tr><td><code>--format json</code></td><td>The report as JSON on standard output. The first field is <code>schema_version</code>, and it is <code>1</code>.</td></tr>
+    <tr><td><code>--format json</code></td><td>The report as JSON on standard output. The first field is <code>schema_version</code>, and it is <code>1</code>. The shape is <code>docs/report.schema.json</code>.</td></tr>
+    <tr><td><code>--format sarif</code></td><td>One SARIF 2.1.0 log on standard output. A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. <code>--out</code> stays JSON. Not in the v0.1.8 binary.</td></tr>
     <tr><td><code>--out report.json</code></td><td>The JSON report in a file, in addition to the normal output.</td></tr>
     <tr><td><code>--comment-file comment.md</code></td><td>The Markdown report in a file, in addition to the normal output. Use it for a pull request comment.</td></tr>
   </tbody>
 </table></div>
+<p><code>--format sarif</code> prints one log. <code>check-pr</code> puts every chart in that same log. This run exits 1. The command is the dropped-key fixture with <code>--api-server off</code>:</p>
+<pre data-kind="cmd">
+stageproof check \
+  --current-chart testdata/dropped/base \
+  --new-chart testdata/dropped/head \
+  -f testdata/dropped/values.yaml \
+  --current-k8s 1.33 \
+  --api-server off \
+  --format sarif</pre>
+<pre data-kind="out">
+{
+  "$schema": "https://docs.oasis-open.org/sarif/sarif/v2.1.0/errata01/os/schemas/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "stageproof",
+          "version": "dev",
+          "informationUri": "https://stageproof.github.io/stageproof/",
+          "rules": [
+            {
+              "id": "helm.values.silently_dropped",
+              "shortDescription": {
+                "text": "A values key no longer has an effect"
+              },
+              "fullDescription": {
+                "text": "A key in your values file was used by the current chart and has no effect in the new chart. proof is render when two renders showed that, and templates when the reader decided. When you check a chart on its own, it means the chart does not use the key at all. The message does not print your value."
+              },
+              "help": {
+                "text": "Rename the key to what the new chart uses, or remove it."
+              },
+              "defaultConfiguration": {
+                "level": "error"
+              }
+            },
+            {
+              "id": "impact.restart",
+              "shortDescription": {
+                "text": "A pod template changed"
+              },
+              "fullDescription": {
+                "text": "A pod template changed. The report names the field. A restart is normal for an upgrade."
+              },
+              "help": {
+                "text": "Nothing, unless the field is not the change you expected."
+              },
+              "defaultConfiguration": {
+                "level": "note"
+              }
+            }
+          ]
+        }
+      },
+      "invocations": [
+        {
+          "executionSuccessful": false,
+          "exitCode": 1
+        }
+      ],
+      "results": [
+        {
+          "ruleId": "helm.values.silently_dropped",
+          "ruleIndex": 0,
+          "level": "error",
+          "message": {
+            "text": "Values key `message` was consumed in baseline chart but is silently ignored in upgraded chart."
+          },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": {
+                  "uri": "testdata/dropped/values.yaml"
+                }
+              },
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "message",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "base_ref": "testdata/dropped/base",
+            "head_ref": "testdata/dropped/head",
+            "proof": "render",
+            "severity": "blocker"
+          }
+        },
+        {
+          "ruleId": "impact.restart",
+          "ruleIndex": 1,
+          "level": "note",
+          "message": {
+            "text": "The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].args[0]. The pods will restart. A restart is normal for an upgrade."
+          },
+          "locations": [
+            {
+              "logicalLocations": [
+                {
+                  "fullyQualifiedName": "Deployment/default/demo",
+                  "kind": "resource"
+                }
+              ]
+            }
+          ],
+          "properties": {
+            "base_ref": "testdata/dropped/base",
+            "head_ref": "testdata/dropped/head",
+            "severity": "info"
+          }
+        }
+      ],
+      "properties": {
+        "verdict": "BLOCKED"
+      }
+    }
+  ]
+}
+</pre>
 <p>You can pass <code>-f</code> more than once when you deploy with several values files.</p>
   </template>
 
@@ -1444,7 +1566,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>explain</code>, or <code>fetch-apiserver</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>explain</code>, or <code>fetch-apiserver</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1519,7 +1641,7 @@ workflow:
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
-    <tr><td><code>--format &lt;name&gt;</code></td><td><code>text</code></td><td>What is printed: <code>text</code>, <code>markdown</code>, or <code>json</code>.</td></tr>
+    <tr><td><code>--format &lt;name&gt;</code></td><td><code>text</code></td><td>What is printed: <code>text</code>, <code>markdown</code>, <code>json</code>, or <code>sarif</code>. <code>sarif</code> is not in the v0.1.8 binary.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>Also write the JSON report to this file.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>Also write the Markdown report to this file.</td></tr>
   </tbody>

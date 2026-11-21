@@ -9,6 +9,7 @@ The next release is 0.2.0.
 
 ### Added
 
+- `--format sarif` prints one SARIF 2.1.0 log. A blocker is `error`, a warning is `warning`, and info is `note`. The message is the finding message. Detail is not copied. `check-pr` writes one log for every chart. `--out` stays JSON. `docs/report.schema.json` is the shape of the JSON report, `schema_version` 1. Exit codes are unchanged.
 - The terminal report and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. A section with nothing in it is left out. The lines are the finding messages and the reasons a check did not finish. The summary does not call a model. Exit codes are unchanged.
 - `stageproof explain <rule-id>` prints the level, the one-line title, the meaning, and what to do for one rule. An unknown id exits 2. The findings tables in the docs are the same text. No rule id was renamed.
 - `--helm-compare` renders the chart with the helm on `PATH` and with a second helm binary. Parsed objects are compared. A field that changes between two renders of the same binary is ignored. A remaining difference is `helm4.render_differs`, a warning. A binary that cannot render the chart is `helm4.render_failed` and exits 1. `Chart.yaml` `apiVersion: v3` is `helm4.chart_v3`, a warning. The commands this program runs were checked on Helm 3.22.1 and Helm 4.3.2.

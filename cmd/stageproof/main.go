@@ -145,7 +145,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	clusterName := fs.String("cluster-name", defaultClusterName(), "kind cluster name. Default is unique to this process so parallel rehearsals do not collide.")
 	runHelmTest := fs.Bool("helm-test", false, "Run helm test hook after upgrade")
 	timeout := fs.Duration("timeout", rehearse.DefaultReadinessTimeout, "Readiness wait per step. Heavy charts need several minutes.")
-	format := fs.String("format", "text", "Output format: text | markdown | json")
+	format := fs.String("format", "text", "Output format: text | markdown | json | sarif")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
 
@@ -182,6 +182,11 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	effSSA := *ssa || strings.EqualFold(*applyMode, "ssa") || strings.EqualFold(*applyMode, "server-side")
 
 	emit := func(rep *verdict.Report) {
+		// A pull request prints one SARIF log after every chart is checked.
+		if collected != nil && strings.EqualFold(*format, "sarif") {
+			*collected = append(*collected, rep)
+			return
+		}
 		emitReport(rep, *format, *outPath, *commentFile)
 		if collected != nil {
 			*collected = append(*collected, rep)
