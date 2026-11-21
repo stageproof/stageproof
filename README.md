@@ -82,7 +82,7 @@ stageproof check \
 | Can the upgrade be applied on top of the old release? | The local API server dry-runs the new objects on top of the current ones. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED`, unless the object has `helm.sh/resource-policy: keep`. A CRD schema change that an existing object uses is `BLOCKED`. A restart is named and does not block. A label selector Kubernetes will not change is `BLOCKED`. |
 | Does the new release start, and can it roll back? | `--live`, on the temporary cluster above. |
 
-`check-pr` finds every changed chart, and every changed Argo CD Application that names one chart, by reading `git diff`. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`.
+`check-pr` finds every changed chart, and every changed Argo CD Application, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`.
 
 ## Install
 

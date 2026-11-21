@@ -10,7 +10,7 @@ import (
 // Options is the comparison context. Adapter is the tool that produced the
 // objects. FluxCRDPolicy is spec.upgrade.crds when the Flux adapter has read
 // it. Empty means the Flux default, Skip. ArgoSkipCrds is helm.skipCrds when
-// the Application said so. Nil means the file was not read for that field.
+// the Application set the field. Nil means the field was absent.
 type Options struct {
 	Adapter       string
 	FluxCRDPolicy string

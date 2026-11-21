@@ -188,6 +188,24 @@ func TestCRDsDirectory(t *testing.T) {
 	})
 	requireRule(t, argo, "crd.argocd_renders_crds", verdict.SeverityWarning)
 	rejectRule(t, argo, "crd.not_upgraded_by_helm")
+	if !hasMessage(argo, "crd.argocd_renders_crds", "does not say whether skipCrds is set") {
+		t.Fatalf("absent skipCrds text missing: %+v", argo)
+	}
+
+	off := false
+	known, _ := Compare(nil, nil, Options{
+		Adapter:      "argocd",
+		ArgoSkipCrds: &off,
+		BeforeDir:    filepath.Join(root, "break", "before"),
+		AfterDir:     filepath.Join(root, "break", "after"),
+	})
+	requireRule(t, known, "crd.argocd_renders_crds", verdict.SeverityWarning)
+	if !hasMessage(known, "crd.argocd_renders_crds", "skipCrds is false") {
+		t.Fatalf("explicit false text missing: %+v", known)
+	}
+	if hasMessage(known, "crd.argocd_renders_crds", "does not say") {
+		t.Fatalf("explicit false reused the unknown sentence: %+v", known)
+	}
 
 	skip := true
 	skipped, _ := Compare(nil, nil, Options{
@@ -198,6 +216,9 @@ func TestCRDsDirectory(t *testing.T) {
 	})
 	requireRule(t, skipped, "crd.not_upgraded_by_helm", verdict.SeverityBlocker)
 	rejectRule(t, skipped, "crd.argocd_renders_crds")
+	if !hasMessage(skipped, "crd.not_upgraded_by_helm", "skipCrds is true") {
+		t.Fatalf("explicit true text missing: %+v", skipped)
+	}
 
 	flux, _ := Compare(nil, nil, Options{
 		Adapter:   "flux",

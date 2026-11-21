@@ -1,11 +1,12 @@
 // Package adapter finds what a pull request changed and turns each hit into
 // a check target. Helm charts, Argo CD Applications, and applications listed
-// in .stageproof.yaml share one discovery order. Flux and multi-source Argo
-// CD are later adapters on this same interface.
+// in .stageproof.yaml share one discovery order. Flux is a later adapter on
+// this same interface.
 package adapter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -88,7 +89,7 @@ func New(root string) *Set {
 // Discover lists Helm charts first, in path order, then Argo CD files and
 // configured applications in the order the diff named them.
 func (s *Set) Discover(repoRoot string, changedFiles []string) []Target {
-	var argoFiles, appFiles, helmFiles []string
+	var appFiles, helmFiles []string
 	for _, f := range changedFiles {
 		f = strings.TrimSpace(f)
 		if f == "" {
@@ -96,7 +97,6 @@ func (s *Set) Discover(repoRoot string, changedFiles []string) []Target {
 		}
 		path := joinRoot(repoRoot, f)
 		if s.argo.matches(path) {
-			argoFiles = append(argoFiles, f)
 			continue
 		}
 		if s.apps.cover(f, path) != nil {
@@ -106,7 +106,10 @@ func (s *Set) Discover(repoRoot string, changedFiles []string) []Target {
 		helmFiles = append(helmFiles, f)
 	}
 	charts := s.helm.Discover(repoRoot, helmFiles)
-	rest := append(s.argo.Discover(repoRoot, argoFiles), s.apps.Discover(repoRoot, appFiles)...)
+	// Pass every changed path, not only files that are already Applications.
+	// A values file outside the chart still belongs to the Application that
+	// names it. argo.Discover dedups a file that is itself an Application.
+	rest := append(s.argo.Discover(repoRoot, changedFiles), s.apps.Discover(repoRoot, appFiles)...)
 	return append(charts, rest...)
 }
 
@@ -238,11 +241,23 @@ func (a argoAdapter) matches(path string) bool {
 		}
 	}
 	_, _, err := argocd.ParseApplicationFile(path, placeholderMap(a.cfg))
-	return err == nil || len(argocd.UnresolvedTokens(err)) > 0
+	if err == nil || len(argocd.UnresolvedTokens(err)) > 0 {
+		return true
+	}
+	var skipped *argocd.NotCheckedError
+	return errors.As(err, &skipped)
 }
 
 func (a argoAdapter) Discover(repoRoot string, changedFiles []string) []Target {
+	seen := map[string]bool{}
 	var out []Target
+	add := func(path string) {
+		if path == "" || seen[path] {
+			return
+		}
+		seen[path] = true
+		out = append(out, Target{Kind: KindArgoCD, Path: path})
+	}
 	for _, f := range changedFiles {
 		f = strings.TrimSpace(f)
 		if f == "" {
@@ -250,8 +265,14 @@ func (a argoAdapter) Discover(repoRoot string, changedFiles []string) []Target {
 		}
 		path := joinRoot(repoRoot, f)
 		if a.matches(path) {
-			out = append(out, Target{Kind: KindArgoCD, Path: path})
+			add(path)
 		}
+	}
+	// A values file or a chart file can change without the Application file
+	// itself changing. Match those paths. Do not stat the changed path first:
+	// a deleted values file is still a change.
+	for _, path := range argocd.ApplicationsReferencing(repoRoot, changedFiles) {
+		add(path)
 	}
 	return out
 }

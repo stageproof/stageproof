@@ -19,6 +19,11 @@ type RenderOptions struct {
 	SetStrings  []string
 	KubeVersion string
 	APIVersions []string
+	// SkipCRDs omits CRDs from the rendered output. Argo CD sets this from
+	// spec.source.helm.skipCrds, which is Helm's --skip-crds.
+	// https://argo-cd.readthedocs.io/en/stable/user-guide/helm/
+	SkipCRDs bool
+	SetFiles []string
 }
 
 func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
@@ -34,7 +39,11 @@ func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
 	args := []string{
 		"template", rel, opts.ChartDir,
 		"--namespace", ns,
-		"--include-crds",
+	}
+	if opts.SkipCRDs {
+		args = append(args, "--skip-crds")
+	} else {
+		args = append(args, "--include-crds")
 	}
 	if opts.KubeVersion != "" {
 		kv := strings.TrimPrefix(opts.KubeVersion, "v")
@@ -55,6 +64,9 @@ func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
 	for _, ss := range opts.SetStrings {
 		args = append(args, "--set-string", ss)
 	}
+	for _, sf := range opts.SetFiles {
+		args = append(args, "--set-file", sf)
+	}
 
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, "helm", args...)
@@ -64,27 +76,36 @@ func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
 		return "", fmt.Errorf("helm template %s failed: %w\n%s", opts.ChartDir, err, strings.TrimSpace(stderr.String()))
 	}
 
-	crdsDir := filepath.Join(opts.ChartDir, "crds")
 	var crdBuf strings.Builder
-	if entries, err := os.ReadDir(crdsDir); err == nil {
-		outStr := stdout.String()
-		for _, e := range entries {
-			if e.IsDir() {
-				continue
-			}
-			ext := strings.ToLower(filepath.Ext(e.Name()))
-			if ext != ".yaml" && ext != ".yml" {
-				continue
-			}
-			raw, rErr := os.ReadFile(filepath.Join(crdsDir, e.Name()))
-			if rErr == nil && len(raw) > 0 && !strings.Contains(outStr, string(raw[:min(len(raw), 120)])) {
-				crdBuf.WriteString("\n---\n")
-				crdBuf.Write(raw)
-			}
-		}
+	if !opts.SkipCRDs {
+		crdBuf = appendedChartCRDs(opts.ChartDir, stdout.String())
 	}
 
 	return stdout.String() + crdBuf.String(), nil
+}
+
+func appendedChartCRDs(chartDir, rendered string) strings.Builder {
+	var crdBuf strings.Builder
+	crdsDir := filepath.Join(chartDir, "crds")
+	entries, err := os.ReadDir(crdsDir)
+	if err != nil {
+		return crdBuf
+	}
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		ext := strings.ToLower(filepath.Ext(e.Name()))
+		if ext != ".yaml" && ext != ".yml" {
+			continue
+		}
+		raw, rErr := os.ReadFile(filepath.Join(crdsDir, e.Name()))
+		if rErr == nil && len(raw) > 0 && !strings.Contains(rendered, string(raw[:min(len(raw), 120)])) {
+			crdBuf.WriteString("\n---\n")
+			crdBuf.Write(raw)
+		}
+	}
+	return crdBuf
 }
 
 func min(a, b int) int {

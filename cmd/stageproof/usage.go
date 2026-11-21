@@ -25,7 +25,7 @@ Results:
 Chart, Argo CD & Values:
   --current-chart <dir>    Currently deployed Helm chart directory (before upgrade)
   --new-chart <dir>        New candidate Helm chart directory to verify (after upgrade)
-  --argocd-file <file>     Argo CD Application YAML / .yaml.tmpl (auto-pulls chart + values + SSA)
+  --argocd-file <file>     Argo CD Application YAML / .yaml.tmpl. A remote chart is pulled. A Git path in this checkout is read locally.
   --current-argocd-file <file>
                            Previously deployed Argo CD Application, compared with --argocd-file
   --current-git <ref>      Extract current chart / Argo CD file from git ref (e.g. origin/main)

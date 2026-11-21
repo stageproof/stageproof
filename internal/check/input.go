@@ -15,14 +15,28 @@ type Input struct {
 	ManifestBefore string
 	ManifestAfter  string
 
-	BaseDir           string
-	HeadDir           string
-	BaseRef           string
-	HeadRef           string
-	BaseValues        []string
-	HeadValues        []string
-	ValueLabels       map[string]string
-	SetValues         []string
+	BaseDir     string
+	HeadDir     string
+	BaseRef     string
+	HeadRef     string
+	BaseValues  []string
+	HeadValues  []string
+	ValueLabels map[string]string
+	SetValues   []string
+	// Per-side Helm sets come from an Argo CD Application. The shared
+	// SetValues above are the command's own --set flags and apply to both.
+	BaseSet           []string
+	HeadSet           []string
+	BaseSetString     []string
+	HeadSetString     []string
+	BaseSetFile       []string
+	HeadSetFile       []string
+	BaseRelease       string
+	HeadRelease       string
+	BaseNamespace     string
+	HeadNamespace     string
+	BaseSkipCRDs      bool
+	HeadSkipCRDs      bool
 	KubeVersion       string
 	NextKubernetes    string
 	APIServer         string // auto, off, or require. Empty skips the API server so tests stay offline.

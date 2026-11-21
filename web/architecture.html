@@ -122,12 +122,12 @@ kind cluster on this machine
             <tr>
               <td>Impact</td>
               <td>It compares the two sets of objects. A delete of a PersistentVolumeClaim, a Namespace, or a templated CRD is <code>BLOCKED</code>. A CRD schema break that an existing object uses is <code>BLOCKED</code>. A restart is named and does not block. When the API server did not run, the check says it compared the rendered objects.</td>
-              <td>The comparison does not print values. A CRD under <code>crds/</code> is judged as plain Helm, which does not upgrade that directory. An Argo CD check uses the Argo rule and warns when <code>skipCrds</code> was not read. Flux is not wired in yet. Rendered manifests have no chart <code>crds/</code> directory.</td>
+              <td>The comparison does not print values. A CRD under <code>crds/</code> is judged as plain Helm, which does not upgrade that directory. An Argo CD check warns when <code>skipCrds</code> is false or absent, and uses the Helm rule when <code>skipCrds</code> is true. Flux is not wired in yet. Rendered manifests have no chart <code>crds/</code> directory.</td>
             </tr>
             <tr>
               <td>Argo CD</td>
-              <td>An Application file is parsed, both chart revisions are pulled, and inline <code>helm.values</code> are checked. <code>${...}</code> placeholders in a <code>.yaml.tmpl</code> are replaced with fixed samples so the file parses.</td>
-              <td>One chart source. Several sources, <code>valueFiles</code>, and a Git path as the source are not read.</td>
+              <td>An Application is parsed. A remote chart is pulled. A Git path in this checkout is read at the revision being compared. <code>valueFiles</code>, <code>values</code>, <code>valuesObject</code>, <code>parameters</code>, and <code>releaseName</code> follow Argo CD's order. <code>valuesObject</code> replaces <code>values</code>. <code>${...}</code> placeholders in a <code>.yaml.tmpl</code> are replaced with fixed samples so the file parses.</td>
+              <td>Another Git repository is not cloned. An ApplicationSet is <code>NOT CHECKED</code>. A missing values file is <code>NOT CHECKED</code> unless <code>ignoreMissingValueFiles</code> is true. Flux is not read.</td>
             </tr>
             <tr>
               <td>Pull request</td>

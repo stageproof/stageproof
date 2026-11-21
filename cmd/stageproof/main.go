@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -268,12 +269,21 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	// file. Reports name where the values came from, not that file.
 	valuesLabel := map[string]string{}
 	var placeholderTokens []string
+	var headRelease, baseRelease, headNamespace, baseNamespace string
+	var headSet, baseSet, headSetStr, baseSetStr, headSetFile, baseSetFile []string
+	var argoSkip *bool
+	headSkipCRDs := false
+	baseSkipCRDs := false
+	argoBase := false
 
-	// Argo CD Application / .yaml.tmpl mode: auto-pull remote Helm chart(s), extract inline values & syncOptions!
+	// Argo CD Application. A remote chart is pulled. A Git path in this
+	// checkout is read from the revision being compared. Other Git
+	// repositories are not cloned.
 	if *argoFile != "" {
-		newSpec, used, aErr := argocd.ParseApplicationFile(*argoFile, templatePlaceholders())
-		if tokens := argocd.UnresolvedTokens(aErr); len(tokens) > 0 {
-			emit(unresolvedPlaceholderReport(*argoFile, tokens))
+		placeholders := templatePlaceholders()
+		newSpec, used, aErr := argocd.ParseApplicationFile(*argoFile, placeholders)
+		if rep, ok := argoStop(aErr, *argoFile); ok {
+			emit(rep)
 			return verdict.NotChecked.ExitCode()
 		}
 		if aErr != nil {
@@ -281,37 +291,36 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			return 2
 		}
 		placeholderTokens = append(placeholderTokens, used...)
-		tmpPull, mErr := os.MkdirTemp("", "stageproof-argopull-*")
+		headMat, mErr := argocd.Materialize(ctx, newSpec, argocd.MaterializeOptions{})
+		if rep, ok := argoStop(mErr, *argoFile); ok {
+			emit(rep)
+			return verdict.NotChecked.ExitCode()
+		}
 		if mErr != nil {
-			fmt.Fprintf(os.Stderr, "tempdir error: %v\n", mErr)
+			fmt.Fprintf(os.Stderr, "error reading --argocd-file %s: %v\n", *argoFile, mErr)
 			return 2
 		}
-		defer func() { _ = os.RemoveAll(tmpPull) }()
-
-		pulledNew, pErr := argocd.PullChart(ctx, newSpec.RepoURL, newSpec.Chart, newSpec.TargetRevision, filepath.Join(tmpPull, "new"))
-		if pErr != nil {
-			fmt.Fprintf(os.Stderr, "error pulling candidate chart %s@%s: %v\n", newSpec.Chart, newSpec.TargetRevision, pErr)
-			return 2
-		}
-		headDir = pulledNew
-		headLabel = chartRefLabel(newSpec.Chart, newSpec.TargetRevision, *argoFile)
+		defer headMat.Cleanup()
+		headDir = headMat.ChartDir
+		headLabel = argoRefLabel(newSpec, *argoFile)
 		if newSpec.ServerSideApply {
 			effSSA = true
 		}
-		setValues = append(setValues, newSpec.SetParams...)
-		if strings.TrimSpace(newSpec.ValuesYAML) != "" {
-			vfPath := filepath.Join(tmpPull, "argocd-inline-values.yaml")
-			_ = os.WriteFile(vfPath, []byte(newSpec.ValuesYAML), 0o644)
-			effectiveValues = append(effectiveValues, vfPath)
-			valuesLabel[vfPath] = inlineValuesLabel(*argoFile)
+		effectiveValues = append(effectiveValues, headMat.ValueFiles...)
+		for path, label := range headMat.Labels {
+			valuesLabel[path] = label
 		}
+		headSet, headSetStr, headSetFile = headMat.SetValues, headMat.SetStrings, headMat.SetFiles
+		headRelease, headNamespace = headMat.ReleaseName, headMat.Namespace
+		argoSkip = newSpec.SkipCrds
+		headSkipCRDs = newSpec.SkipCrds != nil && *newSpec.SkipCrds
 
 		var oldSpec *argocd.AppSpec
 		oldLabel := ""
 		if *currentArgo != "" {
-			parsed, usedOld, oErr := argocd.ParseApplicationFile(*currentArgo, templatePlaceholders())
-			if tokens := argocd.UnresolvedTokens(oErr); len(tokens) > 0 {
-				emit(unresolvedPlaceholderReport(*currentArgo, tokens))
+			parsed, usedOld, oErr := argocd.ParseApplicationFile(*currentArgo, placeholders)
+			if rep, ok := argoStop(oErr, *currentArgo); ok {
+				emit(rep)
 				return verdict.NotChecked.ExitCode()
 			}
 			if oErr != nil {
@@ -324,9 +333,9 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		} else if gitRef != "" {
 			oldBytes, gErr := readFileFromGitRef(gitRef, *argoFile)
 			if gErr == nil {
-				parsed, usedOld, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, templatePlaceholders())
-				if tokens := argocd.UnresolvedTokens(oErr); len(tokens) > 0 {
-					emit(unresolvedPlaceholderReport(gitRef+":"+*argoFile, tokens))
+				parsed, usedOld, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, placeholders)
+				if rep, ok := argoStop(oErr, gitRef+":"+*argoFile); ok {
+					emit(rep)
 					return verdict.NotChecked.ExitCode()
 				}
 				if oErr == nil {
@@ -337,18 +346,30 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			}
 		}
 		if oldSpec != nil {
-			pulledOld, poErr := argocd.PullChart(ctx, oldSpec.RepoURL, oldSpec.Chart, oldSpec.TargetRevision, filepath.Join(tmpPull, "current"))
-			if poErr != nil {
-				fmt.Fprintf(os.Stderr, "error pulling current chart %s@%s: %v\n", oldSpec.Chart, oldSpec.TargetRevision, poErr)
+			baseMat, bErr := argocd.Materialize(ctx, oldSpec, argocd.MaterializeOptions{GitRef: gitRefFor(oldLabel, *currentArgo)})
+			if rep, ok := argoStop(bErr, oldLabel); ok {
+				emit(rep)
+				return verdict.NotChecked.ExitCode()
+			}
+			if bErr != nil {
+				fmt.Fprintf(os.Stderr, "error reading the current Application %s: %v\n", oldLabel, bErr)
 				return 2
 			}
-			resolvedBaseDir = pulledOld
-			baseLabel = chartRefLabel(oldSpec.Chart, oldSpec.TargetRevision, oldLabel)
-			if strings.TrimSpace(oldSpec.ValuesYAML) != "" && len(baseVals) == 0 {
-				bvfPath := filepath.Join(tmpPull, "argocd-base-values.yaml")
-				_ = os.WriteFile(bvfPath, []byte(oldSpec.ValuesYAML), 0o644)
-				baseVals = []string{bvfPath}
+			defer baseMat.Cleanup()
+			resolvedBaseDir = baseMat.ChartDir
+			baseLabel = argoRefLabel(oldSpec, oldLabel)
+			argoBase = true
+			if len(baseVals) == 0 {
+				baseVals = append([]string{}, baseMat.ValueFiles...)
 			}
+			for path, label := range baseMat.Labels {
+				if _, exists := valuesLabel[path]; !exists {
+					valuesLabel[path] = label
+				}
+			}
+			baseSet, baseSetStr, baseSetFile = baseMat.SetValues, baseMat.SetStrings, baseMat.SetFiles
+			baseRelease, baseNamespace = baseMat.ReleaseName, baseMat.Namespace
+			baseSkipCRDs = oldSpec.SkipCrds != nil && *oldSpec.SkipCrds
 		}
 	} else {
 		if resolvedBaseDir == "" && gitRef != "" {
@@ -367,7 +388,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		}
 	}
 
-	if len(baseVals) == 0 {
+	if len(baseVals) == 0 && !argoBase {
 		baseVals = effectiveValues
 	}
 	if yml, yErr := helm.AssignmentsYAML(setValues); yErr == nil && strings.TrimSpace(yml) != "" {
@@ -396,6 +417,19 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		HeadValues:        effectiveValues,
 		ValueLabels:       valuesLabel,
 		SetValues:         setValues,
+		BaseSet:           baseSet,
+		HeadSet:           headSet,
+		BaseSetString:     baseSetStr,
+		HeadSetString:     headSetStr,
+		BaseSetFile:       baseSetFile,
+		HeadSetFile:       headSetFile,
+		BaseRelease:       baseRelease,
+		HeadRelease:       headRelease,
+		BaseNamespace:     baseNamespace,
+		HeadNamespace:     headNamespace,
+		BaseSkipCRDs:      baseSkipCRDs,
+		HeadSkipCRDs:      headSkipCRDs,
+		ArgoSkipCrds:      argoSkip,
 		KubeVersion:       effK8s,
 		NextKubernetes:    effNextK8s,
 		APIServer:         *apiServer,
@@ -413,4 +447,51 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	})
 	emit(rep)
 	return rep.ExitCode
+}
+
+func argoStop(err error, label string) (*verdict.Report, bool) {
+	if err == nil {
+		return nil, false
+	}
+	if tokens := argocd.UnresolvedTokens(err); len(tokens) > 0 {
+		return unresolvedPlaceholderReport(label, tokens), true
+	}
+	var skipped *argocd.NotCheckedError
+	if !errors.As(err, &skipped) {
+		return nil, false
+	}
+	return &verdict.Report{
+		Verdict:   verdict.NotChecked,
+		ExitCode:  verdict.NotChecked.ExitCode(),
+		Adapter:   "argocd",
+		BaseRef:   label,
+		HeadRef:   label,
+		Checked:   verdict.CheckedFiles,
+		Timestamp: time.Now().UTC(),
+		Checks: []verdict.CheckResult{{
+			Name:    "Argo CD source",
+			Status:  "fail",
+			Summary: skipped.Error(),
+		}},
+	}, true
+}
+
+func argoRefLabel(spec *argocd.AppSpec, source string) string {
+	if spec.LocalPath != "" {
+		if source == "" || strings.HasPrefix(source, os.TempDir()) {
+			return spec.LocalPath
+		}
+		return spec.LocalPath + " (" + source + ")"
+	}
+	return chartRefLabel(spec.Chart, spec.TargetRevision, source)
+}
+
+// gitRefFor is the revision to read a Git-path chart from. A separate
+// --current-argocd-file is already the old spec, so its chart path is the
+// working tree. --current-git is the old revision of this checkout.
+func gitRefFor(oldLabel, currentArgo string) string {
+	if currentArgo != "" {
+		return ""
+	}
+	return oldLabel
 }
