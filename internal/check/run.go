@@ -79,6 +79,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		// Signals are recorded before compatibility findings, matching the previous order.
 		Changes(in, st)
 	}
+	Supply(ctx, in, st)
 	ServerProof(ctx, in, st)
 	if st.Stopped {
 		return st.Report

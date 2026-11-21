@@ -20,6 +20,8 @@ A label in `labels/` is `{case, truth, evidence, by, date}`. `truth` is `clean` 
 
 `go run ./cmd/corpus compare results.json corpus/baseline.json` exits non-zero when an active incident is missed, a control is blocked, or a labeled-clean pair is blocked and was not blocked in the baseline. The corpus workflow runs that compare on the incident results and on the pair results.
 
+`blocked_clean` is a labeled-clean pair that is `BLOCKED` after the tag was checked by hand. The label stays `clean`: a same-major minor is labeled `clean`. On 2026-11-21 the five entries are minor upgrades whose new image tag returned HTTP 404 `MANIFEST_UNKNOWN`. They are not rate limits and not 401 responses.
+
 ## Replay
 
 `corpus/replay/cases.jsonl` is one JSON object per line: `repo`, `sha`, `path`, `from`, `to`. `repo` is `owner/name`. `sha` is the commit that contains the new chart version. `path` is the Flux HelmRelease file. `from` and `to` are the chart versions. The file does not store values, manifests, or secrets.

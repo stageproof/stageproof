@@ -28,25 +28,27 @@ type Input struct {
 	SetValues   []string
 	// Per-side Helm sets come from an Argo CD Application. The shared
 	// SetValues above are the command's own --set flags and apply to both.
-	BaseSet           []string
-	HeadSet           []string
-	BaseSetString     []string
-	HeadSetString     []string
-	BaseSetFile       []string
-	HeadSetFile       []string
-	BaseRelease       string
-	HeadRelease       string
-	BaseNamespace     string
-	HeadNamespace     string
-	BaseSkipCRDs      bool
-	HeadSkipCRDs      bool
-	KubeVersion       string
-	NextKubernetes    string
-	APIServer         string // auto, off, or require. Empty skips the API server so tests stay offline.
-	APIServerDir      string
-	ServerSideApply   bool
-	RequireRehearsal  bool
-	Live              bool
+	BaseSet          []string
+	HeadSet          []string
+	BaseSetString    []string
+	HeadSetString    []string
+	BaseSetFile      []string
+	HeadSetFile      []string
+	BaseRelease      string
+	HeadRelease      string
+	BaseNamespace    string
+	HeadNamespace    string
+	BaseSkipCRDs     bool
+	HeadSkipCRDs     bool
+	KubeVersion      string
+	NextKubernetes   string
+	APIServer        string // auto, off, or require. Empty skips the API server so tests stay offline.
+	APIServerDir     string
+	ServerSideApply  bool
+	RequireRehearsal bool
+	Live             bool
+	// Offline skips registry HEAD and index requests. It does not change APIServer.
+	Offline           bool
 	ClusterName       string
 	KeepCluster       bool
 	Timeout           time.Duration

@@ -34,6 +34,11 @@
           "summary": "1 named change"
         },
         {
+          "name": "image tags",
+          "status": "pass",
+          "summary": "no new or changed image"
+        },
+        {
           "name": "impact",
           "status": "pass",
           "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
@@ -98,6 +103,11 @@
           "summary": "1 named change"
         },
         {
+          "name": "image tags",
+          "status": "pass",
+          "summary": "no new or changed image"
+        },
+        {
           "name": "impact",
           "status": "pass",
           "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
@@ -141,6 +151,11 @@
           "name": "values.yaml AST",
           "status": "pass",
           "summary": "2 keys: 0 proven by rendering, 2 read in templates"
+        },
+        {
+          "name": "image tags",
+          "status": "pass",
+          "summary": "no new or changed image"
         },
         {
           "name": "impact",

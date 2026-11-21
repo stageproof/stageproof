@@ -203,6 +203,28 @@ type imageRef struct {
 	image string
 }
 
+// ImageUse is one image reference found in a rendered object.
+type ImageUse struct {
+	Key      string
+	Resource string
+	Image    string
+}
+
+// ImageUses returns the images in objs, sorted by key.
+func ImageUses(objs []k8sschema.ManifestObject) []ImageUse {
+	idx := indexImages(objs)
+	keys := make([]string, 0, len(idx))
+	for k := range idx {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]ImageUse, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, ImageUse{Key: k, Resource: idx[k].where, Image: idx[k].image})
+	}
+	return out
+}
+
 func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Finding {
 	base := indexImages(baseObjs)
 	head := indexImages(headObjs)
@@ -250,7 +272,7 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		RuleID:   "helm.image.changed",
 		Severity: verdict.SeverityWarning,
 		Message:  headLine + " " + strings.Join(shown, " "),
-		Detail:   "The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.",
+		Detail:   "The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.",
 	}}
 }
 
