@@ -181,7 +181,28 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	effRequire := *requireRehearsal
 	effSSA := *ssa || strings.EqualFold(*applyMode, "ssa") || strings.EqualFold(*applyMode, "server-side")
 
+	var cfg *config.Config
+	configChanged := false
+	if injected, ok := config.FromContext(ctx); ok {
+		cfg = injected.Config
+		configChanged = injected.Changed
+	} else if loaded, cfgErr := config.Load(".stageproof.yaml"); cfgErr != nil {
+		if !os.IsNotExist(cfgErr) {
+			fmt.Fprintf(os.Stderr, "stageproof: .stageproof.yaml: %v\n", cfgErr)
+			return 2
+		}
+	} else {
+		cfg = loaded
+	}
+	var placeholders map[string]string
+	if cfg != nil {
+		placeholders = cfg.TemplatePlaceholders
+	}
+
 	emit := func(rep *verdict.Report) {
+		if configChanged {
+			config.NoteConfigChanged(cfg, rep, time.Now().UTC())
+		}
 		// A pull request prints one SARIF log after every chart is checked.
 		if collected != nil && strings.EqualFold(*format, "sarif") {
 			*collected = append(*collected, rep)
@@ -193,7 +214,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		}
 	}
 
-	if cfg, cfgErr := config.Load(".stageproof.yaml"); cfgErr == nil {
+	if cfg != nil {
 		// --current-k8s has a default, so only a flag the caller typed overrides the file.
 		if !flagWasSet(fs, "current-k8s", "current-kubernetes", "target-k8s", "k8s-version") && cfg.CurrentKubernetes != "" {
 			effK8s = cfg.CurrentKubernetes
@@ -285,6 +306,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			RequireRehearsal: effRequire,
 			Offline:          *offline,
 			Started:          tStart,
+			Config:           cfg,
 		})
 		emit(rep)
 		return rep.ExitCode
@@ -312,7 +334,6 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	// checkout is read from the revision being compared. Other Git
 	// repositories are not cloned.
 	if *argoFile != "" {
-		placeholders := templatePlaceholders()
 		newSpec, used, aErr := argocd.ParseApplicationFile(*argoFile, placeholders)
 		if rep, ok := argoStop(aErr, *argoFile); ok {
 			emit(rep)
@@ -404,7 +425,6 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			baseSkipCRDs = oldSpec.SkipCrds != nil && *oldSpec.SkipCrds
 		}
 	} else if *fluxFile != "" {
-		placeholders := templatePlaceholders()
 		newRel, _, fErr := flux.ParseFile(*fluxFile, placeholders)
 		if rep, ok := fluxStop(fErr, *fluxFile); ok {
 			emit(rep)
@@ -572,6 +592,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		Offline:           *offline,
 		HelmCompare:       *helmCompare,
 		Started:           tStart,
+		Config:            cfg,
 	})
 	emit(rep)
 	return rep.ExitCode

@@ -72,6 +72,20 @@ type Set struct {
 	helm helmAdapter
 }
 
+// NewWithConfig uses a config that was already loaded. check-pr passes the
+// file from the base ref so a pull request cannot replace it.
+func NewWithConfig(cfg *config.Config) *Set {
+	if cfg == nil {
+		cfg = &config.Config{}
+	}
+	return &Set{
+		argo: argoAdapter{cfg: cfg},
+		flux: fluxAdapter{cfg: cfg},
+		apps: appAdapter{cfg: cfg},
+		helm: helmAdapter{cfg: cfg},
+	}
+}
+
 // New loads .stageproof.yaml from root when it exists. A missing file is an
 // empty config, not an error.
 func New(root string) *Set {

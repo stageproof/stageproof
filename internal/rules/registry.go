@@ -149,6 +149,18 @@ var rules = []Rule{
 		Fix:         "Run %%helm dependency update%% so the render uses the new chart.",
 	},
 	{
+		ID: "config.changed_in_pr", Severity: verdict.SeverityWarning, Group: GroupChanges,
+		Title:       "The pull request edits the settings file",
+		Explanation: "check-pr reads .stageproof.yaml from the base ref. A change in the pull request does not change ignores, policy, or the other settings for this check. The finding names the file and does not print the file.",
+		Fix:         "Review that change on its own. An ignore added only in the pull request does not hide a finding.",
+	},
+	{
+		ID: "config.ignore_expired", Severity: verdict.SeverityWarning, Group: GroupChanges,
+		Title:       "An ignore entry is past its date",
+		Explanation: "An ignore whose expires date is before today no longer matches. The finding it named is reported as usual. The warning names the rule and the resource pattern.",
+		Fix:         "Remove the entry, or set a new expires date in the file on the base branch.",
+	},
+	{
 		ID: "flux.values.unreadable", Severity: verdict.SeverityWarning, Group: GroupChanges,
 		Title:       "A valuesFrom object could not be read",
 		Explanation: "A %%valuesFrom%% ConfigMap or Secret is not a file in this repository, its key is missing, or the Secret is encrypted. The chart is still rendered. The result stays %%PASSED%%, including after a rehearsal. The report names the reference and does not print the value.",

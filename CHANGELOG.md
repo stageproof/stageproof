@@ -9,6 +9,7 @@ The next release is 0.2.0.
 
 ### Added
 
+- `.stageproof.yaml` accepts `ignores` and `policy`. An ignore needs `rule`, `reason`, and `expires` (`YYYY-MM-DD`; that date still matches). `resource` is a glob, and `*` matches every resource. The rule is the exact id. A match stays in the report, marked ignored with the reason and the date, and does not make the result `BLOCKED`. An expired entry does not match and adds `config.ignore_expired`. `policy` maps a rule id or a prefix to `block`, `warn`, or `info`. The longest match wins. `check-pr` reads the file from the base ref.
 - `--format sarif` prints one SARIF 2.1.0 log. A blocker is `error`, a warning is `warning`, and info is `note`. The message is the finding message. Detail is not copied. `check-pr` writes one log for every chart. `--out` stays JSON. `docs/report.schema.json` is the shape of the JSON report, `schema_version` 1. Exit codes are unchanged.
 - The terminal report and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. A section with nothing in it is left out. The lines are the finding messages and the reasons a check did not finish. The summary does not call a model. Exit codes are unchanged.
 - `stageproof explain <rule-id>` prints the level, the one-line title, the meaning, and what to do for one rule. An unknown id exits 2. The findings tables in the docs are the same text. No rule id was renamed.
@@ -31,6 +32,7 @@ The next release is 0.2.0.
 
 ### Breaking
 
+- `check-pr` reads `.stageproof.yaml` from `--current-git`, the base ref. A pull request that changes that file does not change the Kubernetes version, the values files, the ignores, or the policy used for the check, and the report includes `config.changed_in_pr`. The same pull request used to be checked with the file in the working directory. A `.stageproof.yaml` that is present and cannot be parsed now exits 2. It used to be skipped.
 - With Helm 4 on `PATH`, an upgrade (a check that names a current chart) no longer treats an unknown field as a server-side apply failure. Helm 4 keeps the previous apply method, and a release created by Helm 3 stays client-side. A check with no current chart still treats Helm 4 as a new install, which uses server-side apply. `--server-side-apply` is unchanged. The same upgrade can go from exit 1 to exit 0.
 - `--helm-compare` exits 1 when the other helm binary cannot render the chart. The same chart without the flag is unchanged.
 - A new or changed image tag that the registry says is missing, or a manifest list with no `linux/amd64` entry, is now `BLOCKED` (exit 1). The same chart used to exit 0. A 401, a 403, a timeout, or a rate limit stays exit 0. `--offline` skips the registry check.

@@ -160,6 +160,11 @@ kind cluster on this machine
               <td>A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. The exit code is unchanged. The v0.1.8 binary does not have this format.</td>
             </tr>
             <tr>
+              <td>Ignores and policy</td>
+              <td><code>.stageproof.yaml</code> can ignore a rule until a date, or map a rule id or a prefix to block, warn, or info. <code>check-pr</code> reads that file from the base ref.</td>
+              <td>An ignored finding stays in the report with the reason and the date. It does not make the result <code>BLOCKED</code>. An expired entry does not match. A change to the file in the pull request is <code>config.changed_in_pr</code> and does not change the check. The v0.1.8 binary does not read these settings.</td>
+            </tr>
+            <tr>
               <td>Explain</td>
               <td><code>stageproof explain</code> prints the level, the meaning, and what to do for one rule id. The findings page is the same text.</td>
               <td>It does not run a check and it does not use the network. An unknown id exits 2. The v0.1.8 binary does not have this command.</td>

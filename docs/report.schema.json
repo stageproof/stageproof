@@ -97,7 +97,10 @@
         "message": { "type": "string" },
         "detail": { "type": "string" },
         "proof": { "type": "string" },
-        "verified": { "type": "boolean" }
+        "verified": { "type": "boolean" },
+        "ignored": { "type": "boolean" },
+        "ignore_reason": { "type": "string" },
+        "ignore_expires": { "type": "string", "format": "date" }
       }
     },
     "skip": {

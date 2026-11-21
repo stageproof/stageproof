@@ -1,6 +1,10 @@
 package check
 
-import "time"
+import (
+	"time"
+
+	"github.com/stageproof/stageproof/internal/config"
+)
 
 // Input is one comparison after flags, git, and Argo CD have been resolved.
 type Input struct {
@@ -61,4 +65,7 @@ type Input struct {
 	// ValuesFull render-tests every user key and every changed chart default.
 	// The default proves keys the template reader drops or cannot decide.
 	ValuesFull bool
+	// Config is the settings file for this check. Nil means there is no file.
+	// check-pr passes the file from the base ref.
+	Config *config.Config
 }

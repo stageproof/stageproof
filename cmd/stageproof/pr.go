@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -256,11 +258,59 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 			changed = append(changed, f)
 		}
 	}
-	set := adapter.New(".")
+	baseCfg, configChanged, cfgErr := configFromBase(*currentGit, *newGit)
+	if cfgErr != nil {
+		fmt.Fprintf(os.Stderr, "stageproof check-pr: %v\n", cfgErr)
+		return 2
+	}
+	ctx = config.WithCheck(ctx, baseCfg, configChanged)
+	set := adapter.NewWithConfig(baseCfg)
 	targets := set.Discover(".", changed)
 	if len(targets) == 0 {
 		fmt.Printf("stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between %s and %s.\n", *currentGit, *newGit)
-		return 0
+		if !configChanged {
+			return 0
+		}
+		rep := &verdict.Report{
+			Verdict:   verdict.Passed,
+			ExitCode:  0,
+			Adapter:   "helm",
+			BaseRef:   *currentGit,
+			HeadRef:   *newGit,
+			Checked:   verdict.CheckedFiles,
+			Timestamp: time.Now().UTC(),
+			Checks: []verdict.CheckResult{{
+				Name:    "settings",
+				Status:  "warn",
+				Summary: ".stageproof.yaml changed in this pull request.",
+			}},
+		}
+		config.NoteConfigChanged(baseCfg, rep, time.Now().UTC())
+		if strings.EqualFold(*format, "text") {
+			report.WriteTerminal(os.Stdout, rep)
+		}
+		reports := []*verdict.Report{rep}
+		if strings.EqualFold(*format, "sarif") {
+			_ = report.WriteSARIF(os.Stdout, reports, version, string(rep.Verdict), rep.ExitCode)
+		} else if strings.EqualFold(*format, "json") {
+			_ = report.WriteJSON(os.Stdout, rep)
+		} else if strings.EqualFold(*format, "markdown") || strings.EqualFold(*format, "md") {
+			report.WriteMarkdown(os.Stdout, rep)
+		}
+		combined := &report.Combined{Verdict: rep.Verdict, ExitCode: rep.ExitCode, Reports: reports}
+		if *outPath != "" {
+			if f, cErr := os.Create(*outPath); cErr == nil {
+				_ = report.WriteCombinedJSON(f, combined)
+				_ = f.Close()
+			}
+		}
+		if *commentFile != "" {
+			if f, cErr := os.Create(*commentFile); cErr == nil {
+				report.WriteCombinedMarkdown(f, combined)
+				_ = f.Close()
+			}
+		}
+		return rep.ExitCode
 	}
 
 	worst := verdict.Proven
@@ -271,7 +321,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	}
 
 	// Flags that apply to every chart. --current-k8s is passed on only when the
-	// caller typed it, so that each check can still read it from .stageproof.yaml.
+	// caller typed it. Otherwise each check reads .stageproof.yaml from the base ref.
 	shared := []string{"--format", *format}
 	if flagWasSet(fs, "current-k8s") {
 		shared = append(shared, "--current-k8s", *currentK8s)
@@ -320,7 +370,11 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		}
 		_ = runCheckCollect(ctx, append(target, shared...), &reports)
 		if len(reports) == before {
-			reports = append(reports, incompleteReport(*currentGit, label))
+			rep := incompleteReport(*currentGit, label)
+			if configChanged {
+				config.NoteConfigChanged(baseCfg, rep, time.Now().UTC())
+			}
+			reports = append(reports, rep)
 		}
 		note(reports[len(reports)-1].Verdict)
 	}
@@ -329,7 +383,11 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		resolved, rErr := set.Resolve(ctx, target, *currentGit)
 		if rErr != nil {
 			fmt.Fprintf(os.Stderr, "stageproof check-pr: %s: %v\n", target.Path, rErr)
-			reports = append(reports, incompleteReport(*currentGit, target.Path))
+			rep := incompleteReport(*currentGit, target.Path)
+			if configChanged {
+				config.NoteConfigChanged(baseCfg, rep, time.Now().UTC())
+			}
+			reports = append(reports, rep)
 			note(verdict.NotChecked)
 			continue
 		}
@@ -450,12 +508,47 @@ func incompleteReport(baseRef, target string) *verdict.Report {
 	}
 }
 
-func templatePlaceholders() map[string]string {
-	cfg, err := config.Load(".stageproof.yaml")
+func configFromBase(baseRef, headRef string) (*config.Config, bool, error) {
+	base, baseOK, err := gitBlob(baseRef, ".stageproof.yaml")
 	if err != nil {
-		return nil
+		return nil, false, err
 	}
-	return cfg.TemplatePlaceholders
+	head, headOK, err := gitBlob(headRef, ".stageproof.yaml")
+	if err != nil {
+		return nil, false, err
+	}
+	work, workErr := os.ReadFile(".stageproof.yaml")
+	workOK := workErr == nil
+	if workErr != nil && !os.IsNotExist(workErr) {
+		return nil, false, workErr
+	}
+	changed := baseOK != headOK || !bytes.Equal(base, head) || baseOK != workOK || !bytes.Equal(base, work)
+	if !baseOK {
+		return &config.Config{}, changed, nil
+	}
+	cfg, err := config.LoadBytes(baseRef+":.stageproof.yaml", base)
+	if err != nil {
+		return nil, false, err
+	}
+	return cfg, changed, nil
+}
+
+func gitBlob(ref, name string) ([]byte, bool, error) {
+	if strings.TrimSpace(ref) == "" {
+		return nil, false, fmt.Errorf("git ref is empty")
+	}
+	if err := gitCommand("rev-parse", "--verify", "--quiet", ref+"^{commit}").Run(); err != nil {
+		return nil, false, fmt.Errorf("git ref %s is not a commit", ref)
+	}
+	out, err := gitCommand("show", ref+":"+name).Output()
+	if err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return nil, false, nil
+		}
+		return nil, false, err
+	}
+	return out, true, nil
 }
 
 // chartRefLabel renders chart@version. A synthesized Application under the
