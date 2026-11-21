@@ -94,18 +94,20 @@ type deployMode struct {
 	fluxCreate    bool
 	fluxReplace   bool
 	argocd        bool
+	argocdKnown   bool
+	argocdSkip    bool
 }
 
 func crdDeployMode(adapter, policy string, skipCrds *bool) deployMode {
 	switch adapter {
 	case "argocd":
 		// skipCrds true means Argo CD does not apply crds/, same as plain Helm.
-		// Nil means this check did not read the field. The warning stays until
-		// the Application parser sets the pointer.
+		// A non-nil false means the Application set the field. Nil means the
+		// field was absent, so the warning says the input does not say.
 		if skipCrds != nil && *skipCrds {
-			return deployMode{rule: "crd.not_upgraded_by_helm", helmLike: true}
+			return deployMode{rule: "crd.not_upgraded_by_helm", helmLike: true, argocdSkip: true}
 		}
-		return deployMode{rule: "crd.argocd_renders_crds", appliesSchema: true, argocd: true}
+		return deployMode{rule: "crd.argocd_renders_crds", appliesSchema: true, argocd: true, argocdKnown: skipCrds != nil}
 	case "flux":
 		switch policy {
 		case "CreateReplace":
@@ -127,6 +129,11 @@ func directoryFinding(mode deployMode, name string, incompatible bool, why strin
 	}
 	msg := helmDirectoryMessage(name, why)
 	switch {
+	case mode.argocdSkip:
+		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). spec.source.helm.skipCrds is true, so Argo CD does not apply CRDs in that directory. helm upgrade leaves the CRD already in the cluster as it is.", name, why)
+	case mode.argocd && mode.argocdKnown:
+		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). spec.source.helm.skipCrds is false, so Argo CD renders the chart with helm template and applies CRDs in crds/.", name, why)
+		sev = verdict.SeverityWarning
 	case mode.argocd:
 		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). Argo CD renders the chart with helm template and applies the manifests itself, so CRDs in crds/ are part of the sync unless spec.source.helm.skipCrds is true. This input does not say whether skipCrds is set.", name, why)
 		sev = verdict.SeverityWarning

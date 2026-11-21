@@ -12,7 +12,8 @@ import (
 // Gate stops the check when the new chart requires a value the current chart
 // did not require. Otherwise it records the placeholders render may need.
 func Gate(ctx context.Context, in Input, st *State) {
-	placeholders, blockers := helm.PlanRequiredPlaceholders(in.BaseDir, in.HeadDir, in.HeadValues, in.SetValues)
+	sets := append(append([]string{}, in.SetValues...), in.HeadSet...)
+	placeholders, blockers := helm.PlanRequiredPlaceholders(in.BaseDir, in.HeadDir, in.HeadValues, sets)
 	if len(blockers) > 0 {
 		st.Report.Findings = append(st.Report.Findings, blockers...)
 		st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
@@ -27,12 +28,8 @@ func Gate(ctx context.Context, in Input, st *State) {
 		// A template can mention required on a path the current values never
 		// reach. If the chart renders without a placeholder, the key is not a
 		// secret the chart refuses to start without.
-		if _, trialErr := helm.RenderChart(ctx, helm.RenderOptions{
-			ChartDir:    in.HeadDir,
-			ValuesFiles: in.HeadValues,
-			SetValues:   in.SetValues,
-			KubeVersion: in.KubeVersion,
-		}); trialErr == nil {
+		trial := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
+		if _, trialErr := helm.RenderChart(ctx, trial); trialErr == nil {
 			placeholders = nil
 		}
 	}

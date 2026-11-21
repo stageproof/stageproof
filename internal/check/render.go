@@ -9,16 +9,26 @@ import (
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
+func (in Input) renderOptions(dir string, values, sets, setStrings, setFiles []string, release, namespace string, skip bool) helm.RenderOptions {
+	return helm.RenderOptions{
+		ReleaseName: release,
+		Namespace:   namespace,
+		ChartDir:    dir,
+		ValuesFiles: values,
+		SetValues:   append(append([]string{}, sets...), in.SetValues...),
+		SetStrings:  append([]string{}, setStrings...),
+		SetFiles:    setFiles,
+		KubeVersion: in.KubeVersion,
+		SkipCRDs:    skip,
+	}
+}
+
 // Charts renders the current chart, when there is one, and the new chart.
 func Charts(ctx context.Context, in Input, st *State) {
 	if in.BaseDir != "" {
-		baseYAML, bErr := helm.RenderChart(ctx, helm.RenderOptions{
-			ChartDir:    in.BaseDir,
-			ValuesFiles: in.BaseValues,
-			SetValues:   in.SetValues,
-			SetStrings:  st.Placeholders,
-			KubeVersion: in.KubeVersion,
-		})
+		baseOpts := in.renderOptions(in.BaseDir, in.BaseValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
+		baseOpts.SetStrings = append(baseOpts.SetStrings, st.Placeholders...)
+		baseYAML, bErr := helm.RenderChart(ctx, baseOpts)
 		if bErr != nil {
 			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 				Name:    "baseline helm template",
@@ -37,13 +47,9 @@ func Charts(ctx context.Context, in Input, st *State) {
 		st.BaseObjs = objs
 	}
 
-	headYAML, hErr := helm.RenderChart(ctx, helm.RenderOptions{
-		ChartDir:    in.HeadDir,
-		ValuesFiles: in.HeadValues,
-		SetValues:   in.SetValues,
-		SetStrings:  st.Placeholders,
-		KubeVersion: in.KubeVersion,
-	})
+	headOpts := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
+	headOpts.SetStrings = append(headOpts.SetStrings, st.Placeholders...)
+	headYAML, hErr := helm.RenderChart(ctx, headOpts)
 	if hErr != nil {
 		st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 			RuleID:   "helm.template.render_failed",
