@@ -110,6 +110,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	argoFile := fs.String("argocd-file", "", "Argo CD Application YAML or .yaml.tmpl file")
 	currentArgo := fs.String("current-argocd-file", "", "Previously deployed Argo CD Application file, compared with --argocd-file")
 	currentGit := fs.String("current-git", "", "Git ref to extract --current-chart / --argocd-file from")
+	before := fs.String("before", "", "Rendered manifests before the change, a .yaml/.yml file or a directory")
+	after := fs.String("after", "", "Rendered manifests after the change, a .yaml/.yml file or a directory")
 
 	var valuesFiles multiFlag
 	var baseValuesFiles multiFlag
@@ -199,7 +201,28 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		}
 	}
 
-	if headDir == "" && *argoFile == "" {
+	beforePath := strings.TrimSpace(*before)
+	afterPath := strings.TrimSpace(*after)
+	manifestMode := beforePath != "" || afterPath != ""
+	if manifestMode {
+		if beforePath == "" || afterPath == "" {
+			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after are both required")
+			return 2
+		}
+		if headDir != "" || baseDir != "" || *argoFile != "" || *currentArgo != "" || gitRef != "" {
+			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a chart or an Argo CD Application")
+			return 2
+		}
+		if len(valuesFiles) > 0 || len(baseValuesFiles) > 0 || len(setValues) > 0 {
+			fmt.Fprintln(os.Stderr, "stageproof check: values files and --set are for Helm charts. Manifest mode reads the YAML you already rendered.")
+			return 2
+		}
+		if effLive {
+			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a live rehearsal. Manifest mode does not install a chart.")
+			return 2
+		}
+	}
+	if !manifestMode && headDir == "" && *argoFile == "" {
 		fmt.Fprintln(os.Stderr, "error: --new-chart <dir> or --argocd-file <file> is required")
 		fmt.Fprintln(os.Stderr, "Run `stageproof check --help` for examples.")
 		return 2
@@ -214,6 +237,26 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	default:
 		fmt.Fprintf(os.Stderr, "error: --api-server must be auto, off, or require\n")
 		return 2
+	}
+
+	if manifestMode {
+		rep := check.Run(ctx, check.Input{
+			Adapter:          "manifests",
+			ManifestMode:     true,
+			ManifestBefore:   beforePath,
+			ManifestAfter:    afterPath,
+			BaseRef:          beforePath,
+			HeadRef:          afterPath,
+			KubeVersion:      effK8s,
+			NextKubernetes:   effNextK8s,
+			APIServer:        *apiServer,
+			APIServerDir:     *apiServerDir,
+			ServerSideApply:  effSSA,
+			RequireRehearsal: effRequire,
+			Started:          tStart,
+		})
+		emit(rep)
+		return rep.ExitCode
 	}
 
 	resolvedBaseDir := baseDir
@@ -339,7 +382,12 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		}
 	}
 
+	adapterName := "helm"
+	if *argoFile != "" {
+		adapterName = "argocd"
+	}
 	rep := check.Run(ctx, check.Input{
+		Adapter:           adapterName,
 		BaseDir:           resolvedBaseDir,
 		HeadDir:           headDir,
 		BaseRef:           baseLabel,

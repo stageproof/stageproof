@@ -9,10 +9,12 @@ import (
 
 // Options is the comparison context. Adapter is the tool that produced the
 // objects. FluxCRDPolicy is spec.upgrade.crds when the Flux adapter has read
-// it. Empty means the Flux default, Skip.
+// it. Empty means the Flux default, Skip. ArgoSkipCrds is helm.skipCrds when
+// the Application said so. Nil means the file was not read for that field.
 type Options struct {
 	Adapter       string
 	FluxCRDPolicy string
+	ArgoSkipCrds  *bool
 	BeforeDir     string
 	AfterDir      string
 	APIServerRan  bool
@@ -40,7 +42,7 @@ func Compare(before, after []k8sschema.ManifestObject, opt Options) ([]verdict.F
 	chosen, summary := chooseForms(rawBefore, rawAfter, opt)
 
 	var findings []verdict.Finding
-	findings = append(findings, deletes(rawBefore, rawAfter)...)
+	findings = append(findings, deletes(rawBefore, rawAfter, opt.Adapter)...)
 	findings = append(findings, crdSafety(rawBefore, rawAfter, opt)...)
 	findings = append(findings, crdsDirectory(rawBeforeList(rawBefore), opt)...)
 	findings = append(findings, privilege(chosen.before, chosen.after)...)

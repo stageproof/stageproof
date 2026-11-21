@@ -8,16 +8,20 @@ import (
 // Impact names deletes, restarts, exposure, privilege, capacity, and CRD
 // breaks. It uses stored objects when the API server returned them.
 func Impact(in Input, st *State) {
-	if in.BaseDir == "" {
+	// Manifest mode has no chart directory. The objects come from --before and
+	// --after. A chart check with no current chart still has nothing to compare.
+	if !in.ManifestMode && in.BaseDir == "" {
 		return
 	}
 	findings, summary := impact.Compare(st.BaseObjs, st.HeadObjs, impact.Options{
-		Adapter:      st.Report.Adapter,
-		BeforeDir:    in.BaseDir,
-		AfterDir:     in.HeadDir,
-		APIServerRan: st.APIServerRan,
-		StoredBefore: st.StoredBefore,
-		StoredAfter:  st.StoredAfter,
+		Adapter:       st.Report.Adapter,
+		FluxCRDPolicy: in.FluxCRDPolicy,
+		ArgoSkipCrds:  in.ArgoSkipCrds,
+		BeforeDir:     in.BaseDir,
+		AfterDir:      in.HeadDir,
+		APIServerRan:  st.APIServerRan,
+		StoredBefore:  st.StoredBefore,
+		StoredAfter:   st.StoredAfter,
 	})
 	blockers, warns := 0, 0
 	for _, f := range findings {

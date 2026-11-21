@@ -1,12 +1,12 @@
 # What Stageproof does and does not do
 
-Last updated: 2026-11-20.
+Last updated: 2026-11-21.
 
 This page is the scope of the command line tool.
 
 ## The job, in one paragraph
 
-Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, or an Argo CD Application might name the chart and the version. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. It does not edit the pull request, it does not merge it, and it does not change any cluster you already have.
+Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, or an Argo CD Application might name the chart and the version. Source on main can also compare two sets of rendered manifests. The released binary is v0.1.8 and does not have that mode. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. It does not edit the pull request, it does not merge it, and it does not change any cluster you already have.
 
 ## Two different upgrades
 
@@ -33,9 +33,10 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 |---|---|---|---|
 | Helm chart in a directory, with your values files | Yes. `stageproof check --current-chart` and `--new-chart`. | | |
 | Argo CD Application that names one Helm chart (HTTPS repo or `oci://`) and carries inline `helm.values` | Yes. `stageproof check --argocd-file`. A `.yaml.tmpl` is accepted. `${...}` placeholders are replaced with fixed samples so the file parses. | Applications with several sources, `valueFiles`, `valuesObject`, or a Git directory as the source. Those are not read today. | |
-| Pull request or merge request | Yes. `stageproof check-pr` reads `git diff` and checks every changed chart and every changed Argo CD Application. It does not call Renovate, GitHub, or GitLab to ask what changed. | | |
+| Pull request or merge request | Yes. `stageproof check-pr` reads `git diff` and checks every changed chart and every changed Argo CD Application. A file deleted inside a chart is still a change to that chart. It does not call Renovate, GitHub, or GitLab to ask what changed. | | |
 | Flux `HelmRelease` | No. The file is ignored. | Yes. Same chart check, once the Flux adapter exists. | |
-| Kustomize, Helmfile, plain YAML manifests | No. The files are ignored. | Yes. Any two rendered manifest sets, so the check does not care which tool rendered them. | |
+| Rendered YAML manifests | Yes, in source on main. `stageproof check --before` and `--after` read a `.yaml` or `.yml` file, or a directory of them. Chart stages are skipped. The API server, the impact check, and the API table run. `--live` with these flags is exit 2. `check-pr` still ignores a loose manifest that is not inside a chart. The v0.1.8 release does not have these flags. | | |
+| Kustomize, Helmfile | No. The files are ignored. | | |
 | Terraform providers, modules, and plans | No. | | A provider or module version change is not a Helm upgrade. |
 | Container image contents (base image, libc, user, entrypoint) | No. An image tag inside a chart is just a string in the render. | A supply check that the tag exists and the registry is reachable. Not an ABI or CVE scanner. | Deciding whether a new base image is safe to run. |
 | Language packages (npm, Maven, Go modules, and the rest) | No. | No. | Renovate already has Merge Confidence for those. |

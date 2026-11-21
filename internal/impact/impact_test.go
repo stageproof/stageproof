@@ -189,6 +189,16 @@ func TestCRDsDirectory(t *testing.T) {
 	requireRule(t, argo, "crd.argocd_renders_crds", verdict.SeverityWarning)
 	rejectRule(t, argo, "crd.not_upgraded_by_helm")
 
+	skip := true
+	skipped, _ := Compare(nil, nil, Options{
+		Adapter:      "argocd",
+		ArgoSkipCrds: &skip,
+		BeforeDir:    filepath.Join(root, "break", "before"),
+		AfterDir:     filepath.Join(root, "break", "after"),
+	})
+	requireRule(t, skipped, "crd.not_upgraded_by_helm", verdict.SeverityBlocker)
+	rejectRule(t, skipped, "crd.argocd_renders_crds")
+
 	flux, _ := Compare(nil, nil, Options{
 		Adapter:   "flux",
 		BeforeDir: filepath.Join(root, "break", "before"),

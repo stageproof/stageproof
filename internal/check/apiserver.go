@@ -77,7 +77,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	st.StoredBefore = append(st.StoredBefore, res.StoredBefore...)
 	st.StoredAfter = append(st.StoredAfter, res.StoredAfter...)
 	st.Report.Findings = append(st.Report.Findings, res.Findings...)
-	st.Report.Checked = "files, API server " + srv.Version()
+	st.Report.Checked = checkedWithAPIServer(in, srv.Version())
 	blockers := 0
 	for _, f := range res.Findings {
 		if f.Severity == verdict.SeverityBlocker {
@@ -117,6 +117,13 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	}
 	st.NextAPIServerRan = true
 	st.Report.Findings = append(st.Report.Findings, nextRes.Findings...)
+}
+
+func checkedWithAPIServer(in Input, version string) string {
+	if in.ManifestMode {
+		return verdict.CheckedManifests + ", API server " + version
+	}
+	return "files, API server " + version
 }
 
 func manifests(objs []k8sschema.ManifestObject) []apiserver.Manifest {

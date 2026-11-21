@@ -9,6 +9,8 @@ The next release is 0.2.0.
 
 ### Added
 
+- `stageproof check --before` and `--after` compare two rendered manifest files or directories. Helm is not called. Chart stages are recorded as skipped. The API server, the impact check, and the API table still run. `checked` is `rendered manifests`, or `rendered manifests, API server <patch>` when the API server ran. The report adapter is `manifests`. `--live`, values files, and `--set` with these flags exit 2. A path that cannot be read is `manifest.invalid_yaml`.
+- An Argo CD Application check reports adapter `argocd`. A chart check stays `helm`. `ArgoSkipCrds` and `FluxCRDPolicy` are carried on the check. The Application file is not parsed for `skipCrds` yet. When a caller sets `skipCrds` true, chart `crds/` are judged as plain Helm.
 - JSON reports start with `schema_version` 1. The field is added. Existing fields are unchanged.
 - The accuracy corpus runs the incident fixtures and 100 public chart pairs. `go run ./cmd/corpus` is not in the release archives.
 - `--api-server auto` asks a local Kubernetes API server of the requested minor whether the upgrade is accepted. The binaries are `kube-apiserver`, `etcd`, and `kubectl` from the controller-tools envtest index, checked with the SHA-512 in that index, and cached on disk. `stageproof fetch-apiserver` downloads them for a machine that cannot fetch them later. The module now depends on `k8s.io` and `sigs.k8s.io`. A build of this commit is 57 MB.
@@ -18,6 +20,8 @@ The next release is 0.2.0.
 
 ### Breaking
 
+- A pull request whose only change is deleting a file inside a chart used to exit 0. The deleted path was skipped. It is now checked with the rest of that chart. Deleting a PersistentVolumeClaim, a Namespace, or a templated CRD can exit 1.
+- An Argo CD Application check used to judge `crds/` as plain Helm, because the report adapter was always `helm`. The adapter is now `argocd`. An incompatible file is a warning (`crd.argocd_renders_crds`) until the Application says whether `skipCrds` is set. A check that was `BLOCKED` only for that file can now be `PASSED`.
 - An invalid enum value, such as a `restartPolicy` Kubernetes does not support, is `k8s.apply.invalid` and exits 1. The same object was `k8s.apply.unknown_field`, a warning with client-side Helm, and exited 0.
 - A Helm hook is not reported as a delete or a restart. A hook PersistentVolumeClaim that the new chart drops was `impact.delete.pvc` (exit 1). It is not a finding now.
 - CI behavior: when the current release does not become ready before the deadline and the upgrade of that same release does, a rollback that hits the same deadline is `NOT CHECKED` (exit 2). The same case was `BLOCKED` (exit 1).

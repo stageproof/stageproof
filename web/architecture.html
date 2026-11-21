@@ -89,7 +89,7 @@ kind cluster on this machine
         +-- both steps passed -----------> PROVEN           exit 0
                                            checked: files, live cluster</pre>
         </div>
-        <p class="sec-lede" style="margin-top:18px;"><code>stageproof check-pr</code> runs that path once per changed chart. The pull request result is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>.</p>
+        <p class="sec-lede" style="margin-top:18px;"><code>stageproof check-pr</code> runs that path once per changed chart. A file the pull request deleted is still a change when it sat inside a chart. The pull request result is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. Rendered manifests skip the Helm steps. The API server, the impact check, and the API table still run. <code>--live</code> is not available for that mode.</p>
       </div>
     </section>
 
@@ -122,7 +122,7 @@ kind cluster on this machine
             <tr>
               <td>Impact</td>
               <td>It compares the two sets of objects. A delete of a PersistentVolumeClaim, a Namespace, or a templated CRD is <code>BLOCKED</code>. A CRD schema break that an existing object uses is <code>BLOCKED</code>. A restart is named and does not block. When the API server did not run, the check says it compared the rendered objects.</td>
-              <td>The comparison does not print values. A CRD under <code>crds/</code> is judged as plain Helm, which does not upgrade that directory. Argo CD and Flux adapters are not wired into the command yet.</td>
+              <td>The comparison does not print values. A CRD under <code>crds/</code> is judged as plain Helm, which does not upgrade that directory. An Argo CD check uses the Argo rule and warns when <code>skipCrds</code> was not read. Flux is not wired in yet. Rendered manifests have no chart <code>crds/</code> directory.</td>
             </tr>
             <tr>
               <td>Argo CD</td>
@@ -132,7 +132,7 @@ kind cluster on this machine
             <tr>
               <td>Pull request</td>
               <td><code>git diff base...head</code> lists changed files. Stageproof walks up to <code>Chart.yaml</code>, or recognizes an Application file. One comment and one JSON report cover every chart.</td>
-              <td>Flux, Kustomize, and plain manifests are ignored.</td>
+              <td>Flux, Kustomize, and loose manifests are ignored. A deleted file inside a chart is still that chart.</td>
             </tr>
             <tr>
               <td>Live rehearsal</td>

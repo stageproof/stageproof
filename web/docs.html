@@ -150,7 +150,8 @@
     <tr><td>A Helm chart named in an Argo CD Application (HTTPS chart repository or <code>oci://</code> registry)</td><td>Supported</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
     <tr><td>Container image contents</td><td>Not supported</td></tr>
-    <tr><td>Kustomize, Flux <code>HelmRelease</code>, Helmfile, plain manifests</td><td>Not supported</td></tr>
+    <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on main. Not in the v0.1.8 binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
+    <tr><td>Kustomize, Flux <code>HelmRelease</code>, Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
   </tbody>
 </table></div>
 <p>The full list is in <a href="#limits">Scope and limits</a>.</p>
@@ -171,16 +172,15 @@
   <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
   <tbody>
     <tr><td>Go</td><td>1.23 or newer</td><td>Building the program</td></tr>
-    <tr><td>Helm</td><td>3 or 4</td><td>Every check. Stageproof calls <code>helm template</code> and <code>helm pull</code>.</td></tr>
+    <tr><td>Helm</td><td>3 or 4</td><td>Chart and Argo CD checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
     <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
     <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
   </tbody>
 </table></div>
 
 <h2>Build</h2>
-<p>In the Stageproof source tree, the program is in the <code>cli</code> directory.</p>
+<p>In the Stageproof source tree, build from the repository root.</p>
 <pre data-kind="cmd" data-label="Build the program">
-cd cli
 go build -o stageproof ./cmd/stageproof</pre>
 
 <h2>Put it on your PATH</h2>
@@ -226,6 +226,7 @@ verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
   <li>You have your own chart and a values file: <a href="#compare-charts">Compare two chart versions</a>.</li>
   <li>Your chart lives in a git repository: <a href="#compare-git">Compare a chart with a git branch</a>.</li>
   <li>You deploy with Argo CD: <a href="#argocd">Check an Argo CD Application</a>.</li>
+  <li>You already rendered the manifests: <a href="#manifests">Compare rendered manifests</a>.</li>
   <li>You want this on every pull request: <a href="#pull-request">Check a pull request</a>.</li>
 </ul>
   </template>
@@ -251,11 +252,11 @@ verdict  PASSED (exit 0)  · 1910ms · 0 AI calls</pre>
     <tr><td><code>stageproof</code></td><td>The result and the exit code.</td></tr>
     <tr><td><code>compare</code></td><td>The current chart on the left and the new chart on the right.</td></tr>
     <tr><td><code>values</code></td><td>The values the chart was checked with. The line is left out when you gave no values file.</td></tr>
-    <tr><td><code>k8s</code></td><td>The Kubernetes version the chart was checked against, then what was actually checked. <code>checked: files</code> means the built-in table was used and no API server was started. <code>checked: files, API server 1.35.0</code> names the patch of the local API server that answered. <code>checked: files, live cluster</code> means the upgrade was also rehearsed in a temporary cluster.</td></tr>
+    <tr><td><code>k8s</code></td><td>The Kubernetes version the check used, then what was actually checked. <code>checked: files</code> means the built-in table was used and no API server was started. <code>checked: files, API server 1.35.0</code> names the patch of the local API server that answered. <code>checked: rendered manifests</code> is the same table for YAML you already rendered. <code>checked: rendered manifests, API server 1.35.0</code> means that API server answered. <code>checked: files, live cluster</code> means the upgrade was also rehearsed in a temporary cluster.</td></tr>
     <tr><td><code>PASS</code> / <code>FAIL</code> lines</td><td>One line per check.</td></tr>
     <tr><td><code>ERROR</code> blocks</td><td>A problem that blocks the upgrade. Each one has a rule name, the place it was found, and an explanation. They do not appear in the example above.</td></tr>
     <tr><td><code>WARN</code> blocks</td><td>Something to know about. A warning does not change the result.</td></tr>
-    <tr><td><code>checked:</code></td><td><code>files</code>, <code>files, API server 1.35.0</code>, or <code>files, live cluster</code>. This is the scope of the result. The patch is the API server that ran, not a claim about your cluster.</td></tr>
+    <tr><td><code>checked:</code></td><td><code>files</code>, <code>files, API server 1.35.0</code>, <code>rendered manifests</code>, <code>rendered manifests, API server 1.35.0</code>, or <code>files, live cluster</code>. This is the scope of the result. The patch is the API server that ran, not a claim about your cluster.</td></tr>
     <tr><td><code>WARN</code> with a reason code</td><td>The live rehearsal did not finish, and the report says why. A file check that you did not ask to rehearse does not print this.</td></tr>
     <tr><td><code>verdict</code></td><td>The result again, and how long the run took. <code>0 AI calls</code> states that no AI model took part in the result.</td></tr>
   </tbody>
@@ -390,6 +391,49 @@ verdict  PASSED (exit 0)  · 90ms · 0 AI calls</pre>
 <p>In CI, a shallow clone may not contain the branch you compare with. Fetch it first. <a href="#ci-gitlab">GitLab CI</a> shows how.</p>
   </template>
 
+  <template data-topic="manifests" data-group="Guides" data-title="Compare rendered manifests">
+<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.1.8 and does not have these flags. This page describes the source on main.</p>
+
+<h2>The example</h2>
+<p>The directory <code>before</code> has a Deployment and a PersistentVolumeClaim. The directory <code>after</code> has the same Deployment and drops the claim. The sample below is the output of this command on that input.</p>
+<pre data-kind="cmd">
+stageproof check \
+  --before testdata/manifests/before \
+  --after testdata/manifests/after \
+  --current-k8s 1.35 \
+  --api-server auto</pre>
+<pre data-kind="out">
+!  The new manifests drop PersistentVolumeClaim/demo/data. The data on that claim goes with it.
+stageproof  BLOCKED  exit 1
+compare  testdata/manifests/before -> testdata/manifests/after
+k8s  1.35  ·  checked: rendered manifests, API server 1.35.0
+
+  ○ SKIP  required values gate     Skipped. These inputs are rendered manifests, not Helm charts.
+  ○ SKIP  helm template            Skipped. The manifests were already rendered.
+  ○ SKIP  values.yaml AST          Skipped. There is no chart template to read.
+  ○ SKIP  upgrade signals          Skipped. There is no chart to compare.
+  ✓ PASS  API server 1.35.0        Kubernetes 1.35.0 accepted the upgrade
+  ✕ FAIL  impact                   Compared stored objects from the API server.
+  ✓ PASS  k8s 1.35 compatibility   current Kubernetes was checked by API server 1.35.0
+
+  ERROR  impact.delete.pvc
+         PersistentVolumeClaim/demo/data
+         The new manifests drop PersistentVolumeClaim/demo/data. The data on that claim goes with it.
+
+verdict  BLOCKED (exit 1)  · 3491ms · 0 AI calls</pre>
+
+<h2>What ran</h2>
+<ul>
+  <li>Every <code>.yaml</code> and <code>.yml</code> file under each directory is read, in name order, including files in subdirectories. A single file works the same way.</li>
+  <li>The chart stages are skipped. There is no chart to template and no values file to read.</li>
+  <li>The local API server applied the current objects and dry-ran the new ones. It accepted the Deployment that remains. <code>checked:</code> names the patch that answered. <code>--api-server off</code> uses the built-in table and <code>checked:</code> reads <code>rendered manifests</code>.</li>
+  <li>The impact check blocks because the claim is gone. The data on that claim goes with it.</li>
+  <li>The API table found no removed API.</li>
+</ul>
+<p><code>--live</code> with <code>--before</code> and <code>--after</code> exits 2. Manifest mode does not install a chart. Values files and <code>--set</code> are rejected for the same reason. A file that is not <code>.yaml</code> or <code>.yml</code>, or a directory with none of those files, is <code>manifest.invalid_yaml</code> and exits 1.</p>
+<p><code>check-pr</code> does not pick up a loose manifest. It still checks a file inside a chart, including a file the pull request deleted. See <a href="#pull-request">Check a pull request</a>.</p>
+  </template>
+
   <template data-topic="argocd" data-group="Guides" data-title="Check an Argo CD Application">
 <p class="docs-lede">Check a chart version bump in an Argo CD Application. The chart is not in your repository. Stageproof downloads both versions and compares them.</p>
 
@@ -502,7 +546,7 @@ verdict  PASSED (exit 0)  · 4397ms · 0 AI calls</pre>
   <thead><tr><th>Changed file</th><th>What Stageproof checks</th></tr></thead>
   <tbody>
     <tr><td>An Argo CD Application file (<code>.yaml</code>, <code>.yml</code>, or <code>.yaml.tmpl</code>) that names a remote chart</td><td>The chart version in the file on the target branch against the version in your branch.</td></tr>
-    <tr><td>Any file inside a chart directory</td><td>The whole chart on the target branch against the chart in your branch. Stageproof finds the chart by walking up to the nearest <code>Chart.yaml</code>. A change inside a subchart under <code>charts/</code> is checked as a change to the parent chart.</td></tr>
+    <tr><td>Any file inside a chart directory, including a file the pull request deleted</td><td>The whole chart on the target branch against the chart in your branch. Stageproof finds the chart by walking up to the nearest <code>Chart.yaml</code>. The file does not have to exist on the branch you are checking. A change inside a subchart under <code>charts/</code> is checked as a change to the parent chart.</td></tr>
     <tr><td>Any other file</td><td>Nothing. The file is ignored.</td></tr>
   </tbody>
 </table></div>
@@ -1241,13 +1285,13 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag of the <code>stageproof</code> program, version 0.1.7.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, or <code>--api-server</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Command</th><th>What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>stageproof check</code></td><td>Checks one chart, or one Argo CD Application.</td></tr>
+    <tr><td><code>stageproof check</code></td><td>Checks one chart, one Argo CD Application, or two sets of rendered manifests.</td></tr>
     <tr><td><code>stageproof check-pr</code></td><td>Finds the charts and Applications that a branch changed, and checks each one.</td></tr>
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
@@ -1256,7 +1300,7 @@ workflow:
 </table></div>
 
 <h2><code>stageproof check</code>: what to compare</h2>
-<p>Give <code>--new-chart</code> or <code>--argocd-file</code>. Without one of them the command ends with exit code <code>3</code>.</p>
+<p>Give <code>--new-chart</code>, <code>--argocd-file</code>, or both <code>--before</code> and <code>--after</code>. Without one of those the command ends with exit code <code>2</code>.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
   <tbody>
@@ -1265,6 +1309,8 @@ workflow:
     <tr><td><code>--current-git &lt;ref&gt;</code></td><td>Read the current chart, or the current Application file, from this branch, tag, or commit.</td></tr>
     <tr><td><code>--argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you want to deploy.</td></tr>
     <tr><td><code>--current-argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you run today. Use it when the old file is not in Git.</td></tr>
+    <tr><td><code>--before &lt;dir or file&gt;</code></td><td>Rendered manifests before the change. A <code>.yaml</code> or <code>.yml</code> file, or a directory of them. Use it with <code>--after</code>. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
+    <tr><td><code>--after &lt;dir or file&gt;</code></td><td>Rendered manifests after the change. Not combined with a chart, an Application, values files, <code>--set</code>, or <code>--live</code>.</td></tr>
   </tbody>
 </table></div>
 
@@ -1461,6 +1507,7 @@ charts:
   <tbody>
     <tr><td><code>helm.template.render_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm template</code> failed on the new chart with your values.</td><td>Read the Helm error in the report and fix the chart or the values.</td></tr>
     <tr><td><code>helm.template.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart rendered, and the output is not valid YAML.</td><td>Fix the template that produces the invalid output.</td></tr>
+    <tr><td><code>manifest.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>--before</code> or <code>--after</code> could not be read. The path is missing, the file is not <code>.yaml</code> or <code>.yml</code>, the directory has none of those files, or the YAML does not parse.</td><td>Point both flags at rendered manifests and fix the file named in the report.</td></tr>
   </tbody>
 </table></div>
 
@@ -1566,7 +1613,7 @@ charts:
   <tbody>
     <tr><td>Terraform providers and modules</td><td>A change to a provider version or a module version is not checked.</td></tr>
     <tr><td>Container image contents</td><td>Stageproof does not inspect an image. A new image is started only in the <a href="#live">live rehearsal</a>.</td></tr>
-    <tr><td>Kustomize, Helmfile, Flux <code>HelmRelease</code>, plain manifests</td><td>These files are ignored.</td></tr>
+    <tr><td>Kustomize, Helmfile, Flux <code>HelmRelease</code></td><td>These files are ignored. A loose manifest is ignored by <code>check-pr</code>. Two rendered trees can be compared with <a href="#manifests"><code>--before</code> and <code>--after</code></a>.</td></tr>
     <tr><td>Argo CD Applications with several sources, <code>valuesObject</code>, <code>valueFiles</code>, or a Git path as the source</td><td>Only a single chart source with inline <code>helm.values</code> is read. See <a href="#argocd">Check an Argo CD Application</a>.</td></tr>
     <tr><td>Application dependencies, for example npm or Maven packages</td><td>Not checked.</td></tr>
   </tbody>

@@ -35,7 +35,7 @@ func crdsDirectory(before []obj, opt Options) []verdict.Finding {
 	if len(oldFiles) == 0 && len(newFiles) == 0 {
 		return nil
 	}
-	mode := crdDeployMode(opt.Adapter, opt.FluxCRDPolicy)
+	mode := crdDeployMode(opt.Adapter, opt.FluxCRDPolicy, opt.ArgoSkipCrds)
 	names := map[string]bool{}
 	for n := range oldFiles {
 		names[n] = true
@@ -96,9 +96,15 @@ type deployMode struct {
 	argocd        bool
 }
 
-func crdDeployMode(adapter, policy string) deployMode {
+func crdDeployMode(adapter, policy string, skipCrds *bool) deployMode {
 	switch adapter {
 	case "argocd":
+		// skipCrds true means Argo CD does not apply crds/, same as plain Helm.
+		// Nil means this check did not read the field. The warning stays until
+		// the Application parser sets the pointer.
+		if skipCrds != nil && *skipCrds {
+			return deployMode{rule: "crd.not_upgraded_by_helm", helmLike: true}
+		}
 		return deployMode{rule: "crd.argocd_renders_crds", appliesSchema: true, argocd: true}
 	case "flux":
 		switch policy {

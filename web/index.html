@@ -170,19 +170,20 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">02</span> What ships</p>
           <h2>One command. Two charts. A result you can gate on.</h2>
-          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, or an Argo CD Application. <code>stageproof check-pr</code> finds the charts a git diff touched and checks each one.</p>
+          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts a git diff touched and checks each one. A deleted file inside a chart still counts. The manifest flags are in the source on main, not in the v0.1.8 binary.</p>
         </div>
         <table class="spec-table">
           <thead>
             <tr><th>Check</th><th>Question</th><th>When</th></tr>
           </thead>
           <tbody>
-            <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Every run</td></tr>
+            <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart and Argo CD checks</td></tr>
             <tr><td>Values</td><td>Does every key in your values file still have an effect?</td><td>When you pass a values file</td></tr>
             <tr><td>Kubernetes APIs</td><td>Does the chart use an API your version has removed?</td><td>Every run</td></tr>
-            <tr><td>In-place upgrade</td><td>Does the upgrade change a field Kubernetes will not change?</td><td>When you give the current chart</td></tr>
+            <tr><td>In-place upgrade</td><td>Does the upgrade change a field Kubernetes will not change?</td><td>When you give the current chart or the previous manifests</td></tr>
             <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
             <tr><td>Live rehearsal</td><td>Does install, upgrade, and rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
+            <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>API server</td><td>Does this Kubernetes minor accept the upgrade?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
           </tbody>
@@ -228,11 +229,11 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Supported</h3>
-            <p>A Helm chart in a directory. An Argo CD Application that names one remote chart, including a Terraform <code>.yaml.tmpl</code> with placeholders. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed.</p>
+            <p>A Helm chart in a directory. An Argo CD Application that names one remote chart, including a Terraform <code>.yaml.tmpl</code> with placeholders. Two rendered manifest trees, in the source on main. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed.</p>
           </article>
           <article class="doc-card">
             <h3>Not supported</h3>
-            <p>Terraform providers and modules. Container image contents. Kustomize, Flux <code>HelmRelease</code>, Helmfile, and plain manifests. Language packages.</p>
+            <p>Terraform providers and modules. Container image contents. Kustomize, Flux <code>HelmRelease</code>, and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages.</p>
           </article>
           <article class="doc-card">
             <h3>What <code>--live</code> does</h3>

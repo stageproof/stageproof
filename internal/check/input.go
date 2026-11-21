@@ -4,6 +4,17 @@ import "time"
 
 // Input is one comparison after flags, git, and Argo CD have been resolved.
 type Input struct {
+	// Adapter is the tool that produced the objects: helm, argocd, or manifests.
+	// Empty means helm, so existing callers stay on the chart path.
+	Adapter       string
+	ArgoSkipCrds  *bool
+	FluxCRDPolicy string
+	// ManifestMode reads rendered YAML from ManifestBefore and ManifestAfter.
+	// Those paths are files or directories, not Helm charts.
+	ManifestMode   bool
+	ManifestBefore string
+	ManifestAfter  string
+
 	BaseDir           string
 	HeadDir           string
 	BaseRef           string
