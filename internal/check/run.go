@@ -75,7 +75,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		if st.Stopped {
 			return st.Report
 		}
-		Diff(in, st)
+		Diff(ctx, in, st)
 		// Signals are recorded before compatibility findings, matching the previous order.
 		Changes(in, st)
 	}

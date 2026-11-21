@@ -107,7 +107,7 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✕ FAIL  values.yaml AST          1 silently dropped key across 1 overlay
+  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
   ERROR  helm.values.silently_dropped
@@ -121,7 +121,7 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files, live cluster
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
   ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
   ✓ PASS  baseline install         baseline revision 1 healthy in 7.3s
@@ -188,7 +188,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">The values check reads chart templates. It does not render the chart twice per key. Rendering-based values proof is on the <a href="roadmap.html">roadmap</a>. Source on main starts a local API server for the file checks and names deletes, restarts, and CRD breaks. The released binary is v0.1.8.</p>
+        <p class="sec-lede" style="margin-top:22px;">Source on main proves a values key by rendering when the template reader cannot decide, starts a local API server for the file checks, and names deletes, restarts, and CRD breaks. The released binary is v0.1.8. That binary reads templates and does not render a key twice.</p>
       </div>
     </section>
 

@@ -26,7 +26,7 @@
         {
           "name": "values.yaml AST",
           "status": "fail",
-          "summary": "1 silently dropped key across 1 overlay"
+          "summary": "2 keys: 1 proven by rendering, 1 read in templates"
         },
         {
           "name": "upgrade signals",
@@ -50,7 +50,8 @@
           "severity": "blocker",
           "resource": "config.logLevel",
           "file": "charts/api/values-prod.yaml",
-          "message": "Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart."
+          "message": "Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.",
+          "proof": "render"
         },
         {
           "rule_id": "impact.restart",
@@ -89,7 +90,7 @@
         {
           "name": "values.yaml AST",
           "status": "pass",
-          "summary": "every user key in 1 overlay is still read"
+          "summary": "2 keys: 0 proven by rendering, 2 read in templates"
         },
         {
           "name": "upgrade signals",
@@ -139,7 +140,7 @@
         {
           "name": "values.yaml AST",
           "status": "pass",
-          "summary": "every user key in 1 overlay is still read"
+          "summary": "2 keys: 0 proven by rendering, 2 read in templates"
         },
         {
           "name": "impact",

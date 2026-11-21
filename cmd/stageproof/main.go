@@ -131,6 +131,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	nextK8s := fs.String("next-k8s", "", "Next cluster Kubernetes version")
 	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
+	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply is enabled in Argo CD / Flux / Helm")
 	applyMode := fs.String("apply-mode", "", "Apply mode: client | ssa")
 
@@ -245,6 +246,12 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	case "auto", "off", "require":
 	default:
 		fmt.Fprintf(os.Stderr, "error: --api-server must be auto, off, or require\n")
+		return 2
+	}
+	switch *valuesProof {
+	case "default", "full":
+	default:
+		fmt.Fprintf(os.Stderr, "error: --values-proof must be default or full\n")
 		return 2
 	}
 
@@ -546,6 +553,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		HelmTest:          *runHelmTest,
 		CRDFiles:          crdFiles,
 		PlaceholderTokens: placeholderTokens,
+		ValuesFull:        *valuesProof == "full",
 		Started:           tStart,
 	})
 	emit(rep)

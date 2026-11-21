@@ -51,6 +51,23 @@ func Charts(ctx context.Context, in Input, st *State) {
 	headOpts.SetStrings = append(headOpts.SetStrings, st.Placeholders...)
 	headYAML, hErr := helm.RenderChart(ctx, headOpts)
 	if hErr != nil {
+		if detail, ok := helm.RequiredFailure(hErr, helm.SecretStrings(in.HeadValues)); ok {
+			st.Report.Findings = append(st.Report.Findings, verdict.Finding{
+				RuleID:   "helm.values.new_required_unset",
+				Severity: verdict.SeverityBlocker,
+				File:     in.HeadDir,
+				Message:  "The new chart does not render because a required value is unset.",
+				Detail:   detail,
+				Proof:    "render",
+			})
+			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
+				Name:    "helm template",
+				Status:  "fail",
+				Summary: "a required value is unset",
+			})
+			st.stop(false, false)
+			return
+		}
 		st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 			RuleID:   "helm.template.render_failed",
 			Severity: verdict.SeverityBlocker,

@@ -244,7 +244,7 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
 verdict  PASSED (exit 0)  · 1910ms · 0 AI calls</pre>
@@ -306,14 +306,14 @@ stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
 <h2>The example</h2>
 <p>You run <code>webapp</code> chart 1.4.0 and want 2.0.0. Your production values set the log level:</p>
 <pre data-kind="file" data-label="values-prod.yaml">
-replicaCount: 2
+replicas: 1
 config:
   logLevel: warn</pre>
-<p>Chart 2.0.0 renamed that setting from <code>config.logLevel</code> to <code>logging.level</code>. Helm accepts the old key and ignores it.</p>
+<p>Chart 2.0.0 renamed that setting from <code>config.logLevel</code> to <code>logging.level</code>. Helm accepts the old key and ignores it. The sample below passes <code>--api-server off</code> so the output is the file check.</p>
 
 <h2>Run the check</h2>
 <pre data-kind="cmd">
-stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-2.0.0 -f values-prod.yaml</pre>
+stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-2.0.0 -f values-prod.yaml --api-server off</pre>
 <pre data-kind="out">
 stageproof  BLOCKED  exit 1
 compare  ./webapp-1.4.0 -> ./webapp-2.0.0
@@ -321,36 +321,41 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✕ FAIL  values.yaml AST          1 silently dropped key across 1 overlay
+  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
   ERROR  helm.values.silently_dropped
          values-prod.yaml (config.logLevel)
          Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
+  INFO  impact.restart
+         Deployment/default/web
+         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].env[name=LOG_LEVEL].value. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.release.version_span
+         Chart version moves from 1.4.0 to 2.0.0, a new major version.
+         Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
 
-verdict  BLOCKED (exit 1)  · 192ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 552ms · 0 AI calls</pre>
 
 <h2>What the result means</h2>
 <p>The chart still renders, which is why <code>helm template</code> passes. The problem is that <code>config.logLevel</code> in your values file no longer changes anything. After the upgrade, the application would run with the chart's default log level and not with <code>warn</code>.</p>
 <p>To fix it, rename the key in <code>values-prod.yaml</code> to the name the new chart uses, then run the check again.</p>
 
 <h2>How Stageproof decides that a key is used</h2>
-<p>A key in your values file counts as used by a chart when one of these is true:</p>
-<ul>
-  <li>A template in the chart, or in one of its subcharts, reads it.</li>
-  <li>The chart lists it in its own <code>values.yaml</code>.</li>
-  <li>The chart declares it in <code>values.schema.json</code>.</li>
-  <li>It is under <code>global</code>.</li>
-</ul>
-<p>When a template passes a whole section on, for example with <code>toYaml</code> or <code>range</code>, every key under that section counts as used.</p>
+<p>A key counts as read in the templates when a template reads that exact path, the chart lists it in <code>values.yaml</code> or <code>values.schema.json</code>, or it sits under <code>global</code>. Those keys stay <code>"proof": "templates"</code> and are not rendered again.</p>
+<p>When a template passes a whole section on, for example with <code>toYaml</code>, <code>merge</code>, or <code>range</code>, the reader cannot decide. Stageproof then renders the chart with your values and again without that one key. Parsed objects that differ mean the key has an effect. When they do not differ, because your value matches the chart default, it sets the key to another value of the same type and renders once more. A YAML list is one key, because Helm replaces the list as a whole. Fields that change between two renders of the same inputs, such as a random string or a checksum annotation, are ignored before the comparison. The check summary says how many keys were proven by rendering and how many were read in templates.</p>
+<p>A key that has an effect in the current chart and none in the new chart is <code>helm.values.silently_dropped</code> with <code>"proof": "render"</code>. If the other value is rejected by <code>values.schema.json</code>, that key is not a finding. If rendering cannot run, the template reading is kept and <code>proof</code> is <code>templates</code>. <code>--values-proof full</code> render-tests every key in the file. The default mode is <code>default</code>.</p>
 
 <h2>Related cases</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Situation</th><th>What Stageproof reports</th></tr></thead>
   <tbody>
-    <tr><td>The key was used by the current chart and is not used by the new chart.</td><td><code>ERROR helm.values.silently_dropped</code>. The result is <code>BLOCKED</code>.</td></tr>
+    <tr><td>The key was used by the current chart and is not used by the new chart.</td><td><code>ERROR helm.values.silently_dropped</code>. The result is <code>BLOCKED</code>. <code>proof</code> is <code>render</code> when rendering showed the effect, and <code>templates</code> when the reader decided.</td></tr>
     <tr><td>The key was already unused by the current chart.</td><td><code>WARN helm.values.preexisting_orphan</code>. The upgrade did not cause it, so the result does not change.</td></tr>
-    <tr><td>The new chart requires a value that the current chart did not, and you do not set it.</td><td><code>ERROR helm.values.new_required_unset</code>. The result is <code>BLOCKED</code>.</td></tr>
+    <tr><td>A new chart key changes the same fields as the dropped key.</td><td><code>WARN helm.values.renamed</code>. <code>verified</code> is true only when the rendered effect matches. A similar name with a different effect stays false. The message names both keys and does not print your value.</td></tr>
+    <tr><td>A chart default you do not set changed, and the old default still changes the render.</td><td><code>WARN helm.values.default_changed</code>. The message names the chart defaults. It does not print your values. More than eight changed defaults in the default mode are one warning that says to re-run with <code>--values-proof full</code>.</td></tr>
+    <tr><td>The new chart requires a value that the current chart did not, and you do not set it.</td><td><code>ERROR helm.values.new_required_unset</code>. The result is <code>BLOCKED</code>. A requirement that only appears while rendering is included. The message does not include your values.</td></tr>
   </tbody>
 </table></div>
 <p>You can pass <code>-f</code> more than once when you deploy with several values files.</p>
@@ -473,7 +478,7 @@ values  $values/values/prod.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ! WARN  upgrade signals          1 named change
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
@@ -565,7 +570,7 @@ values  HelmRelease values (ConfigMap/prod-values)
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ! WARN  upgrade signals          1 named change
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
@@ -691,7 +696,7 @@ charts:
 <h2>2. Check the pull request</h2>
 <p>The branch upgrades the <code>webapp</code> chart to 2.0.0, which renamed <code>config.logLevel</code>. Only <code>values-prod.yaml</code> sets that key.</p>
 <pre data-kind="cmd">
-stageproof check-pr --current-git main</pre>
+stageproof check-pr --current-git main --api-server off</pre>
 <pre data-kind="out">
 stageproof  BLOCKED  exit 1
 compare  main:charts/webapp -> charts/webapp
@@ -699,25 +704,40 @@ values  charts/webapp/values-prod.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✕ FAIL  values.yaml AST          1 silently dropped key across 1 overlay
+  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
   ERROR  helm.values.silently_dropped
          charts/webapp/values-prod.yaml (config.logLevel)
          Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
+  INFO  impact.restart
+         Deployment/default/web
+         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].env[name=LOG_LEVEL].value. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.release.version_span
+         Chart version moves from 1.4.0 to 2.0.0, a new major version.
+         Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
 
-verdict  BLOCKED (exit 1)  · 183ms · 0 AI calls
+verdict  BLOCKED (exit 1)  · 474ms · 0 AI calls
 
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
 stageproof  PASSED  exit 0
 compare  main:charts/webapp -> charts/webapp
 values  charts/webapp/values.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          3 keys: 0 proven by rendering, 3 read in templates
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
-verdict  PASSED (exit 0)  · 213ms · 0 AI calls</pre>
+  WARN  helm.release.version_span
+         Chart version moves from 1.4.0 to 2.0.0, a new major version.
+         Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
+
+verdict  PASSED (exit 0)  · 362ms · 0 AI calls</pre>
 
 <h2>What the result means</h2>
 <p>There are two reports, one for each values file. The <code>values</code> line tells them apart. The check with the chart defaults passes. The check with <code>values-prod.yaml</code> is blocked, because production sets a key that chart 2.0.0 no longer reads. The pull request as a whole is <code>BLOCKED</code>.</p>
@@ -994,7 +1014,7 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files, live cluster
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
   ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
   ✓ PASS  baseline install         baseline revision 1 healthy in 7.3s
@@ -1025,7 +1045,7 @@ values  values-prod.yaml
 k8s  1.33  ·  checked: files, live cluster
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
   ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
   ✓ PASS  baseline install         baseline revision 1 healthy in 1.8s
@@ -1220,7 +1240,7 @@ values  helm.values in apps/argo-cd.yaml
 k8s  1.35  ·  checked: files
 
   ✓ PASS  helm template            rendered 60 Kubernetes objects cleanly
-  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35 (SSA mode)
 
 verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
@@ -1588,9 +1608,11 @@ charts:
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
-    <tr><td><code>helm.values.silently_dropped</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A key in your values file was used by the current chart and is not used by the new chart. When you check a chart on its own, it means the chart does not use the key at all.</td><td>Rename the key to what the new chart uses, or remove it.</td></tr>
+    <tr><td><code>helm.values.silently_dropped</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A key in your values file was used by the current chart and has no effect in the new chart. <code>proof</code> is <code>render</code> when two renders showed that, and <code>templates</code> when the reader decided. When you check a chart on its own, it means the chart does not use the key at all. The message does not print your value.</td><td>Rename the key to what the new chart uses, or remove it.</td></tr>
+    <tr><td><code>helm.values.renamed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A key that exists only in the new chart changes the same rendered fields as a dropped key. <code>verified</code> is true only when that effect matches. A similar name with a different effect stays false. The message names both keys and does not print your value.</td><td>Move the value to the key the report names when <code>verified</code> is true. Read the chart when it is false.</td></tr>
+    <tr><td><code>helm.values.default_changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A chart default you do not set changed, and rendering the new chart with the old default changes the objects. The message names the chart defaults. It does not print your values.</td><td>Set the key if you depended on the old default. With more than eight changes, re-run with <code>--values-proof full</code> for one line per key.</td></tr>
     <tr><td><code>helm.values.preexisting_orphan</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A key in your values file is not used by the current chart and not by the new one.</td><td>Remove the key when convenient. The upgrade did not cause this.</td></tr>
-    <tr><td><code>helm.values.new_required_unset</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart requires a value that the current chart did not require, and you do not set it.</td><td>Set the value in your values file or with <code>--set</code>.</td></tr>
+    <tr><td><code>helm.values.new_required_unset</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart requires a value that the current chart did not require, and you do not set it. A requirement that only appears while rendering is included. The message does not include your values.</td><td>Set the value in your values file or with <code>--set</code>.</td></tr>
     <tr><td><code>helm.values.parse_error</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A values file or a chart could not be read.</td><td>Fix the file that the message names.</td></tr>
   </tbody>
 </table></div>

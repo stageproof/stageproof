@@ -111,8 +111,8 @@ kind cluster on this machine
             </tr>
             <tr>
               <td>Values</td>
-              <td>It walks the Go templates and records which <code>.Values</code> keys they read. A key used by the current chart and not by the new one is <code>helm.values.silently_dropped</code>.</td>
-              <td>This is not the same as rendering with and without the key. A key that is read and then ignored can still look used. Rendering-based proof is planned.</td>
+              <td>It walks the Go templates. An exact path stays <code>"proof": "templates"</code>. A key the reader cannot decide is rendered with the value, without it, and with another value of the same type when yours matches the default. A key with an effect in the current chart and none in the new chart is <code>helm.values.silently_dropped</code> with <code>"proof": "render"</code>.</td>
+              <td>The report does not print your values. A probe that <code>values.schema.json</code> rejects is not a finding. <code>--values-proof full</code> render-tests every key. The default mode does not.</td>
             </tr>
             <tr>
               <td>Kubernetes APIs</td>
@@ -149,21 +149,6 @@ kind cluster on this machine
       </div>
     </section>
 
-    <section class="sec sec-alt">
-      <div class="wrap">
-        <div class="sec-head">
-          <p class="kicker"><span class="kicker-num">03</span> Planned, and not built</p>
-          <h2>The next engine is still a plan.</h2>
-          <p class="sec-lede">This check is not in the tool yet. The <a href="roadmap.html">roadmap</a> is the list, in order.</p>
-        </div>
-        <div class="doc-grid">
-          <article class="doc-card">
-            <h3>Values proof by rendering</h3>
-            <p>Render with and without each key you set. A key is used when removing it changes the output. A verified rename is one that reproduces the old output.</p>
-          </article>
-        </div>
-      </div>
-    </section>
   </main>
 
   <footer class="footer">

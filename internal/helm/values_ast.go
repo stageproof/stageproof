@@ -100,6 +100,27 @@ func (u *ChartUsage) ConsumesSegs(segs []string) bool {
 	return false
 }
 
+// Decision says how the template reader treats a user key.
+// exact means a template reads that path. undecided means a wildcard, merge,
+// or the global map, so rendering has to decide. unread means the path is absent.
+func (u *ChartUsage) Decision(segs []string) string {
+	if u == nil {
+		return "unread"
+	}
+	if len(segs) == 0 || u.DynamicRoot || segs[0] == "global" {
+		return "undecided"
+	}
+	for i := 1; i <= len(segs); i++ {
+		if u.WildcardPrefixes[joinSegs(segs[:i])] {
+			return "undecided"
+		}
+	}
+	if u.ExactPaths[joinSegs(segs)] {
+		return "exact"
+	}
+	return "unread"
+}
+
 // AnalyzeChartUsage parses all Go templates, default values.yaml, values.schema.json,
 // and unpacked subcharts (`charts/<subchart>`) inside chartDir.
 func AnalyzeChartUsage(chartDir string) (*ChartUsage, error) {
@@ -529,7 +550,11 @@ func walkPipe(p *parse.PipeNode, scopes *[]scopeFrame, u *ChartUsage, withPfx fu
 				walkPipe(a, scopes, u, withPfx)
 			default:
 				if vp, ok := exprValuesSegs(a, scopes); ok {
-					if len(vp) > 0 {
+					// A declaration such as `{{- $x := .Values.unused -}}` is not
+					// a read until a later action uses $x. Marking it here made
+					// a dead assignment look like the key still worked.
+					declOnly := len(p.Decl) > 0 && len(p.Cmds) == 1
+					if len(vp) > 0 && !declOnly {
 						u.MarkExactSegs(withPfx(vp))
 					}
 					if len(cmd.Args) == 1 {
@@ -876,4 +901,70 @@ func closestKeySuggestion(missingSegs []string, candidates map[string]bool) stri
 		}
 	}
 	return best
+}
+
+// RankValueKeys orders candidate key paths that share a leaf name with missing.
+// Generic leaves also need a shared parent, matching closestKeySuggestion.
+// At most 10 keys are returned. The order is score, then path.
+func RankValueKeys(missing []string, candidates [][]string) [][]string {
+	if len(missing) == 0 {
+		return nil
+	}
+	leaf := missing[len(missing)-1]
+	type scored struct {
+		segs  []string
+		score int
+		path  string
+	}
+	var rows []scored
+	for _, cand := range candidates {
+		if len(cand) == 0 || cand[len(cand)-1] != leaf {
+			continue
+		}
+		if genericValueLeaf(leaf) {
+			if len(missing) < 2 || len(cand) < 2 || !parentOverlaps(missing, cand) {
+				continue
+			}
+		}
+		score := 100
+		have := map[string]bool{}
+		for _, s := range missing {
+			have[s] = true
+		}
+		for _, s := range cand {
+			if have[s] {
+				score += 10
+			}
+		}
+		rows = append(rows, scored{segs: cand, score: score, path: FormatKeyPath(cand)})
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		if rows[i].score != rows[j].score {
+			return rows[i].score > rows[j].score
+		}
+		return rows[i].path < rows[j].path
+	})
+	if len(rows) > 10 {
+		rows = rows[:10]
+	}
+	out := make([][]string, len(rows))
+	for i, row := range rows {
+		out[i] = row.segs
+	}
+	return out
+}
+
+func genericValueLeaf(leaf string) bool {
+	switch leaf {
+	case "enabled", "create", "name", "tag", "repository", "port", "replicas", "type", "annotations", "labels", "hosts", "path":
+		return true
+	default:
+		return false
+	}
+}
+
+func parentOverlaps(missing, cand []string) bool {
+	want := strings.ToLower(missing[0])
+	got := strings.ToLower(cand[0])
+	return want == got || strings.Contains(got, want) || strings.Contains(want, got)
 }

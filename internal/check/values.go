@@ -47,44 +47,54 @@ func Gate(ctx context.Context, in Input, st *State) {
 	st.Placeholders = placeholders
 }
 
-// Diff compares which values keys the current chart reads with the new chart.
-func Diff(in Input, st *State) {
-	if len(in.HeadValues) > 0 {
-		valFindings, _, _, vErr := helm.DiffValuesConsumption(in.BaseDir, in.HeadDir, in.HeadValues)
-		if vErr != nil {
-			st.Report.Findings = append(st.Report.Findings, verdict.Finding{
-				RuleID:   "helm.values.parse_error",
-				Severity: verdict.SeverityBlocker,
-				Message:  vErr.Error(),
-			})
-			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{Name: "values.yaml AST", Status: "fail", Summary: vErr.Error()})
-			return
-		}
-		for i := range valFindings {
-			if label, ok := in.ValueLabels[valFindings[i].File]; ok {
-				valFindings[i].File = label
-			}
-		}
-		st.Report.Findings = append(st.Report.Findings, valFindings...)
-		dropped := countBlockers(valFindings)
-		if dropped > 0 {
-			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
-				Name:    "values.yaml AST",
-				Status:  "fail",
-				Summary: fmt.Sprintf("%s across %s", counted(dropped, "silently dropped key", "silently dropped keys"), counted(len(in.HeadValues), "overlay", "overlays")),
-			})
-			return
-		}
+// Diff compares which values keys still change the rendered objects.
+func Diff(ctx context.Context, in Input, st *State) {
+	if len(in.HeadValues) == 0 && !in.ValuesFull {
 		st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 			Name:    "values.yaml AST",
 			Status:  "pass",
-			Summary: fmt.Sprintf("every user key in %s is still read", counted(len(in.HeadValues), "overlay", "overlays")),
+			Summary: "no custom -f overlay passed (default chart values verified)",
 		})
 		return
 	}
+	base := in.renderOptions(in.BaseDir, in.HeadValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
+	head := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
+	base.SetStrings = append(base.SetStrings, st.Placeholders...)
+	head.SetStrings = append(head.SetStrings, st.Placeholders...)
+	findings, sum, err := helm.ProveValues(ctx, helm.ProofRequest{
+		BaseDir:     in.BaseDir,
+		HeadDir:     in.HeadDir,
+		ValuesFiles: in.HeadValues,
+		Base:        base,
+		Head:        head,
+		Full:        in.ValuesFull,
+	})
+	if err != nil {
+		st.Report.Findings = append(st.Report.Findings, verdict.Finding{
+			RuleID:   "helm.values.parse_error",
+			Severity: verdict.SeverityBlocker,
+			Message:  err.Error(),
+		})
+		st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{Name: "values.yaml AST", Status: "fail", Summary: err.Error()})
+		return
+	}
+	for i := range findings {
+		if label, ok := in.ValueLabels[findings[i].File]; ok {
+			findings[i].File = label
+		}
+	}
+	st.Report.Findings = append(st.Report.Findings, findings...)
+	summary := "no custom -f overlay passed (default chart values verified)"
+	if sum.Keys > 0 {
+		summary = sum.String()
+	}
+	status := "pass"
+	if countBlockers(findings) > 0 {
+		status = "fail"
+	}
 	st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 		Name:    "values.yaml AST",
-		Status:  "pass",
-		Summary: "no custom -f overlay passed (default chart values verified)",
+		Status:  status,
+		Summary: summary,
 	})
 }
