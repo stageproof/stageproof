@@ -158,6 +158,8 @@ apiVersion: acme.corp.io/v1alpha1
 kind: Widget
 metadata:
   name: prod-widget
+  annotations:
+    {{- toYaml .Values.podAnnotations | nindent 4 }}
 spec:
   message: {{ .Values.message }}
 `)
