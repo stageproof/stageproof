@@ -121,6 +121,7 @@
 
 <h2>What you get back</h2>
 <p>Every run ends with one of four results. The exit code of the command carries the same information, so a CI job can act on it.</p>
+<p>The job log and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. A section with nothing in it is left out. Those lines are the finding messages. The report does not call a model. The v0.1.8 binary does not print this summary.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Result</th><th>Exit code</th><th>Meaning</th></tr></thead>
   <tbody>
@@ -347,10 +348,14 @@ stageproof  BLOCKED  exit 1
 compare  testdata/manifests/before -> testdata/manifests/after
 k8s  1.35  ·  checked: rendered manifests, API server 1.35.0
 
+Deletes
+  ERROR  The new manifests drop PersistentVolumeClaim/demo/data. The data on that claim goes with it.
+
   ○ SKIP  required values gate     Skipped. These inputs are rendered manifests, not Helm charts.
   ○ SKIP  helm template            Skipped. The manifests were already rendered.
   ○ SKIP  values.yaml AST          Skipped. There is no chart template to read.
   ○ SKIP  upgrade signals          Skipped. There is no chart to compare.
+  ✓ PASS  image tags               no new or changed image
   ✓ PASS  API server 1.35.0        Kubernetes 1.35.0 accepted the upgrade
   ✕ FAIL  impact                   Compared stored objects from the API server.
   ✓ PASS  k8s 1.35 compatibility   current Kubernetes was checked by API server 1.35.0
@@ -359,7 +364,8 @@ k8s  1.35  ·  checked: rendered manifests, API server 1.35.0
          PersistentVolumeClaim/demo/data
          The new manifests drop PersistentVolumeClaim/demo/data. The data on that claim goes with it.
 
-verdict  BLOCKED (exit 1)  · 3491ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 3426ms · 0 AI calls
+</pre>
 
 <h2>What ran</h2>
 <ul>
@@ -409,9 +415,13 @@ compare  charts/web (main) -> charts/web (apps/web.yaml)
 values  $values/values/prod.yaml
 k8s  1.33  ·  checked: files
 
+Restarts
+  INFO  The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               1 new or changed image tag checked
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
@@ -422,7 +432,8 @@ k8s  1.33  ·  checked: files
          1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
          The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
-verdict  PASSED (exit 0)  · 164ms · 0 AI calls</pre>
+verdict  PASSED (exit 0)  · 1490ms · 0 AI calls
+</pre>
 
 <h2>What happens</h2>
 <ol>
@@ -501,9 +512,13 @@ compare  charts/web (main) -> charts/web (apps/web.yaml)
 values  HelmRelease values (ConfigMap/prod-values)
 k8s  1.33  ·  checked: files
 
+Restarts
+  INFO  The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               1 new or changed image tag checked
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
@@ -514,7 +529,8 @@ k8s  1.33  ·  checked: files
          1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
          The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
-verdict  PASSED (exit 0)  · 162ms · 0 AI calls</pre>
+verdict  PASSED (exit 0)  · 1495ms · 0 AI calls
+</pre>
 
 <h2>What happens</h2>
 <ol>
@@ -635,9 +651,16 @@ compare  main:charts/webapp -> charts/webapp
 values  charts/webapp/values-prod.yaml
 k8s  1.33  ·  checked: files
 
+Values
+  ERROR  Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
+
+Restarts
+  INFO  The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].env[name=LOG_LEVEL].value. The pods will restart. A restart is normal for an upgrade.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
+  ✕ FAIL  values.yaml AST          1 keys: 1 proven by rendering, 0 read in templates
   ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               no new or changed image
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
@@ -651,7 +674,7 @@ k8s  1.33  ·  checked: files
          Chart version moves from 1.4.0 to 2.0.0, a new major version.
          Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
 
-verdict  BLOCKED (exit 1)  · 474ms · 0 AI calls
+verdict  BLOCKED (exit 1)  · 520ms · 0 AI calls
 
 !  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
 stageproof  PASSED  exit 0
@@ -660,8 +683,9 @@ values  charts/webapp/values.yaml
 k8s  1.33  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          3 keys: 0 proven by rendering, 3 read in templates
+  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
   ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               no new or changed image
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
@@ -669,7 +693,8 @@ k8s  1.33  ·  checked: files
          Chart version moves from 1.4.0 to 2.0.0, a new major version.
          Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
 
-verdict  PASSED (exit 0)  · 362ms · 0 AI calls</pre>
+verdict  PASSED (exit 0)  · 373ms · 0 AI calls
+</pre>
 
 <h2>What the result means</h2>
 <p>There are two reports, one for each values file. The <code>values</code> line tells them apart. The check with the chart defaults passes. The check with <code>values-prod.yaml</code> is blocked, because production sets a key that chart 2.0.0 no longer reads. The pull request as a whole is <code>BLOCKED</code>.</p>
@@ -798,8 +823,12 @@ stageproof  BLOCKED  exit 1
 compare  corpus/incidents/pvc-removed-from-chart/before -> corpus/incidents/pvc-removed-from-chart/after
 k8s  1.35  ·  checked: files
 
+Deletes
+  ERROR  Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  image tags               no new or changed image
   ✕ FAIL  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
 
@@ -807,8 +836,34 @@ k8s  1.35  ·  checked: files
          PersistentVolumeClaim/default/data
          Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
 
-verdict  BLOCKED (exit 1)  · 124ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 119ms · 0 AI calls
+</pre>
 <p>The impact line says the API server did not run, so a default the server would add is not in the comparison. An object annotated <code>helm.sh/resource-policy: keep</code> is not reported as deleted. Helm leaves that object in the cluster.</p>
+<p>The same command with <code>--comment-file</code> writes the Markdown comment. The summary is there too, before the check table:</p>
+<pre data-kind="file" data-label="The comment file">
+## Stageproof Upgrade Gate: `BLOCKED` (exit `1`)
+
+> Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+
+- **Compare:** `corpus/incidents/pvc-removed-from-chart/before` → `corpus/incidents/pvc-removed-from-chart/after`
+- **Target Kubernetes:** `1.35`
+- **Checked:** `files` · `114ms` · `0 AI calls`
+
+### Deletes
+
+- **ERROR** Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+
+| Check | Status | Summary |
+|---|---|---|
+| `helm template` | **PASS** | rendered 1 Kubernetes object cleanly |
+| `values.yaml AST` | **PASS** | no custom -f overlay passed (default chart values verified) |
+| `image tags` | **PASS** | no new or changed image |
+| `impact` | **FAIL** | Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison. |
+| `k8s 1.35 compatibility` | **PASS** | 0 removed APIs or selector breaks on K8s 1.35 |
+
+### Deterministic Findings
+- **[BLOCKER] `impact.delete.pvc`** (PersistentVolumeClaim/default/data): Helm will delete PersistentVolumeClaim/default/data. The data on that claim goes with it.
+</pre>
 
 <h2>A field an existing object uses</h2>
 <p>This is the <code>crd-field-type-changed</code> fixture. The current chart renders a Widget with <code>spec.size</code> set to a string. The new CRD changes that field to an integer. The new chart also stops rendering the Widget, so the report warns about that delete. The block is the field.</p>
@@ -824,8 +879,15 @@ stageproof  BLOCKED  exit 1
 compare  corpus/incidents/crd-field-type-changed/before -> corpus/incidents/crd-field-type-changed/after
 k8s  1.35  ·  checked: files
 
+Deletes
+  WARN  Helm will delete objects the new chart does not render: Widget/default/demo.
+
+CRDs
+  ERROR  Widget/default/demo uses spec.size, and that field changed (type) on widgets.example.com. The object does not match the new schema.
+
   ✓ PASS  helm template            rendered 2 Kubernetes objects cleanly
   ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  image tags               no new or changed image
   ✕ FAIL  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
 
@@ -835,7 +897,8 @@ k8s  1.35  ·  checked: files
          Widget/default/demo
          Widget/default/demo uses spec.size, and that field changed (type) on widgets.example.com. The object does not match the new schema.
 
-verdict  BLOCKED (exit 1)  · 177ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 114ms · 0 AI calls
+</pre>
 <p>The same type change with no object that uses the field is a warning, <code>crd.schema.incompatible</code>. A description change, a new optional field, or a wider enum is not reported.</p>
 
 <h2>A restart stays PASSED</h2>
@@ -852,9 +915,13 @@ stageproof  PASSED  exit 0
 compare  testdata/image/base -> testdata/image/head
 k8s  1.33  ·  checked: files
 
+Restarts
+  INFO  The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
   ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               1 new or changed image tag checked
   ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
   ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
 
@@ -865,8 +932,9 @@ k8s  1.33  ·  checked: files
          1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to nginx:1.28-alpine.
          The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
-verdict  PASSED (exit 0)  · 173ms · 0 AI calls</pre>
-<p>Findings are ordered deletes, CRD changes, privilege, exposure, values, restarts, capacity, then everything else. A blocker whose rule starts with <code>impact.delete</code> or <code>crd.</code> is also printed on the first lines. The rule list is in <a href="#findings">Findings</a>.</p>
+verdict  PASSED (exit 0)  · 1253ms · 0 AI calls
+</pre>
+<p>Before the check list, the report prints Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked. A section with nothing in it is left out. The lines are the finding messages and the reasons a check did not finish. Findings after the check list are ordered deletes, CRD changes, privilege, exposure, values, restarts, capacity, then everything else. A blocker whose rule starts with <code>impact.delete</code> or <code>crd.</code> is also printed on the first lines. The rule list is in <a href="#findings">Findings</a>.</p>
   </template>
 
   <template data-topic="cluster-upgrade" data-group="Guides" data-title="Prepare for a Kubernetes cluster upgrade">
@@ -1657,6 +1725,9 @@ stageproof  BLOCKED  exit 1
 compare  corpus/incidents/image-tag-missing/before -> corpus/incidents/image-tag-missing/after
 k8s  1.35  ·  checked: files
 
+Restarts
+  INFO  The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
   ! WARN  upgrade signals          1 named change
@@ -1679,7 +1750,8 @@ k8s  1.35  ·  checked: files
          Image `public.ecr.aws/docker/library/nginx:stageproof-no-such-tag` was not found.
          The registry answered that this tag or digest is not there.
 
-verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
+verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
+</pre>
 <!-- rules:images -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
