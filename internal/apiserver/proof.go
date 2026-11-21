@@ -41,6 +41,10 @@ type Manifest struct {
 
 // ProofOptions selects which half of the upgrade is being asked.
 type ProofOptions struct {
+	// Preload is the cluster's custom resource definitions, from a facts file.
+	// They are installed before the chart's definitions. This does not write
+	// them back to the cluster the facts came from.
+	Preload []Manifest
 	// StrictUnknown is set when this apply uses server-side apply.
 	// Helm 3 client-side apply drops an unknown field and succeeds.
 	// A new Helm 4 install uses server-side apply. An upgrade of a Helm 3
@@ -112,6 +116,15 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 		return result, err
 	}
 	installed := map[string]*unstructured.Unstructured{}
+	if len(opt.Preload) > 0 {
+		var preload []*unstructured.Unstructured
+		for _, u := range filter(docs(opt.Preload), keep) {
+			if u.GetKind() == "CustomResourceDefinition" {
+				preload = append(preload, u)
+			}
+		}
+		s.installCRDs(ctx, preload, installed, &result, opt)
+	}
 	if opt.CreatesOnly {
 		s.installCRDs(ctx, afterCRDs, installed, &result, opt)
 	} else {

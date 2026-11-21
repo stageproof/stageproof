@@ -216,6 +216,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
 	offline := fs.Bool("offline", false, "Do not contact container registries. Does not change --api-server.")
+	clusterFacts := fs.String("cluster-facts", "", "JSON written by stageproof facts export. This path is not read from git.")
 	helmCompare := fs.String("helm-compare", "", "Path to a second helm binary. Renders each chart with both.")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply enabled")
 	live := fs.Bool("live", false, "Run live kind upgrade/rollback")
@@ -340,6 +341,9 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	}
 	if *offline {
 		shared = append(shared, "--offline")
+	}
+	if *clusterFacts != "" {
+		shared = append(shared, "--cluster-facts", *clusterFacts)
 	}
 	if *helmCompare != "" {
 		shared = append(shared, "--helm-compare", *helmCompare)

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/stageproof/stageproof/internal/config"
+	"github.com/stageproof/stageproof/internal/facts"
 )
 
 // Input is one comparison after flags, git, and Argo CD have been resolved.
@@ -68,4 +69,7 @@ type Input struct {
 	// Config is the settings file for this check. Nil means there is no file.
 	// check-pr passes the file from the base ref.
 	Config *config.Config
+	// Facts is a cluster export the operator passed with --cluster-facts.
+	// Nil means the flag was not set. It is not read from the git tree.
+	Facts *facts.Document
 }

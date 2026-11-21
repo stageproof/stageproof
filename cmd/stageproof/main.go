@@ -56,6 +56,8 @@ func main() {
 		os.Exit(runFetchAPIServer(ctx, os.Args[2:]))
 	case "explain":
 		os.Exit(runExplain(os.Args[2:]))
+	case "facts":
+		os.Exit(runFacts(ctx, os.Args[2:]))
 	case "version", "--version", "-v":
 		fmt.Printf("stageproof %s (Apache-2.0)\n", version)
 		os.Exit(0)
@@ -135,6 +137,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
 	offline := fs.Bool("offline", false, "Do not contact container registries. Does not change --api-server.")
+	clusterFacts := fs.String("cluster-facts", "", "JSON written by stageproof facts export")
 	helmCompare := fs.String("helm-compare", "", "Path to a second helm binary. Renders the chart with both.")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply is enabled in Argo CD / Flux / Helm")
 	applyMode := fs.String("apply-mode", "", "Apply mode: client | ssa")
@@ -236,6 +239,19 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		}
 	}
 
+	// --current-k8s wins. Otherwise the cluster export wins over the file,
+	// because the file is a default and the export is the cluster.
+	factDoc, factsErr := loadClusterFacts(*clusterFacts)
+	if factsErr != nil {
+		fmt.Fprintf(os.Stderr, "stageproof: %v\n", factsErr)
+		return 2
+	}
+	if factDoc != nil && !flagWasSet(fs, "current-k8s", "current-kubernetes", "target-k8s", "k8s-version") {
+		if minor := factDoc.KubernetesMinor(); minor != "" {
+			effK8s = minor
+		}
+	}
+
 	beforePath := strings.TrimSpace(*before)
 	afterPath := strings.TrimSpace(*after)
 	manifestMode := beforePath != "" || afterPath != ""
@@ -307,6 +323,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			Offline:          *offline,
 			Started:          tStart,
 			Config:           cfg,
+			Facts:            factDoc,
 		})
 		emit(rep)
 		return rep.ExitCode
@@ -593,6 +610,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		HelmCompare:       *helmCompare,
 		Started:           tStart,
 		Config:            cfg,
+		Facts:             factDoc,
 	})
 	emit(rep)
 	return rep.ExitCode

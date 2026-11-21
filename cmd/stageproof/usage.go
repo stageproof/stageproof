@@ -17,6 +17,7 @@ Usage:
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
   stageproof fetch-apiserver --k8s <minor> --out <dir>
   stageproof explain <rule-id>
+  stageproof facts export --kubeconfig <file> --context <name> --out <file>
 
 Results:
   PROVEN       exit 0   file checks passed and the upgrade was rehearsed
@@ -45,6 +46,7 @@ Chart, Argo CD & Values:
 
 Kubernetes & GitOps Environment:
   --current-k8s <ver>      Current cluster Kubernetes version (default "1.33")
+  --cluster-facts <file>   JSON from stageproof facts export. Sets the Kubernetes version when --current-k8s is not set, preloads those custom resource definitions, and passes stored versions and node architectures into the check.
   --next-k8s <ver>         Next Kubernetes version you plan to upgrade to (e.g. "1.34")
   --api-server <mode>      auto (default), off, or require. auto asks a local API server of that minor and uses the built-in table if the binaries are not available. require exits 2 instead.
   --api-server-dir <dir>   kube-apiserver, etcd, and kubectl already on disk. Nothing is downloaded.
@@ -76,5 +78,9 @@ Examples:
 
   # 4. Compare two directories of rendered manifests. Helm is not called.
   stageproof check --before ./before --after ./after --current-k8s 1.35
+
+  # 5. Read a cluster you name, then check with that file. The export uses get and list only.
+  stageproof facts export --kubeconfig ~/.kube/prod --context prod --out facts.json
+  stageproof check --before rendered/main --after rendered/pr --cluster-facts facts.json
 `)
 }
