@@ -16,6 +16,7 @@ Usage:
   stageproof check    --before <dir|file> --after <dir|file> [flags]
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
   stageproof fetch-apiserver --k8s <minor> --out <dir>
+  stageproof explain <rule-id>
 
 Results:
   PROVEN       exit 0   file checks passed and the upgrade was rehearsed
@@ -70,7 +71,10 @@ Examples:
   # 2. Check a pull request from its git diff. Exit 0 is green. Exit 1 and 2 fail CI.
   stageproof check-pr --current-git "$CI_MERGE_REQUEST_DIFF_BASE_SHA" --current-k8s 1.35 --next-k8s 1.36 --comment-file comment.md
 
-  # 3. Compare two directories of rendered manifests. Helm is not called.
+  # 3. Print what one rule means. Exit 2 when the id is not a rule.
+  stageproof explain helm.values.silently_dropped
+
+  # 4. Compare two directories of rendered manifests. Helm is not called.
   stageproof check --before ./before --after ./after --current-k8s 1.35
 `)
 }
