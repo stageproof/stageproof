@@ -229,11 +229,11 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Supported</h3>
-            <p>A Helm chart in a directory. An Argo CD Application, including several sources and a chart path in this repository, and a Terraform <code>.yaml.tmpl</code> with placeholders. Two rendered manifest trees, in the source on main. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed. The released binary is v0.1.8 and reads one remote chart.</p>
+            <p>A Helm chart in a directory. An Argo CD Application, including several sources and a chart path in this repository, and a Terraform <code>.yaml.tmpl</code> with placeholders. A Flux HelmRelease, in the source on main. Two rendered manifest trees, in the source on main. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed. The released binary is v0.1.8 and reads one remote chart.</p>
           </article>
           <article class="doc-card">
             <h3>Not supported</h3>
-            <p>Terraform providers and modules. Container image contents. Kustomize, Flux <code>HelmRelease</code>, and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages.</p>
+            <p>Terraform providers and modules. Container image contents. Kustomize and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages. The v0.1.8 binary does not read a Flux HelmRelease.</p>
           </article>
           <article class="doc-card">
             <h3>What <code>--live</code> does</h3>

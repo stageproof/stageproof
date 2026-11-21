@@ -248,7 +248,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	set := adapter.New(".")
 	targets := set.Discover(".", changed)
 	if len(targets) == 0 {
-		fmt.Printf("stageproof check-pr: no Helm charts or Argo CD Applications modified between %s and %s.\n", *currentGit, *newGit)
+		fmt.Printf("stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between %s and %s.\n", *currentGit, *newGit)
 		return 0
 	}
 
@@ -324,6 +324,9 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 			} else {
 				args = append(args, "--current-git", *currentGit)
 			}
+			runTarget(target.Path, args)
+		case "flux":
+			args := []string{"--flux-file", resolved.FluxFile, "--current-git", *currentGit}
 			runTarget(target.Path, args)
 		default:
 			base := []string{"--new-chart", resolved.HeadChart, "--current-git", *currentGit}

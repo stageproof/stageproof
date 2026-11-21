@@ -229,8 +229,18 @@ func TestCRDsDirectory(t *testing.T) {
 	if !hasMessage(findings, "crd.not_upgraded_by_helm", "Plain Helm does not upgrade") {
 		t.Fatalf("helm text missing: %+v", findings)
 	}
-	if !hasMessage(flux, "crd.flux_upgrade_crds", "Skip") {
+	if !hasMessage(flux, "crd.flux_upgrade_crds", "defaults to Skip") {
 		t.Fatalf("flux default text missing: %+v", flux)
+	}
+	explicit, _ := Compare(nil, nil, Options{
+		Adapter:       "flux",
+		FluxCRDPolicy: "Skip",
+		BeforeDir:     filepath.Join(root, "break", "before"),
+		AfterDir:      filepath.Join(root, "break", "after"),
+	})
+	requireRule(t, explicit, "crd.flux_upgrade_crds", verdict.SeverityBlocker)
+	if !hasMessage(explicit, "crd.flux_upgrade_crds", "spec.upgrade.crds is Skip") || hasMessage(explicit, "crd.flux_upgrade_crds", "omitted") {
+		t.Fatalf("explicit Skip text: %+v", explicit)
 	}
 }
 

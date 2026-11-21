@@ -28,4 +28,4 @@ go run ./cmd/corpus run --set pairs --out results.json
 go run ./cmd/corpus compare results.json corpus/baseline.json
 ```
 
-`--set all` runs incidents and pairs. Replay waits for the Flux adapter. The file `replay/cases.jsonl` stays empty until then, and it stores only a repository URL, a commit, a path, and two versions. It does not store values.
+`--set all` runs incidents and pairs. Replay is not built yet. The file `replay/cases.jsonl` stays empty until then, and it stores only a repository URL, a commit, a path, and two versions. It does not store values.

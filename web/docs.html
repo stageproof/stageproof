@@ -5,7 +5,7 @@
   <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Documentation - Stageproof</title>
-  <meta name="description" content="Stageproof documentation: check a Helm chart upgrade before you merge it. Guides for chart directories, git branches, Argo CD Applications, pull requests, Kubernetes versions, and the live rehearsal." />
+  <meta name="description" content="Stageproof documentation: check a Helm chart upgrade before you merge it. Guides for chart directories, git branches, Argo CD Applications, Flux HelmReleases, pull requests, Kubernetes versions, and the live rehearsal." />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -148,10 +148,11 @@
   <tbody>
     <tr><td>A Helm chart in a directory</td><td>Supported</td></tr>
     <tr><td>A Helm chart named in an Argo CD Application (HTTPS chart repository or <code>oci://</code> registry)</td><td>Supported</td></tr>
+    <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported in source on main. Not in the v0.1.8 binary. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
     <tr><td>Container image contents</td><td>Not supported</td></tr>
     <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on main. Not in the v0.1.8 binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
-    <tr><td>Kustomize, Flux <code>HelmRelease</code>, Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
+    <tr><td>Kustomize and Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
   </tbody>
 </table></div>
 <p>The full list is in <a href="#limits">Scope and limits</a>.</p>
@@ -172,7 +173,7 @@
   <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
   <tbody>
     <tr><td>Go</td><td>1.23 or newer</td><td>Building the program</td></tr>
-    <tr><td>Helm</td><td>3 or 4</td><td>Chart and Argo CD checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
+    <tr><td>Helm</td><td>3 or 4</td><td>Chart, Argo CD, and Flux checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
     <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
     <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
   </tbody>
@@ -226,6 +227,7 @@ verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
   <li>You have your own chart and a values file: <a href="#compare-charts">Compare two chart versions</a>.</li>
   <li>Your chart lives in a git repository: <a href="#compare-git">Compare a chart with a git branch</a>.</li>
   <li>You deploy with Argo CD: <a href="#argocd">Check an Argo CD Application</a>.</li>
+  <li>You deploy with Flux: <a href="#flux">Check a Flux HelmRelease</a>.</li>
   <li>You already rendered the manifests: <a href="#manifests">Compare rendered manifests</a>.</li>
   <li>You want this on every pull request: <a href="#pull-request">Check a pull request</a>.</li>
 </ul>
@@ -525,12 +527,99 @@ verdict  PASSED (exit 0)  · 164ms · 0 AI calls</pre>
 <p>Some teams generate Application files from a template, for example a Terraform <code>.yaml.tmpl</code> file with <code>${...}</code> placeholders. Stageproof accepts these files. Before reading the file it replaces each placeholder with a fixed sample value, so that the file is valid YAML: <code>10Gi</code> when the placeholder name contains <code>size</code>, <code>2</code> when it contains <code>replica</code>, <code>count</code>, <code>port</code>, or <code>concurrent</code>, and a fixed text for everything else.</p>
   </template>
 
+  <template data-topic="flux" data-group="Guides" data-title="Check a Flux HelmRelease">
+<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. This is the source on main. The released binary is v0.1.8 and does not read a HelmRelease.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>A HelmRelease pins a chart, in a Helm repository, an OCI registry, or this Git repository, and the pull request changes the chart, the source, or its values.</dd></div>
+  <div><dt>Finds</dt><dd>The same problems as <a href="#compare-charts">Compare two chart versions</a>, using the values the HelmRelease actually applies.</dd></div>
+  <div><dt>Needs</dt><dd>Helm and Git. A remote chart also needs network access to that chart repository or registry.</dd></div>
+</dl>
+
+<h2>The example</h2>
+<p>The chart is <code>charts/web</code> in this repository. <code>sources/git.yaml</code> is a GitRepository named <code>charts</code> whose URL is a remote of this checkout. <code>values/prod.yaml</code> is a ConfigMap named <code>prod-values</code>. On <code>main</code> its <code>values.yaml</code> key sets <code>tag</code> to <code>1.27</code>. The working tree sets <code>1.28</code>.</p>
+<pre data-kind="file" data-label="apps/web.yaml">
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: web
+spec:
+  chart:
+    spec:
+      chart: charts/web
+      sourceRef:
+        kind: GitRepository
+        name: charts
+  valuesFrom:
+    - kind: ConfigMap
+      name: prod-values</pre>
+
+<h2>Run the check</h2>
+<pre data-kind="cmd">
+stageproof check --flux-file apps/web.yaml --current-git main --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  charts/web (main) -> charts/web (apps/web.yaml)
+values  HelmRelease values (ConfigMap/prod-values)
+k8s  1.33  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          every user key in 1 overlay is still read
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+
+  INFO  impact.restart
+         Deployment/default/web
+         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
+         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+
+verdict  PASSED (exit 0)  · 162ms · 0 AI calls</pre>
+
+<h2>What happens</h2>
+<ol>
+  <li>Stageproof reads <code>apps/web.yaml</code> in the working tree, and the same file on <code>main</code>.</li>
+  <li>The GitRepository URL matches a remote of this checkout, so <code>charts/web</code> is read here. It is not cloned and it is not pulled. The revision is the one being compared. The branch named on the GitRepository is not fetched.</li>
+  <li>The ConfigMap <code>prod-values</code> is read from a YAML file in this repository. <code>data["values.yaml"]</code> is the values file. On <code>main</code> the tag is <code>1.27</code>. In the working tree it is <code>1.28</code>.</li>
+  <li>It runs the same checks as for two chart directories.</li>
+</ol>
+<p>The <code>values</code> line names the ConfigMap. It does not print the values. The image warning is the tag from that ConfigMap at each revision. <code>--api-server off</code> is why the impact line says the API server did not run. The default is <code>auto</code>.</p>
+
+<h2>What Stageproof reads from the HelmRelease</h2>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Field</th><th>Used as</th></tr></thead>
+  <tbody>
+    <tr><td><code>spec.chart</code> or <code>spec.chartRef</code></td><td>Exactly one of these. Both, or neither, is <code>NOT CHECKED</code>.</td></tr>
+    <tr><td><code>spec.chart.spec</code></td><td><code>chart</code> and <code>sourceRef</code> name a HelmRepository, an OCIRepository, or a GitRepository in this repository. <code>kind</code> defaults to <code>HelmChart</code>. <code>version</code> is the chart version for a Helm repository and is ignored for Git. An empty version is <code>*</code>.</td></tr>
+    <tr><td><code>spec.chartRef</code></td><td>An OCIRepository or a HelmChart in this repository. <code>ExternalArtifact</code> is <code>NOT CHECKED</code>.</td></tr>
+    <tr><td><code>spec.values</code></td><td>Inline values, applied after <code>valuesFrom</code> entries that have no <code>targetPath</code>.</td></tr>
+    <tr><td><code>spec.valuesFrom</code></td><td>ConfigMap <code>data</code>, or Secret <code>stringData</code> and then <code>data</code>. <code>valuesKey</code> defaults to <code>values.yaml</code>. Entries merge in order. A later map overwrites an earlier one. <code>targetPath</code> is applied after <code>spec.values</code> and overwrites that path, including inline values. <code>literal: true</code> keeps the string.</td></tr>
+    <tr><td><code>spec.releaseName</code> and <code>spec.targetNamespace</code></td><td>The Helm release name is <code>releaseName</code>, or <code>targetNamespace-name</code> when <code>targetNamespace</code> is set, or the HelmRelease name. A name longer than 53 characters is shortened. The namespace is <code>targetNamespace</code>, then <code>metadata.namespace</code>, then <code>default</code>.</td></tr>
+    <tr><td><code>spec.upgrade.crds</code></td><td><code>Skip</code>, <code>Create</code>, or <code>CreateReplace</code>. When the field is omitted the check uses Skip: CRDs under <code>crds/</code> are neither installed nor upgraded. The helm-controller type comment says that. The user guide lists Create as the default for both install and upgrade. This check is an upgrade, so it follows the type comment.</td></tr>
+  </tbody>
+</table></div>
+<p>A HelmRepository is downloaded with <code>helm pull</code>. An OCIRepository uses <code>spec.url</code> and one of <code>tag</code>, <code>semver</code>, or <code>digest</code>. <code>spec.insecure: true</code> is an HTTP registry. A chart <code>valuesFiles</code> list is merged in order, last wins, and the chart <code>values.yaml</code> is not included unless it is listed. A missing file in that list is <code>NOT CHECKED</code> when <code>ignoreMissingValuesFiles</code> is false, which is the default. The chart is not rendered from its defaults.</p>
+<p>A <code>valuesFrom</code> object that is not a file in this repository is <code>flux.values.unreadable</code>. The chart is still rendered. The result stays <code>PASSED</code>, including after a rehearsal. The finding names the reference and does not print a value. <code>optional: true</code> skips a missing object. A missing <code>valuesKey</code> is still named. A Secret with <code>sops</code> or <code>ENC[</code> is not decrypted. The same finding names it.</p>
+<p>These inputs are <code>NOT CHECKED</code>. Nothing is cloned and no chart defaults are rendered in their place:</p>
+<ul>
+  <li>A GitRepository whose URL is not a remote of this checkout.</li>
+  <li><code>spec.chart</code> and <code>spec.chartRef</code> both set, or neither set.</li>
+  <li><code>ExternalArtifact</code>, a Bucket source, or another chart kind.</li>
+  <li>More than one of <code>tag</code>, <code>semver</code>, and <code>digest</code> on an OCIRepository.</li>
+  <li>A chart <code>valuesFiles</code> entry that is missing when <code>ignoreMissingValuesFiles</code> is false.</li>
+</ul>
+<p><code>${...}</code> in the chart name, the version, the repository URL, or a source name is <code>NOT CHECKED</code> unless <code>templatePlaceholders</code> sets that token. The same token in values, a name, or <code>targetPath</code> becomes <code>stageproof-placeholder</code> and the report says <code>helm.config.placeholder_used</code>.</p>
+  </template>
+
   <template data-topic="pull-request" data-group="Guides" data-title="Check a pull request">
 <p class="docs-lede">Check everything a pull request changes with one command. You do not tell Stageproof which chart changed. It reads the git diff and works that out.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want one command for CI, or you want to check your branch before you open a pull request.</dd></div>
-  <div><dt>Finds</dt><dd>Changed charts and changed Argo CD Applications, then checks each one.</dd></div>
+  <div><dt>Finds</dt><dd>Changed charts, changed Argo CD Applications, and changed Flux HelmReleases, then checks each one.</dd></div>
   <div><dt>Needs</dt><dd>Helm and Git. Run the command inside the repository, on the pull request branch.</dd></div>
 </dl>
 
@@ -538,7 +627,7 @@ verdict  PASSED (exit 0)  · 164ms · 0 AI calls</pre>
 <p>Pass the branch that the pull request will merge into.</p>
 <pre data-kind="cmd">
 stageproof check-pr --current-git main</pre>
-<p>One Application prints the same report as <code>stageproof check --argocd-file</code>. The sample is in <a href="#argocd">Check an Argo CD Application</a>. A change to a values file the Application names is enough. The Application file itself does not have to change.</p>
+<p>One Application prints the same report as <code>stageproof check --argocd-file</code>. The sample is in <a href="#argocd">Check an Argo CD Application</a>. A change to a values file the Application names is enough. The Application file itself does not have to change. A Flux HelmRelease works the same way. The sample is in <a href="#flux">Check a Flux HelmRelease</a>. A change to the source object, a <code>valuesFrom</code> file, or a file under a chart path in this checkout is enough.</p>
 
 <h2>How it decides what to check</h2>
 <p>Stageproof lists the files that differ between the target branch and your branch, then handles each file by its type.</p>
@@ -547,6 +636,8 @@ stageproof check-pr --current-git main</pre>
   <tbody>
     <tr><td>An Argo CD Application file (<code>.yaml</code>, <code>.yml</code>, or <code>.yaml.tmpl</code>)</td><td>That Application. A remote chart is pulled at each revision. A Git path in this checkout is read from each revision. An <code>ApplicationSet</code> is <code>NOT CHECKED</code>.</td></tr>
     <tr><td>A values file an Application in this repository names, including a <code>$ref/</code> path</td><td>That Application, with the file read on the target branch and on your branch.</td></tr>
+    <tr><td>A Flux HelmRelease (<code>.yaml</code> or <code>.yml</code>)</td><td>That HelmRelease. A Helm repository or an OCI chart is pulled at each revision. A GitRepository in this checkout is read from each revision. Another Git repository is <code>NOT CHECKED</code>.</td></tr>
+    <tr><td>A source object, a <code>valuesFrom</code> ConfigMap or Secret, or a file under a chart path a HelmRelease names</td><td>That HelmRelease, with each side read at its own revision.</td></tr>
     <tr><td>Any file inside a chart directory, including a file the pull request deleted</td><td>The whole chart on the target branch against the chart in your branch. Stageproof finds the chart by walking up to the nearest <code>Chart.yaml</code>. The file does not have to exist on the branch you are checking. A change inside a subchart under <code>charts/</code> is checked as a change to the parent chart.</td></tr>
     <tr><td>Any other file</td><td>Nothing. The file is ignored.</td></tr>
   </tbody>
@@ -554,9 +645,9 @@ stageproof check-pr --current-git main</pre>
 <p>For a chart in your repository, Stageproof uses the chart's own <code>values.yaml</code> as the values file. To check the values files you deploy with, see <a href="#values-files">Check each values file of a chart</a>.</p>
 
 <h2>When nothing relevant changed</h2>
-<p>If the pull request changes no chart and no Application, Stageproof prints one line and exits <code>0</code>. There was nothing to check, so the pipeline stays green:</p>
+<p>If the pull request changes no chart, no Application, and no HelmRelease, Stageproof prints one line and exits <code>0</code>. There was nothing to check, so the pipeline stays green:</p>
 <pre data-kind="out">
-stageproof check-pr: no Helm charts or Argo CD Applications modified between main and HEAD.</pre>
+stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between main and HEAD.</pre>
 
 <h2>When several charts changed</h2>
 <p>Each chart is checked in turn and each prints its own report. The result of the pull request is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. <code>PASSED</code> and <code>PROVEN</code> both exit <code>0</code>. <code>PASSED</code> is reported when any chart was not rehearsed.</p>
@@ -1056,6 +1147,7 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
 <ul>
   <li>For a chart directory, add <code>--server-side-apply</code> to the command, or set <code>serverSideApply: true</code> in the <a href="#config">configuration file</a>.</li>
   <li>For an Argo CD Application, do nothing. Stageproof reads <code>ServerSideApply=true</code> from the file.</li>
+  <li>For a Flux HelmRelease, <code>spec.upgrade.crds</code> is read for the CRD schema rule. It does not turn off this size warning. Pass <code>--server-side-apply</code> when you apply with server-side apply.</li>
 </ul>
   </template>
 
@@ -1292,8 +1384,8 @@ workflow:
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Command</th><th>What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>stageproof check</code></td><td>Checks one chart, one Argo CD Application, or two sets of rendered manifests.</td></tr>
-    <tr><td><code>stageproof check-pr</code></td><td>Finds the charts and Applications that a branch changed, and checks each one.</td></tr>
+    <tr><td><code>stageproof check</code></td><td>Checks one chart, one Argo CD Application, one Flux HelmRelease, or two sets of rendered manifests.</td></tr>
+    <tr><td><code>stageproof check-pr</code></td><td>Finds the charts, Applications, and Flux HelmReleases that a branch changed, and checks each one.</td></tr>
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
@@ -1301,15 +1393,17 @@ workflow:
 </table></div>
 
 <h2><code>stageproof check</code>: what to compare</h2>
-<p>Give <code>--new-chart</code>, <code>--argocd-file</code>, or both <code>--before</code> and <code>--after</code>. Without one of those the command ends with exit code <code>2</code>.</p>
+<p>Give <code>--new-chart</code>, <code>--argocd-file</code>, <code>--flux-file</code>, or both <code>--before</code> and <code>--after</code>. Without one of those the command ends with exit code <code>2</code>.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><code>--new-chart &lt;dir&gt;</code></td><td>The chart you want to deploy.</td></tr>
     <tr><td><code>--current-chart &lt;dir&gt;</code></td><td>The chart you run today. Leave it out to check the new chart on its own.</td></tr>
-    <tr><td><code>--current-git &lt;ref&gt;</code></td><td>Read the current chart, or the current Application file, from this branch, tag, or commit.</td></tr>
+    <tr><td><code>--current-git &lt;ref&gt;</code></td><td>Read the current chart, the current Application, or the current HelmRelease from this branch, tag, or commit.</td></tr>
     <tr><td><code>--argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you want to deploy.</td></tr>
     <tr><td><code>--current-argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you run today. Use it when the old file is not in Git.</td></tr>
+    <tr><td><code>--flux-file &lt;file&gt;</code></td><td>A Flux HelmRelease that names the chart you want to deploy. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
+    <tr><td><code>--current-flux-file &lt;file&gt;</code></td><td>A Flux HelmRelease that names the chart you run today. Use it when the old file is not in Git.</td></tr>
     <tr><td><code>--before &lt;dir or file&gt;</code></td><td>Rendered manifests before the change. A <code>.yaml</code> or <code>.yml</code> file, or a directory of them. Use it with <code>--after</code>. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
     <tr><td><code>--after &lt;dir or file&gt;</code></td><td>Rendered manifests after the change. Not combined with a chart, an Application, values files, <code>--set</code>, or <code>--live</code>.</td></tr>
   </tbody>
@@ -1525,6 +1619,7 @@ charts:
     <tr><td><code>helm.config.placeholder_used</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A <code>${...}</code> token outside the chart repository, name, or version had no entry in <code>templatePlaceholders</code>. It was replaced with <code>stageproof-placeholder</code>.</td><td>Add the token to <code>templatePlaceholders</code> when the real value matters.</td></tr>
     <tr><td><code>helm.config.unresolved_placeholder</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>${...}</code> token is still in the chart repository, name, or version. The result is <code>NOT CHECKED</code> and the report names the token.</td><td>Set that token in <code>templatePlaceholders</code>.</td></tr>
     <tr><td><code>helm.dependency.not_updated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>Chart.yaml</code> dependency constraint changed, and the packaged chart under <code>charts/</code> did not.</td><td>Run <code>helm dependency update</code> so the render uses the new chart.</td></tr>
+    <tr><td><code>flux.values.unreadable</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>valuesFrom</code> ConfigMap or Secret is not a file in this repository, its key is missing, or the Secret is encrypted. The chart is still rendered. The result stays <code>PASSED</code>, including after a rehearsal. The report names the reference and does not print the value.</td><td>Commit the object this HelmRelease names, or set <code>optional: true</code> when a missing object should be skipped. A missing key is still named.</td></tr>
   </tbody>
 </table></div>
 <p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
@@ -1560,7 +1655,7 @@ charts:
     <tr><td><code>crd.schema.incompatible</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A field was removed, changed type, became required, or lost an enum value, and no current object of that version uses it. A newly required field the object already sets, and an enum value that is still allowed, stay here. It is <code>crd.existing_object_invalid</code> when a current object of that version is missing a new required field, keeps a removed enum value, or uses another broken field. Each such object is named.</td><td>Read the field the report names before you upgrade.</td></tr>
     <tr><td><code>crd.not_upgraded_by_helm</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A CRD under <code>crds/</code> changed in a way the new schema will not accept. Plain Helm does not upgrade CRDs in that directory. Argo CD with <code>skipCrds: true</code> uses this same rule. A new file, a removed file, or a compatible edit is a warning.</td><td>Apply that CRD yourself before the upgrade, or keep the schema compatible.</td></tr>
     <tr><td><code>crd.argocd_renders_crds</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An Argo CD check. <code>spec.source.helm.skipCrds: false</code> means Argo CD renders with <code>helm template</code> and applies CRDs in <code>crds/</code>. When the field is absent, the warning says the input does not say. <code>skipCrds: true</code> is <code>crd.not_upgraded_by_helm</code> instead.</td><td>Set <code>skipCrds</code> to match the Application. An incompatible CRD with <code>skipCrds: true</code> has to be applied before the upgrade.</td></tr>
-    <tr><td><code>crd.flux_upgrade_crds</code></td><td><span class="verdict-badge warn">WARN</span></td><td>Reserved for a Flux HelmRelease. <code>spec.upgrade.crds</code> defaults to Skip. Skip or Create with an incompatible change to an existing CRD is <code>ERROR</code>, the same as plain Helm. CreateReplace is info, and the schema is compared. The current command does not read a HelmRelease.</td><td>Nothing until the Flux adapter sets this rule.</td></tr>
+    <tr><td><code>crd.flux_upgrade_crds</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A Flux HelmRelease. <code>spec.upgrade.crds</code> omitted or <code>Skip</code> means CRDs under <code>crds/</code> are neither installed nor upgraded. An incompatible change is <code>ERROR</code>. <code>Create</code> installs a new CRD and leaves an existing one. <code>CreateReplace</code> is info, and the schema is compared. The helm-controller type comment says the upgrade default is Skip. The user guide lists Create for both install and upgrade. This check follows the type comment.</td><td>Set <code>upgrade.crds</code> to match the HelmRelease. <code>CreateReplace</code> updates an existing CRD and does not delete it.</td></tr>
     <tr><td><code>impact.privilege.rbac</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A Role or ClusterRole gained rules. Wildcards, a cluster-wide secrets read, <code>escalate</code>, <code>bind</code>, <code>impersonate</code>, and <code>pods/exec</code> are named when present. Any new rule is a warning.</td><td>Confirm the new verbs are intended.</td></tr>
     <tr><td><code>impact.privilege.binding</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A new binding to <code>cluster-admin</code>, or a new subject on a binding that already points at <code>cluster-admin</code>.</td><td>Confirm who gained that access.</td></tr>
     <tr><td><code>impact.privilege.securitycontext</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A pod or container security context became weaker, including when the whole block is removed: privileged, privilege escalation, running as root, a writable root filesystem, or a capability that was added or no longer dropped.</td><td>Keep the stricter context unless the process needs the new right.</td></tr>
@@ -1614,7 +1709,8 @@ charts:
   <tbody>
     <tr><td>Terraform providers and modules</td><td>A change to a provider version or a module version is not checked.</td></tr>
     <tr><td>Container image contents</td><td>Stageproof does not inspect an image. A new image is started only in the <a href="#live">live rehearsal</a>.</td></tr>
-    <tr><td>Kustomize, Helmfile, Flux <code>HelmRelease</code></td><td>These files are ignored. A loose manifest is ignored by <code>check-pr</code>. Two rendered trees can be compared with <a href="#manifests"><code>--before</code> and <code>--after</code></a>.</td></tr>
+    <tr><td>Kustomize and Helmfile</td><td>These files are ignored. A loose manifest is ignored by <code>check-pr</code>. Two rendered trees can be compared with <a href="#manifests"><code>--before</code> and <code>--after</code></a>.</td></tr>
+    <tr><td>A Flux HelmRelease whose chart is not in this checkout</td><td>A GitRepository on another host, <code>ExternalArtifact</code>, a Bucket, both <code>spec.chart</code> and <code>spec.chartRef</code>, or a missing chart <code>valuesFiles</code> entry is <code>NOT CHECKED</code>. Stageproof does not clone that repository and does not render chart defaults in its place. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>An ApplicationSet, a chart or values file in another Git repository, or a <code>ref</code> source that also sets <code>path</code></td><td><code>NOT CHECKED</code>. Stageproof does not clone that repository, does not expand generators, and does not render chart defaults in their place. See <a href="#argocd">Check an Argo CD Application</a>.</td></tr>
     <tr><td>Application dependencies, for example npm or Maven packages</td><td>Not checked.</td></tr>
   </tbody>

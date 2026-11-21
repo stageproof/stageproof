@@ -25,9 +25,12 @@ import (
 // documents spec.source.helm.skipCrds. It also says Helm installs CRDs in
 // crds/ when they are not already present.
 //
-// Flux: https://fluxcd.io/flux/components/helm/api/v2/
-// spec.upgrade.crds is Skip, Create, or CreateReplace. The default on upgrade
-// is Skip: CRDs are neither installed nor upgraded.
+// Flux: https://fluxcd.io/flux/components/helm/helmreleases/#controlling-the-lifecycle-of-custom-resource-definitions
+// https://github.com/fluxcd/helm-controller/blob/main/api/v2/helmrelease_types.go
+// spec.install.crds defaults to Create. spec.upgrade.crds defaults to Skip:
+// on upgrade, CRDs are neither installed nor upgraded when the field is omitted.
+// The user guide lists Create as the default for both fields. The Upgrade
+// field comment says the upgrade default is Skip, and this check is an upgrade.
 
 func crdsDirectory(before []obj, opt Options) []verdict.Finding {
 	oldFiles := loadDirCRDs(opt.BeforeDir)
@@ -93,6 +96,7 @@ type deployMode struct {
 	helmLike      bool
 	fluxCreate    bool
 	fluxReplace   bool
+	fluxSkipSet   bool
 	argocd        bool
 	argocdKnown   bool
 	argocdSkip    bool
@@ -114,6 +118,8 @@ func crdDeployMode(adapter, policy string, skipCrds *bool) deployMode {
 			return deployMode{rule: "crd.flux_upgrade_crds", appliesSchema: true, fluxReplace: true}
 		case "Create":
 			return deployMode{rule: "crd.flux_upgrade_crds", fluxCreate: true}
+		case "Skip":
+			return deployMode{rule: "crd.flux_upgrade_crds", helmLike: true, fluxSkipSet: true}
 		default:
 			return deployMode{rule: "crd.flux_upgrade_crds", helmLike: true}
 		}
@@ -142,6 +148,8 @@ func directoryFinding(mode deployMode, name string, incompatible bool, why strin
 		sev = verdict.SeverityInfo
 	case mode.rule == "crd.flux_upgrade_crds" && mode.fluxCreate:
 		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). Flux spec.upgrade.crds is Create. A new CRD is installed. An existing CRD is left as it is.", name, why)
+	case mode.fluxSkipSet:
+		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). Flux spec.upgrade.crds is Skip, so CRDs in that directory are neither installed nor upgraded.", name, why)
 	case mode.rule == "crd.flux_upgrade_crds":
 		msg = fmt.Sprintf("The CRD %s under crds/ changed (%s). Flux spec.upgrade.crds defaults to Skip when it is omitted, so CRDs in that directory are neither installed nor upgraded.", name, why)
 	}

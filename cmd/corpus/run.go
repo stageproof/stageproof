@@ -37,7 +37,7 @@ func run(args []string) error {
 	case "pairs":
 		res.Pairs, err = runPairs(root, bin, *prOnly)
 	case "replay":
-		fmt.Println("replay waits for the Flux adapter (task 1.2). cases.jsonl is empty.")
+		fmt.Println("replay is not built yet. cases.jsonl is empty.")
 		res.Summary = summarize(nil, nil)
 		return writeResults(*out, res)
 	case "all":
@@ -46,7 +46,7 @@ func run(args []string) error {
 			return err
 		}
 		res.Pairs, err = runPairs(root, bin, false)
-		fmt.Println("replay waits for the Flux adapter (task 1.2).")
+		fmt.Println("replay is not built yet.")
 	default:
 		return fmt.Errorf("unknown set %q", *set)
 	}

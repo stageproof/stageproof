@@ -145,9 +145,9 @@ func (r *Report) Finalize(runtimeSucceeded, couldNotCheck, requireRehearsal bool
 		r.Verdict = NotChecked
 	case runtimeSucceeded && len(r.Skipped) == 0:
 		r.Checked = withLive(r.Checked)
-		// A green rehearsal of the chart on disk is not proof of a dependency
-		// constraint that was never packaged under charts/.
-		if r.HasRule("helm.dependency.not_updated") {
+		// A green rehearsal is not proof when a valuesFrom reference was not read,
+		// and it is not proof of a dependency constraint that was never packaged.
+		if r.HasRule("helm.dependency.not_updated") || r.HasRule("flux.values.unreadable") {
 			r.Verdict = Passed
 		} else {
 			r.Verdict = Proven

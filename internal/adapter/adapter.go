@@ -1,7 +1,6 @@
 // Package adapter finds what a pull request changed and turns each hit into
-// a check target. Helm charts, Argo CD Applications, and applications listed
-// in .stageproof.yaml share one discovery order. Flux is a later adapter on
-// this same interface.
+// a check target. Helm charts, Argo CD Applications, Flux HelmReleases, and
+// applications listed in .stageproof.yaml share one discovery order.
 package adapter
 
 import (
@@ -15,6 +14,7 @@ import (
 
 	"github.com/stageproof/stageproof/internal/argocd"
 	"github.com/stageproof/stageproof/internal/config"
+	"github.com/stageproof/stageproof/internal/flux"
 )
 
 // Kind is the input a target came from.
@@ -23,6 +23,7 @@ type Kind string
 const (
 	KindHelm        Kind = "helm"
 	KindArgoCD      Kind = "argocd"
+	KindFlux        Kind = "flux"
 	KindApplication Kind = "application"
 )
 
@@ -42,6 +43,7 @@ type ResolvedTarget struct {
 	Values        []string
 	ArgoFile      string
 	CurrentArgo   string
+	FluxFile      string
 	ArgoSkipCrds  *bool
 	FluxCRDPolicy string
 	Cleanup       func()
@@ -56,6 +58,7 @@ type Adapter interface {
 var (
 	_ Adapter = helmAdapter{}
 	_ Adapter = argoAdapter{}
+	_ Adapter = fluxAdapter{}
 	_ Adapter = appAdapter{}
 )
 
@@ -64,6 +67,7 @@ var (
 // offered to the Helm adapter, because the chart directory can outlive the file.
 type Set struct {
 	argo argoAdapter
+	flux fluxAdapter
 	apps appAdapter
 	helm helmAdapter
 }
@@ -81,6 +85,7 @@ func New(root string) *Set {
 	}
 	return &Set{
 		argo: argoAdapter{cfg: cfg},
+		flux: fluxAdapter{cfg: cfg},
 		apps: appAdapter{cfg: cfg},
 		helm: helmAdapter{cfg: cfg},
 	}
@@ -96,7 +101,7 @@ func (s *Set) Discover(repoRoot string, changedFiles []string) []Target {
 			continue
 		}
 		path := joinRoot(repoRoot, f)
-		if s.argo.matches(path) {
+		if s.argo.matches(path) || s.flux.matches(path) {
 			continue
 		}
 		if s.apps.cover(f, path) != nil {
@@ -106,10 +111,11 @@ func (s *Set) Discover(repoRoot string, changedFiles []string) []Target {
 		helmFiles = append(helmFiles, f)
 	}
 	charts := s.helm.Discover(repoRoot, helmFiles)
-	// Pass every changed path, not only files that are already Applications.
-	// A values file outside the chart still belongs to the Application that
-	// names it. argo.Discover dedups a file that is itself an Application.
-	rest := append(s.argo.Discover(repoRoot, changedFiles), s.apps.Discover(repoRoot, appFiles)...)
+	// Pass every changed path, not only files that are already Applications or
+	// HelmReleases. A values file outside the chart still belongs to the
+	// object that names it. Each Discover dedups a file that is itself the object.
+	rest := append(s.argo.Discover(repoRoot, changedFiles), s.flux.Discover(repoRoot, changedFiles)...)
+	rest = append(rest, s.apps.Discover(repoRoot, appFiles)...)
 	return append(charts, rest...)
 }
 
@@ -120,6 +126,8 @@ func (s *Set) Resolve(ctx context.Context, target Target, gitRef string) (Resolv
 		return s.helm.Resolve(ctx, target, gitRef)
 	case KindArgoCD:
 		return s.argo.Resolve(ctx, target, gitRef)
+	case KindFlux:
+		return s.flux.Resolve(ctx, target, gitRef)
 	case KindApplication:
 		return s.apps.Resolve(ctx, target, gitRef)
 	default:
@@ -285,6 +293,69 @@ func (a argoAdapter) Resolve(_ context.Context, target Target, gitRef string) (R
 		return ResolvedTarget{}, fmt.Errorf("application %s at %s: %w", target.Path, gitRef, err)
 	}
 	return ResolvedTarget{Adapter: "argocd", ArgoFile: target.Path}, nil
+}
+
+type fluxAdapter struct {
+	cfg *config.Config
+}
+
+func (a fluxAdapter) matches(path string) bool {
+	if _, err := os.Stat(path); err != nil {
+		return false
+	}
+	switch strings.ToLower(filepath.Ext(path)) {
+	case ".yaml", ".yml":
+	default:
+		if !strings.HasSuffix(path, ".yaml.tmpl") {
+			return false
+		}
+	}
+	_, _, err := flux.ParseFile(path, placeholderMap(a.cfg))
+	if err == nil || len(flux.UnresolvedTokens(err)) > 0 {
+		return true
+	}
+	var skipped *flux.NotCheckedError
+	if errors.As(err, &skipped) {
+		return true
+	}
+	raw, readErr := os.ReadFile(path)
+	if readErr != nil {
+		return false
+	}
+	text := string(raw)
+	return strings.Contains(text, "kind: HelmRelease") && strings.Contains(text, "helm.toolkit.fluxcd.io/")
+}
+
+func (a fluxAdapter) Discover(repoRoot string, changedFiles []string) []Target {
+	seen := map[string]bool{}
+	var out []Target
+	add := func(path string) {
+		if path == "" || seen[path] {
+			return
+		}
+		seen[path] = true
+		out = append(out, Target{Kind: KindFlux, Path: path})
+	}
+	for _, f := range changedFiles {
+		path := joinRoot(repoRoot, f)
+		if a.matches(path) {
+			add(relToRoot(repoRoot, path))
+		}
+	}
+	for _, path := range flux.ReleasesReferencing(repoRoot, changedFiles) {
+		add(path)
+	}
+	return out
+}
+
+func (a fluxAdapter) Resolve(_ context.Context, target Target, gitRef string) (ResolvedTarget, error) {
+	if target.Kind != KindFlux {
+		return ResolvedTarget{}, fmt.Errorf("flux adapter: %s", target.Kind)
+	}
+	if _, err := os.Stat(target.Path); err != nil {
+		return ResolvedTarget{}, fmt.Errorf("HelmRelease %s at %s: %w", target.Path, gitRef, err)
+	}
+	return ResolvedTarget{Adapter: "flux", FluxFile: target.Path}, nil
 }
 
 func placeholderMap(cfg *config.Config) map[string]string {

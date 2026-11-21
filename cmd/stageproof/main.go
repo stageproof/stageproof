@@ -15,6 +15,7 @@ import (
 	"github.com/stageproof/stageproof/internal/argocd"
 	"github.com/stageproof/stageproof/internal/check"
 	"github.com/stageproof/stageproof/internal/config"
+	"github.com/stageproof/stageproof/internal/flux"
 	"github.com/stageproof/stageproof/internal/helm"
 	"github.com/stageproof/stageproof/internal/rehearse"
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -110,7 +111,9 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	newChart := fs.String("new-chart", "", "New candidate Helm chart directory")
 	argoFile := fs.String("argocd-file", "", "Argo CD Application YAML or .yaml.tmpl file")
 	currentArgo := fs.String("current-argocd-file", "", "Previously deployed Argo CD Application file, compared with --argocd-file")
-	currentGit := fs.String("current-git", "", "Git ref to extract --current-chart / --argocd-file from")
+	fluxFile := fs.String("flux-file", "", "Flux HelmRelease YAML file")
+	currentFlux := fs.String("current-flux-file", "", "Previously deployed Flux HelmRelease, compared with --flux-file")
+	currentGit := fs.String("current-git", "", "Git ref to extract --current-chart, --argocd-file, or --flux-file from")
 	before := fs.String("before", "", "Rendered manifests before the change, a .yaml/.yml file or a directory")
 	after := fs.String("after", "", "Rendered manifests after the change, a .yaml/.yml file or a directory")
 
@@ -210,8 +213,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after are both required")
 			return 2
 		}
-		if headDir != "" || baseDir != "" || *argoFile != "" || *currentArgo != "" || gitRef != "" {
-			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a chart or an Argo CD Application")
+		if headDir != "" || baseDir != "" || *argoFile != "" || *currentArgo != "" || *fluxFile != "" || *currentFlux != "" || gitRef != "" {
+			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a chart, an Argo CD Application, or a Flux HelmRelease")
 			return 2
 		}
 		if len(valuesFiles) > 0 || len(baseValuesFiles) > 0 || len(setValues) > 0 {
@@ -223,9 +226,14 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			return 2
 		}
 	}
-	if !manifestMode && headDir == "" && *argoFile == "" {
-		fmt.Fprintln(os.Stderr, "error: --new-chart <dir> or --argocd-file <file> is required")
+	if !manifestMode && headDir == "" && *argoFile == "" && *fluxFile == "" {
+		fmt.Fprintln(os.Stderr, "error: --new-chart <dir>, --argocd-file <file>, or --flux-file <file> is required")
 		fmt.Fprintln(os.Stderr, "Run `stageproof check --help` for examples.")
+		return 2
+	}
+
+	if *argoFile != "" && *fluxFile != "" {
+		fmt.Fprintln(os.Stderr, "stageproof check: --argocd-file and --flux-file cannot be combined")
 		return 2
 	}
 
@@ -272,6 +280,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	var headRelease, baseRelease, headNamespace, baseNamespace string
 	var headSet, baseSet, headSetStr, baseSetStr, headSetFile, baseSetFile []string
 	var argoSkip *bool
+	var fluxPolicy string
+	var valueGaps []string
 	headSkipCRDs := false
 	baseSkipCRDs := false
 	argoBase := false
@@ -371,6 +381,94 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			baseRelease, baseNamespace = baseMat.ReleaseName, baseMat.Namespace
 			baseSkipCRDs = oldSpec.SkipCrds != nil && *oldSpec.SkipCrds
 		}
+	} else if *fluxFile != "" {
+		placeholders := templatePlaceholders()
+		newRel, _, fErr := flux.ParseFile(*fluxFile, placeholders)
+		if rep, ok := fluxStop(fErr, *fluxFile); ok {
+			emit(rep)
+			return verdict.NotChecked.ExitCode()
+		}
+		if fErr != nil {
+			fmt.Fprintf(os.Stderr, "error parsing --flux-file %s: %v\n", *fluxFile, fErr)
+			return 2
+		}
+		headMat, mErr := flux.Materialize(ctx, newRel, flux.MaterializeOptions{})
+		if rep, ok := fluxStop(mErr, *fluxFile); ok {
+			emit(rep)
+			return verdict.NotChecked.ExitCode()
+		}
+		if mErr != nil {
+			fmt.Fprintf(os.Stderr, "error reading --flux-file %s: %v\n", *fluxFile, mErr)
+			return 2
+		}
+		defer headMat.Cleanup()
+		headDir = headMat.ChartDir
+		headLabel = fluxRefLabel(headMat, *fluxFile)
+		effectiveValues = append(effectiveValues, headMat.ValueFiles...)
+		for path, label := range headMat.Labels {
+			valuesLabel[path] = label
+		}
+		headRelease, headNamespace = headMat.ReleaseName, headMat.Namespace
+		fluxPolicy = newRel.UpgradeCRDs
+		valueGaps = append(valueGaps, headMat.Gaps...)
+		placeholderTokens = append(placeholderTokens, headMat.Used...)
+
+		var oldRel *flux.Release
+		oldLabel := ""
+		if *currentFlux != "" {
+			parsed, _, oErr := flux.ParseFile(*currentFlux, placeholders)
+			if rep, ok := fluxStop(oErr, *currentFlux); ok {
+				emit(rep)
+				return verdict.NotChecked.ExitCode()
+			}
+			if oErr != nil {
+				fmt.Fprintf(os.Stderr, "error parsing --current-flux-file %s: %v\n", *currentFlux, oErr)
+				return 2
+			}
+			oldRel = parsed
+			oldLabel = *currentFlux
+		} else if gitRef != "" {
+			oldBytes, gErr := readFileFromGitRef(gitRef, *fluxFile)
+			if gErr == nil {
+				parsed, _, oErr := flux.ParseBytes(oldBytes, gitRef+":"+*fluxFile, placeholders)
+				if rep, ok := fluxStop(oErr, gitRef+":"+*fluxFile); ok {
+					emit(rep)
+					return verdict.NotChecked.ExitCode()
+				}
+				if oErr == nil {
+					oldRel = parsed
+					oldLabel = gitRef
+				}
+			}
+		}
+		if oldRel != nil {
+			baseMat, bErr := flux.Materialize(ctx, oldRel, flux.MaterializeOptions{GitRef: gitRefFor(oldLabel, *currentFlux)})
+			if rep, ok := fluxStop(bErr, oldLabel); ok {
+				emit(rep)
+				return verdict.NotChecked.ExitCode()
+			}
+			if bErr != nil {
+				fmt.Fprintf(os.Stderr, "error reading the current HelmRelease %s: %v\n", oldLabel, bErr)
+				return 2
+			}
+			defer baseMat.Cleanup()
+			resolvedBaseDir = baseMat.ChartDir
+			baseLabel = fluxRefLabel(baseMat, oldLabel)
+			argoBase = true
+			prefix := []string(baseValuesFiles)
+			if len(prefix) == 0 {
+				prefix = []string(valuesFiles)
+			}
+			baseVals = append(append([]string{}, prefix...), baseMat.ValueFiles...)
+			for path, label := range baseMat.Labels {
+				if _, exists := valuesLabel[path]; !exists {
+					valuesLabel[path] = label
+				}
+			}
+			baseRelease, baseNamespace = baseMat.ReleaseName, baseMat.Namespace
+			valueGaps = append(valueGaps, baseMat.Gaps...)
+			placeholderTokens = append(placeholderTokens, baseMat.Used...)
+		}
 	} else {
 		if resolvedBaseDir == "" && gitRef != "" {
 			tmpGitDir, cleanup, gErr := extractChartFromGitRef(gitRef, headDir)
@@ -407,6 +505,9 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	if *argoFile != "" {
 		adapterName = "argocd"
 	}
+	if *fluxFile != "" {
+		adapterName = "flux"
+	}
 	rep := check.Run(ctx, check.Input{
 		Adapter:           adapterName,
 		BaseDir:           resolvedBaseDir,
@@ -430,6 +531,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		BaseSkipCRDs:      baseSkipCRDs,
 		HeadSkipCRDs:      headSkipCRDs,
 		ArgoSkipCrds:      argoSkip,
+		FluxCRDPolicy:     fluxPolicy,
+		ValueGaps:         valueGaps,
 		KubeVersion:       effK8s,
 		NextKubernetes:    effNextK8s,
 		APIServer:         *apiServer,
@@ -447,6 +550,45 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	})
 	emit(rep)
 	return rep.ExitCode
+}
+
+func fluxStop(err error, label string) (*verdict.Report, bool) {
+	if err == nil {
+		return nil, false
+	}
+	if tokens := flux.UnresolvedTokens(err); len(tokens) > 0 {
+		rep := unresolvedPlaceholderReport(label, tokens)
+		rep.Adapter = "flux"
+		return rep, true
+	}
+	var skipped *flux.NotCheckedError
+	if !errors.As(err, &skipped) {
+		return nil, false
+	}
+	return &verdict.Report{
+		Verdict:   verdict.NotChecked,
+		ExitCode:  verdict.NotChecked.ExitCode(),
+		Adapter:   "flux",
+		BaseRef:   label,
+		HeadRef:   label,
+		Checked:   verdict.CheckedFiles,
+		Timestamp: time.Now().UTC(),
+		Checks: []verdict.CheckResult{{
+			Name:    "Flux source",
+			Status:  "fail",
+			Summary: skipped.Error(),
+		}},
+	}, true
+}
+
+func fluxRefLabel(mat *flux.Materialized, source string) string {
+	if mat == nil || mat.RefLabel == "" {
+		return source
+	}
+	if source == "" || strings.HasPrefix(source, os.TempDir()) {
+		return mat.RefLabel
+	}
+	return mat.RefLabel + " (" + source + ")"
 }
 
 func argoStop(err error, label string) (*verdict.Report, bool) {

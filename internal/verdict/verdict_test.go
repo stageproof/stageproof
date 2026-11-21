@@ -85,4 +85,10 @@ func TestFinalizeProvenAndBlocked(t *testing.T) {
 	if missed.Verdict != NotChecked || missed.ExitCode != 2 {
 		t.Fatalf("could not check: %s %d", missed.Verdict, missed.ExitCode)
 	}
+
+	gap := &Report{Findings: []Finding{{RuleID: "flux.values.unreadable", Severity: SeverityWarning}}}
+	gap.Finalize(true, false, false)
+	if gap.Verdict != Passed || gap.ExitCode != 0 {
+		t.Fatalf("unreadable values must stay PASSED: %s %d", gap.Verdict, gap.ExitCode)
+	}
 }
