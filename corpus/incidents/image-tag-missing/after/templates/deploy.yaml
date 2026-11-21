@@ -14,4 +14,4 @@ spec:
     spec:
       containers:
         - name: app
-          image: example.invalid/missing:no-such-tag
+          image: public.ecr.aws/docker/library/nginx:stageproof-no-such-tag

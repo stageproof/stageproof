@@ -39,6 +39,7 @@ Chart, Argo CD & Values:
   --base-values <file>     Optional separate values.yaml for --current-chart (defaults to -f)
   --set <k=v>              Explicit Helm --set override(s) (repeatable)
   --values-proof <mode>    default, or full. default renders keys the template reader drops or cannot decide. full renders every user key and every changed chart default.
+  --offline                Do not contact container registries. Does not change --api-server.
 
 Kubernetes & GitOps Environment:
   --current-k8s <ver>      Current cluster Kubernetes version (default "1.33")

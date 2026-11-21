@@ -488,7 +488,7 @@ k8s  1.33  ·  checked: files
          The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
   WARN  helm.image.changed
          1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
-         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
 verdict  PASSED (exit 0)  · 164ms · 0 AI calls</pre>
 
@@ -580,7 +580,7 @@ k8s  1.33  ·  checked: files
          The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
   WARN  helm.image.changed
          1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
-         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
 verdict  PASSED (exit 0)  · 162ms · 0 AI calls</pre>
 
@@ -808,7 +808,7 @@ k8s  1.35  ·  checked: files, API server 1.35.0
 
   WARN  helm.image.changed
          1 container image changed. Job/default/migrate.template.spec.containers[0] job container moves from busybox:1.36 to busybox:1.37.
-         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
   ERROR  k8s.apply.immutable_field
          Job/default/migrate
          Kubernetes rejected the update. `spec.template` is immutable.
@@ -931,7 +931,7 @@ k8s  1.33  ·  checked: files
          The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
   WARN  helm.image.changed
          1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to nginx:1.28-alpine.
-         The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
 
 verdict  PASSED (exit 0)  · 173ms · 0 AI calls</pre>
 <p>Findings are ordered deletes, CRD changes, privilege, exposure, values, restarts, capacity, then everything else. A blocker whose rule starts with <code>impact.delete</code> or <code>crd.</code> is also printed on the first lines. The rule list is in <a href="#findings">Findings</a>.</p>
@@ -1391,14 +1391,14 @@ workflow:
     - if: $CI_COMMIT_TAG</pre>
 
 <h2>What Stageproof can and cannot say about an image update</h2>
-<p>Renovate also bumps container image tags in <code>values.yaml</code>. For such a pull request, Stageproof renders the chart with the new tag and runs the file checks. It does not download the image, so it cannot tell whether the new image starts.</p>
-<p>The result for an image update is therefore <code>PASSED</code>. The files are fine. To have the new image started in a cluster, use the <a href="#live">live rehearsal</a>.</p>
+<p>Renovate also bumps container image tags in <code>values.yaml</code>. For such a pull request, Stageproof renders the chart with the new tag and asks the registry whether that tag exists. It does not download the image layers, so it cannot tell whether the new image starts.</p>
+<p>A tag the registry says is missing is <code>BLOCKED</code>. A tag the registry has is <code>PASSED</code>, with the image warning that names the change. To have the new image started in a cluster, use the <a href="#live">live rehearsal</a>.</p>
   </template>
 
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, or <code>--api-server</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, or <code>--offline</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1436,6 +1436,8 @@ workflow:
     <tr><td><code>-f &lt;file&gt;</code>, <code>--values &lt;file&gt;</code></td><td>A values file you deploy with. Repeat it for several files.</td></tr>
     <tr><td><code>--base-values &lt;file&gt;</code></td><td>A values file for the current chart, when it differs from the one for the new chart. By default both charts use the <code>-f</code> files.</td></tr>
     <tr><td><code>--set &lt;key=value&gt;</code></td><td>A single value, the same as in Helm. Repeat it for several values.</td></tr>
+    <tr><td><code>--values-proof default|full</code></td><td><code>default</code> render-tests a key the template reader cannot decide. <code>full</code> render-tests every key.</td></tr>
+    <tr><td><code>--offline</code></td><td>Do not ask a registry whether a new or changed image tag exists. Chart deprecation is still reported. This does not change <code>--api-server</code>.</td></tr>
   </tbody>
 </table></div>
 
@@ -1480,7 +1482,7 @@ workflow:
   <tbody>
     <tr><td><code>--current-git &lt;ref&gt;</code></td><td><code>origin/main</code></td><td>The branch or commit the pull request will merge into.</td></tr>
     <tr><td><code>--new-git &lt;ref&gt;</code></td><td><code>HEAD</code></td><td>The end of the pull request branch. It is used to list the changed files. The chart files are read from your working directory.</td></tr>
-    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
+    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--api-server</code>, <code>--offline</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
     <tr><td><code>--format</code></td><td><code>text</code></td><td>The same as for <code>stageproof check</code>.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
@@ -1629,19 +1631,64 @@ charts:
 </table></div>
 
 <h2>What changed between the two charts</h2>
-<p>These are warnings. The result stays <code>PASSED</code> when nothing else is blocked. They name the change. They do not decide that the project forbids it, and they do not contact a registry.</p>
+<p>These are warnings. The result stays <code>PASSED</code> when nothing else is blocked. They name the change. They do not decide that the project forbids it. A new or changed image tag is asked of its registry by the image tags check, which is a separate line.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
     <tr><td><code>helm.release.version_span</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart version skips more than one minor version, or moves to a new major version.</td><td>Read that project's upgrade notes before merging.</td></tr>
     <tr><td><code>helm.release.app_version_changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td><code>appVersion</code> in <code>Chart.yaml</code> changed. The image the chart runs often changes with it.</td><td>Confirm the application version is the one you meant to run.</td></tr>
-    <tr><td><code>helm.image.changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An image in the render changed. That includes a container image, an <code>image</code> field on a custom resource, and an image passed as a container argument. A tag that only gains or loses a leading <code>v</code> is named.</td><td>Confirm the tag exists and is the tag you intended.</td></tr>
+    <tr><td><code>helm.image.changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An image in the render changed. That includes a container image, an <code>image</code> field on a custom resource, and an image passed as a container argument. A tag that only gains or loses a leading <code>v</code> is named. This warning does not itself ask the registry.</td><td>Read the image tags line for whether the new tag exists.</td></tr>
     <tr><td><code>helm.operator.existing_custom_resources</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart ships custom resource definitions and the application it runs is changing. Existing custom resources are not in this check.</td><td>Plan the upgrade of the objects that already exist. A rehearsal uses an empty cluster.</td></tr>
     <tr><td><code>helm.operator.documented_upgrade_behavior</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart uses a custom resource group whose project documents an upgrade effect. The note and the source URL come from <code>internal/knowledge/operators.yaml</code>. <code>helm.operator.primary_restart</code> is the same note for one release.</td><td>Read the source named in the report. A rehearsal uses an empty cluster.</td></tr>
     <tr><td><code>helm.config.placeholder_used</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A <code>${...}</code> token outside the chart repository, name, or version had no entry in <code>templatePlaceholders</code>. It was replaced with <code>stageproof-placeholder</code>.</td><td>Add the token to <code>templatePlaceholders</code> when the real value matters.</td></tr>
     <tr><td><code>helm.config.unresolved_placeholder</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>${...}</code> token is still in the chart repository, name, or version. The result is <code>NOT CHECKED</code> and the report names the token.</td><td>Set that token in <code>templatePlaceholders</code>.</td></tr>
     <tr><td><code>helm.dependency.not_updated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>Chart.yaml</code> dependency constraint changed, and the packaged chart under <code>charts/</code> did not.</td><td>Run <code>helm dependency update</code> so the render uses the new chart.</td></tr>
     <tr><td><code>flux.values.unreadable</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>valuesFrom</code> ConfigMap or Secret is not a file in this repository, its key is missing, or the Secret is encrypted. The chart is still rendered. The result stays <code>PASSED</code>, including after a rehearsal. The report names the reference and does not print the value.</td><td>Commit the object this HelmRelease names, or set <code>optional: true</code> when a missing object should be skipped. A missing key is still named.</td></tr>
+  </tbody>
+</table></div>
+
+<h2>Image tags</h2>
+<p>For each image that is new or whose reference changed, Stageproof sends HTTP <code>HEAD</code> to the registry named in that reference. It does not download layers. A manifest list is fetched only to see whether <code>linux/amd64</code> is present. One request waits 5 seconds. The whole check waits 20 seconds. At most four requests run at once for one registry host. <code>--offline</code> sends nothing. It does not change <code>--api-server</code>. An unchanged tag is not asked.</p>
+<p>This run compared the missing-tag incident charts with <code>--api-server off</code>:</p>
+<pre data-kind="cmd">
+stageproof check --api-server off --current-chart corpus/incidents/image-tag-missing/before --new-chart corpus/incidents/image-tag-missing/after --current-k8s 1.35</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  corpus/incidents/image-tag-missing/before -> corpus/incidents/image-tag-missing/after
+k8s  1.35  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ! WARN  upgrade signals          1 named change
+  ✕ FAIL  image tags               a new or changed image tag was not found, or it lacks the required platform
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  INFO  impact.restart
+         Deployment/default/demo
+         The pod template of Deployment/default/demo changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to public.ecr.aws/docker/library/nginx:stageproof-no-such-tag.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
+  INFO  supply.image.moved
+         Deployment/default/demo.template.spec.containers[0] app
+         Image repository changed from `index.docker.io/library/nginx` to `public.ecr.aws/docker/library/nginx`.
+         The registry or the repository is different. The tag check still asks the new repository.
+  ERROR  supply.image.not_found
+         Deployment/default/demo.template.spec.containers[0] app
+         Image `public.ecr.aws/docker/library/nginx:stageproof-no-such-tag` was not found.
+         The registry answered that this tag or digest is not there.
+
+verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td><code>supply.image.not_found</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The registry answered that the tag or digest is not there.</td><td>Use a tag the registry has, or remove the reference.</td></tr>
+    <tr><td><code>supply.image.platform_missing</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The tag is a manifest list and it has no <code>linux/amd64</code> manifest.</td><td>Publish that platform, or change the tag.</td></tr>
+    <tr><td><code>supply.image.unverifiable</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The registry returned 401 or 403. A private image and a missing image can look the same.</td><td>Run where registry credentials are available, or pass <code>--offline</code> when this registry should not be asked.</td></tr>
+    <tr><td><code>supply.registry_unreachable</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The request timed out, or the registry returned a rate limit or a server error.</td><td>Run the check again. This is not proof that the tag is missing.</td></tr>
+    <tr><td><code>supply.image.moved</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The registry or the repository changed. The message names both repositories.</td><td>Confirm the new repository is the one you meant.</td></tr>
+    <tr><td><code>supply.chart.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The new chart's <code>Chart.yaml</code> sets <code>deprecated: true</code>.</td><td>Read the chart's notes before staying on it.</td></tr>
   </tbody>
 </table></div>
 <p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
@@ -1730,7 +1777,7 @@ charts:
   <thead><tr><th>Not supported</th><th>What that means for you</th></tr></thead>
   <tbody>
     <tr><td>Terraform providers and modules</td><td>A change to a provider version or a module version is not checked.</td></tr>
-    <tr><td>Container image contents</td><td>Stageproof does not inspect an image. A new image is started only in the <a href="#live">live rehearsal</a>.</td></tr>
+    <tr><td>Container image contents</td><td>Stageproof does not inspect image layers. A new or changed tag is asked of its registry. A new image is started only in the <a href="#live">live rehearsal</a>.</td></tr>
     <tr><td>Kustomize and Helmfile</td><td>These files are ignored. A loose manifest is ignored by <code>check-pr</code>. Two rendered trees can be compared with <a href="#manifests"><code>--before</code> and <code>--after</code></a>.</td></tr>
     <tr><td>A Flux HelmRelease whose chart is not in this checkout</td><td>A GitRepository on another host, <code>ExternalArtifact</code>, a Bucket, both <code>spec.chart</code> and <code>spec.chartRef</code>, or a missing chart <code>valuesFiles</code> entry is <code>NOT CHECKED</code>. Stageproof does not clone that repository and does not render chart defaults in its place. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>An ApplicationSet, a chart or values file in another Git repository, or a <code>ref</code> source that also sets <code>path</code></td><td><code>NOT CHECKED</code>. Stageproof does not clone that repository, does not expand generators, and does not render chart defaults in their place. See <a href="#argocd">Check an Argo CD Application</a>.</td></tr>

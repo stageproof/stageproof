@@ -211,6 +211,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
+	offline := fs.Bool("offline", false, "Do not contact container registries. Does not change --api-server.")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply enabled")
 	live := fs.Bool("live", false, "Run live kind upgrade/rollback")
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
@@ -283,6 +284,9 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	}
 	if *valuesProof == "full" {
 		shared = append(shared, "--values-proof", "full")
+	}
+	if *offline {
+		shared = append(shared, "--offline")
 	}
 	if *ssa {
 		shared = append(shared, "--server-side-apply")

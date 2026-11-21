@@ -132,6 +132,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
+	offline := fs.Bool("offline", false, "Do not contact container registries. Does not change --api-server.")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply is enabled in Argo CD / Flux / Helm")
 	applyMode := fs.String("apply-mode", "", "Apply mode: client | ssa")
 
@@ -269,6 +270,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			APIServerDir:     *apiServerDir,
 			ServerSideApply:  effSSA,
 			RequireRehearsal: effRequire,
+			Offline:          *offline,
 			Started:          tStart,
 		})
 		emit(rep)
@@ -554,6 +556,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		CRDFiles:          crdFiles,
 		PlaceholderTokens: placeholderTokens,
 		ValuesFull:        *valuesProof == "full",
+		Offline:           *offline,
 		Started:           tStart,
 	})
 	emit(rep)

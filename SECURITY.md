@@ -16,6 +16,8 @@ The corpus replay command is not in the release binary. It fetches the public co
 
 With `--api-server auto` (the default) or `require`, the check downloads `kube-apiserver`, `etcd`, and `kubectl` for the Kubernetes minor you named, unless `--api-server-dir` already points at them. The index is `https://raw.githubusercontent.com/kubernetes-sigs/controller-tools/HEAD/envtest-releases.yaml`. The archives are release assets of `kubernetes-sigs/controller-tools` on `github.com`. The SHA-512 in the index is checked before the archive is unpacked. The files are cached under the user cache directory, in `stageproof/envtest`. The processes listen on localhost and are stopped when the check exits. They do not contact a cluster you already have. `--api-server off` does not download them and does not start them.
 
+A new or changed container image is asked of the registry named in that image reference. The request is HTTP HEAD. A manifest list is fetched only to see whether `linux/amd64` is present. Image layers are not downloaded. The host is whatever the chart rendered. There is no fixed list of registries. `--offline` sends none of those requests and does not change `--api-server`. An unchanged image is not asked. A 401 or 403 is reported as unverifiable and is not a block.
+
 `--live` starts a temporary kind cluster on that same machine, pulls the chart's images, and runs its hooks. It does not contact a cluster you already have. Run it on a machine you trust with that chart.
 
 The node is a container that sets up its own networking and starts more containers. An unprivileged container is blocked from doing that, so a normal CI job cannot run `--live`.

@@ -115,6 +115,11 @@ kind cluster on this machine
               <td>The report does not print your values. A probe that <code>values.schema.json</code> rejects is not a finding. <code>--values-proof full</code> render-tests every key. The default mode does not.</td>
             </tr>
             <tr>
+              <td>Image tags</td>
+              <td>A new or changed image is asked of the registry named in that reference, with HTTP HEAD. A manifest list is read only to see whether linux/amd64 is present.</td>
+              <td>Layers are not downloaded. An unchanged tag is not asked. A 401, a 403, a timeout, or a rate limit is not a block. <code>--offline</code> sends nothing and does not change <code>--api-server</code>.</td>
+            </tr>
+            <tr>
               <td>Kubernetes APIs</td>
               <td>A local API server of the minor you named applies the current objects and dry-runs the new ones. Deprecations, label selectors, and the CRD size check still come from the built-in table.</td>
               <td>The server is not your cluster. The patch it ran is named in the report. <code>--api-server off</code> uses only the table. Webhook configurations are not sent.</td>

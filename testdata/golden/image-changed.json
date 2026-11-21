@@ -26,6 +26,11 @@
       "summary": "1 named change"
     },
     {
+      "name": "image tags",
+      "status": "pass",
+      "summary": "1 new or changed image tag checked"
+    },
+    {
       "name": "impact",
       "status": "pass",
       "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."
@@ -47,7 +52,7 @@
       "rule_id": "helm.image.changed",
       "severity": "warning",
       "message": "1 container image changed. Deployment/default/demo.template.spec.containers[0] app container moves from nginx:1.27-alpine to nginx:1.28-alpine.",
-      "detail": "The render names a different image, including images on custom resources and images passed as container arguments. This check does not ask the registry whether the tag exists."
+      "detail": "The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check."
     }
   ]
 }

@@ -21,6 +21,11 @@
       "summary": "no custom -f overlay passed (default chart values verified)"
     },
     {
+      "name": "image tags",
+      "status": "pass",
+      "summary": "no new or changed image"
+    },
+    {
       "name": "impact",
       "status": "pass",
       "summary": "Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison."

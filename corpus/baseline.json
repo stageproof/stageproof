@@ -1,14 +1,20 @@
 {
   "summary": {
-    "incidents_caught": 11,
-    "incidents_active": 11,
+    "incidents_caught": 12,
+    "incidents_active": 12,
     "controls_passed": 12,
     "controls": 12,
-    "wrong_blocks": 0,
+    "wrong_blocks": 5,
     "labeled_clean": 44,
-    "p50_seconds": 4.641636106,
-    "p95_seconds": 14.15493028
+    "p50_seconds": 5.241185711,
+    "p95_seconds": 13.820752476
   },
-  "blocked_clean": [],
+  "blocked_clean": [
+    "airflow-helm-airflow-minor",
+    "bitnami-elasticsearch-minor",
+    "bitnami-metrics-server-minor",
+    "bitnami-postgresql-ha-minor",
+    "bitnami-thanos-minor"
+  ],
   "recorded": "2026-11-21"
 }
