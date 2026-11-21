@@ -290,74 +290,6 @@ stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
     <tr><td><code>--comment-file comment.md</code></td><td>The Markdown report in a file, in addition to the normal output. Use it for a pull request comment.</td></tr>
   </tbody>
 </table></div>
-  </template>
-
-  <!-- ================================================================ GUIDES -->
-
-  <template data-topic="compare-charts" data-group="Guides" data-title="Compare two chart versions">
-<p class="docs-lede">Check an upgrade when you have both chart versions on disk. This is the most direct way to find a values key that the new chart no longer reads.</p>
-
-<dl class="doc-facts">
-  <div><dt>Use it when</dt><dd>You have the current chart, the new chart, and the values file you deploy with.</dd></div>
-  <div><dt>Finds</dt><dd>Values keys that stop working, removed Kubernetes APIs, changes that cannot be applied in place, and objects the new chart deletes.</dd></div>
-  <div><dt>Needs</dt><dd>Helm. No cluster.</dd></div>
-</dl>
-
-<h2>The example</h2>
-<p>You run <code>webapp</code> chart 1.4.0 and want 2.0.0. Your production values set the log level:</p>
-<pre data-kind="file" data-label="values-prod.yaml">
-replicas: 1
-config:
-  logLevel: warn</pre>
-<p>Chart 2.0.0 renamed that setting from <code>config.logLevel</code> to <code>logging.level</code>. Helm accepts the old key and ignores it. The sample below passes <code>--api-server off</code> so the output is the file check.</p>
-
-<h2>Run the check</h2>
-<pre data-kind="cmd">
-stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-2.0.0 -f values-prod.yaml --api-server off</pre>
-<pre data-kind="out">
-stageproof  BLOCKED  exit 1
-compare  ./webapp-1.4.0 -> ./webapp-2.0.0
-values  values-prod.yaml
-k8s  1.33  ·  checked: files
-
-  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
-  ! WARN  upgrade signals          1 named change
-  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
-  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
-
-  ERROR  helm.values.silently_dropped
-         values-prod.yaml (config.logLevel)
-         Values key `config.logLevel` was consumed in baseline chart but is silently ignored in upgraded chart.
-  INFO  impact.restart
-         Deployment/default/web
-         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].env[name=LOG_LEVEL].value. The pods will restart. A restart is normal for an upgrade.
-  WARN  helm.release.version_span
-         Chart version moves from 1.4.0 to 2.0.0, a new major version.
-         Stageproof does not read that project's upgrade notes. A skip of more than one minor version, or a new major version, is named here and does not block.
-
-verdict  BLOCKED (exit 1)  · 552ms · 0 AI calls</pre>
-
-<h2>What the result means</h2>
-<p>The chart still renders, which is why <code>helm template</code> passes. The problem is that <code>config.logLevel</code> in your values file no longer changes anything. After the upgrade, the application would run with the chart's default log level and not with <code>warn</code>.</p>
-<p>To fix it, rename the key in <code>values-prod.yaml</code> to the name the new chart uses, then run the check again.</p>
-
-<h2>How Stageproof decides that a key is used</h2>
-<p>A key counts as read in the templates when a template reads that exact path, the chart lists it in <code>values.yaml</code> or <code>values.schema.json</code>, or it sits under <code>global</code>. Those keys stay <code>"proof": "templates"</code> and are not rendered again.</p>
-<p>When a template passes a whole section on, for example with <code>toYaml</code>, <code>merge</code>, or <code>range</code>, the reader cannot decide. Stageproof then renders the chart with your values and again without that one key. Parsed objects that differ mean the key has an effect. When they do not differ, because your value matches the chart default, it sets the key to another value of the same type and renders once more. A YAML list is one key, because Helm replaces the list as a whole. Fields that change between two renders of the same inputs, such as a random string or a checksum annotation, are ignored before the comparison. The check summary says how many keys were proven by rendering and how many were read in templates.</p>
-<p>A key that has an effect in the current chart and none in the new chart is <code>helm.values.silently_dropped</code> with <code>"proof": "render"</code>. If the other value is rejected by <code>values.schema.json</code>, that key is not a finding. If rendering cannot run, the template reading is kept and <code>proof</code> is <code>templates</code>. <code>--values-proof full</code> render-tests every key in the file. The default mode is <code>default</code>.</p>
-
-<h2>Related cases</h2>
-<div class="doc-table-wrap"><table class="doc-table">
-  <thead><tr><th>Situation</th><th>What Stageproof reports</th></tr></thead>
-  <tbody>
-    <tr><td>The key was used by the current chart and is not used by the new chart.</td><td><code>ERROR helm.values.silently_dropped</code>. The result is <code>BLOCKED</code>. <code>proof</code> is <code>render</code> when rendering showed the effect, and <code>templates</code> when the reader decided.</td></tr>
-    <tr><td>The key was already unused by the current chart.</td><td><code>WARN helm.values.preexisting_orphan</code>. The upgrade did not cause it, so the result does not change.</td></tr>
-    <tr><td>A new chart key changes the same fields as the dropped key.</td><td><code>WARN helm.values.renamed</code>. <code>verified</code> is true only when the rendered effect matches. A similar name with a different effect stays false. The message names both keys and does not print your value.</td></tr>
-    <tr><td>A chart default you do not set changed, and the old default still changes the render.</td><td><code>WARN helm.values.default_changed</code>. The message names the chart defaults. It does not print your values. More than eight changed defaults in the default mode are one warning that says to re-run with <code>--values-proof full</code>.</td></tr>
-    <tr><td>The new chart requires a value that the current chart did not, and you do not set it.</td><td><code>ERROR helm.values.new_required_unset</code>. The result is <code>BLOCKED</code>. A requirement that only appears while rendering is included. The message does not include your values.</td></tr>
-  </tbody>
-</table></div>
 <p>You can pass <code>-f</code> more than once when you deploy with several values files.</p>
   </template>
 
@@ -1444,7 +1376,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, or <code>--helm-compare</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>explain</code>, or <code>fetch-apiserver</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1453,6 +1385,8 @@ workflow:
     <tr><td><code>stageproof check</code></td><td>Checks one chart, one Argo CD Application, one Flux HelmRelease, or two sets of rendered manifests.</td></tr>
     <tr><td><code>stageproof check-pr</code></td><td>Finds the charts, Applications, and Flux HelmReleases that a branch changed, and checks each one.</td></tr>
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
+    <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory. Not in the v0.1.8 binary.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1651,9 +1585,22 @@ charts:
   </template>
 
   <template data-topic="findings" data-group="Reference" data-title="Findings">
-<p class="docs-lede">Every rule that can appear in a report, what it means, and what to do about it. An <code>ERROR</code> makes the result <code>BLOCKED</code>. A <code>WARN</code> does not change the result.</p>
+<p class="docs-lede">Every rule that can appear in a report, what it means, and what to do about it. An <code>ERROR</code> makes the result <code>BLOCKED</code>. A <code>WARN</code> does not change the result. <code>stageproof explain</code> prints the same text for one rule. The v0.1.8 release does not have that command.</p>
+<pre data-kind="cmd">
+stageproof explain helm.values.silently_dropped</pre>
+<pre data-kind="out">
+helm.values.silently_dropped
+A values key no longer has an effect
+ERROR
+
+A key in your values file was used by the current chart and has no effect in the new chart. proof is render when two renders showed that, and templates when the reader decided. When you check a chart on its own, it means the chart does not use the key at all. The message does not print your value.
+
+What to do
+Rename the key to what the new chart uses, or remove it.</pre>
+<p>An id that is not a rule exits 2 and prints <code>error: no rule "not.a.rule"</code>.</p>
 
 <h2>Values</h2>
+<!-- rules:values -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1665,9 +1612,11 @@ charts:
     <tr><td><code>helm.values.parse_error</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A values file or a chart could not be read.</td><td>Fix the file that the message names.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:values -->
 <p>A value that the current chart already required, and that you set at deploy time and not in a file, does not block the check. Stageproof fills in a placeholder for it and reports that on a <code>WARN</code> line named <code>required values shim</code>.</p>
 
 <h2>Rendering</h2>
+<!-- rules:rendering -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1676,9 +1625,11 @@ charts:
     <tr><td><code>manifest.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>--before</code> or <code>--after</code> could not be read. The path is missing, the file is not <code>.yaml</code> or <code>.yml</code>, the directory has none of those files, or the YAML does not parse.</td><td>Point both flags at rendered manifests and fix the file named in the report.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:rendering -->
 
 <h2>What changed between the two charts</h2>
 <p>These are warnings. The result stays <code>PASSED</code> when nothing else is blocked. They name the change. They do not decide that the project forbids it. A new or changed image tag is asked of its registry by the image tags check, which is a separate line.</p>
+<!-- rules:changes -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1687,12 +1638,14 @@ charts:
     <tr><td><code>helm.image.changed</code></td><td><span class="verdict-badge warn">WARN</span></td><td>An image in the render changed. That includes a container image, an <code>image</code> field on a custom resource, and an image passed as a container argument. A tag that only gains or loses a leading <code>v</code> is named. This warning does not itself ask the registry.</td><td>Read the image tags line for whether the new tag exists.</td></tr>
     <tr><td><code>helm.operator.existing_custom_resources</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart ships custom resource definitions and the application it runs is changing. Existing custom resources are not in this check.</td><td>Plan the upgrade of the objects that already exist. A rehearsal uses an empty cluster.</td></tr>
     <tr><td><code>helm.operator.documented_upgrade_behavior</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The chart uses a custom resource group whose project documents an upgrade effect. The note and the source URL come from <code>internal/knowledge/operators.yaml</code>. <code>helm.operator.primary_restart</code> is the same note for one release.</td><td>Read the source named in the report. A rehearsal uses an empty cluster.</td></tr>
+    <tr><td><code>helm.operator.primary_restart</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The same note as <code>helm.operator.documented_upgrade_behavior</code>, emitted again under the alias stored for that operator. The message and the source URL are the same. The alias is not a second kind of failure.</td><td>Read the source named in the report. A rehearsal uses an empty cluster.</td></tr>
     <tr><td><code>helm.config.placeholder_used</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A <code>${...}</code> token outside the chart repository, name, or version had no entry in <code>templatePlaceholders</code>. It was replaced with <code>stageproof-placeholder</code>.</td><td>Add the token to <code>templatePlaceholders</code> when the real value matters.</td></tr>
     <tr><td><code>helm.config.unresolved_placeholder</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>${...}</code> token is still in the chart repository, name, or version. The result is <code>NOT CHECKED</code> and the report names the token.</td><td>Set that token in <code>templatePlaceholders</code>.</td></tr>
     <tr><td><code>helm.dependency.not_updated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>Chart.yaml</code> dependency constraint changed, and the packaged chart under <code>charts/</code> did not.</td><td>Run <code>helm dependency update</code> so the render uses the new chart.</td></tr>
     <tr><td><code>flux.values.unreadable</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A <code>valuesFrom</code> ConfigMap or Secret is not a file in this repository, its key is missing, or the Secret is encrypted. The chart is still rendered. The result stays <code>PASSED</code>, including after a rehearsal. The report names the reference and does not print the value.</td><td>Commit the object this HelmRelease names, or set <code>optional: true</code> when a missing object should be skipped. A missing key is still named.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:changes -->
 
 <h2>Image tags</h2>
 <p>For each image that is new or whose reference changed, Stageproof sends HTTP <code>HEAD</code> to the registry named in that reference. It does not download layers. A manifest list is fetched only to see whether <code>linux/amd64</code> is present. One request waits 5 seconds. The whole check waits 20 seconds. At most four requests run at once for one registry host. <code>--offline</code> sends nothing. It does not change <code>--api-server</code>. An unchanged tag is not asked.</p>
@@ -1727,6 +1680,7 @@ k8s  1.35  ·  checked: files
          The registry answered that this tag or digest is not there.
 
 verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
+<!-- rules:images -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1736,14 +1690,26 @@ verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
     <tr><td><code>supply.registry_unreachable</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The request timed out, or the registry returned a rate limit or a server error.</td><td>Run the check again. This is not proof that the tag is missing.</td></tr>
     <tr><td><code>supply.image.moved</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The registry or the repository changed. The message names both repositories.</td><td>Confirm the new repository is the one you meant.</td></tr>
     <tr><td><code>supply.chart.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The new chart's <code>Chart.yaml</code> sets <code>deprecated: true</code>.</td><td>Read the chart's notes before staying on it.</td></tr>
+  </tbody>
+</table></div>
+<!-- /rules:images -->
+<p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
+
+<h2>Helm 4</h2>
+<p>These compare the chart with Helm 4. <code>--helm-compare</code> is not in the v0.1.8 release.</p>
+<!-- rules:helm4 -->
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
+  <tbody>
     <tr><td><code>helm4.chart_v3</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The new chart's <code>Chart.yaml</code> <code>apiVersion</code> is <code>v3</code>. Charts v3 are experimental.</td><td>Keep <code>apiVersion: v2</code> until you mean to use the experimental format. See <a href="#helm4">Moving to Helm 4</a>.</td></tr>
     <tr><td><code>helm4.render_differs</code></td><td><span class="verdict-badge warn">WARN</span></td><td><code>--helm-compare</code> rendered different objects. The message names the objects and paths. A field that changes between two renders of the same binary is ignored.</td><td>Read the path. The report does not print the value.</td></tr>
     <tr><td><code>helm4.render_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>One of the two helm binaries could not render the chart.</td><td>Read the helm error in the report. Fix the chart, or stay on the helm that rendered it.</td></tr>
   </tbody>
 </table></div>
-<p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
+<!-- /rules:helm4 -->
 
 <h2>Kubernetes</h2>
+<!-- rules:kubernetes -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1759,9 +1725,11 @@ verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
     <tr><td><code>k8s.crd.oversized_annotation_limit</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A CRD in the chart is larger than 256 KiB.</td><td>See <a href="#large-crds">Large CRDs and server-side apply</a>.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:kubernetes -->
 
 <h2>Impact</h2>
 <p>These compare the current objects with the new ones. Lists of containers, env, ports, and volumes are matched by name. RBAC rules are compared as a set. When the API server returned a stored form for both sides, that form is what is compared. Otherwise the check says it used the rendered objects.</p>
+<!-- rules:impact -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
@@ -1792,19 +1760,22 @@ verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
     <tr><td><code>impact.capacity.hpa</code></td><td><span class="verdict-badge slate">INFO</span></td><td><code>minReplicas</code> or <code>maxReplicas</code> changed. The report names the field.</td><td>Confirm the new bounds.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:impact -->
 
 <h2>Live rehearsal</h2>
 <p>These appear only with <code>--live</code>.</p>
+<!-- rules:live -->
 <div class="doc-table-wrap"><table class="doc-table">
-  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th></tr></thead>
+  <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
   <tbody>
-    <tr><td><code>helm.runtime.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The current chart was healthy, and <code>helm upgrade</code> to the new chart failed.</td></tr>
-    <tr><td><code>helm.runtime.pod_restarts</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The upgrade finished, and afterwards a pod was not ready or a container had restarted.</td></tr>
-    <tr><td><code>helm.runtime.rollback_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm rollback</code> to the first revision failed.</td></tr>
-    <tr><td><code>helm.runtime.helm_test_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The chart's <code>helm test</code> hooks failed after the upgrade. Only with <code>--helm-test</code>.</td></tr>
-    <tr><td><code>helm.crd.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The CRDs in the new chart's <code>crds</code> directory could not be applied to the cluster.</td></tr>
+    <tr><td><code>helm.runtime.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The current chart was healthy, and <code>helm upgrade</code> to the new chart failed.</td><td>Read the helm error in the report. The current release was healthy before this step.</td></tr>
+    <tr><td><code>helm.runtime.pod_restarts</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The upgrade finished, and afterwards a pod was not ready or a container had restarted.</td><td>Read which pod the report names. The upgrade command itself had already finished.</td></tr>
+    <tr><td><code>helm.runtime.rollback_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm rollback</code> to the first revision failed.</td><td>Read the helm error in the report. The rollback to the first revision did not finish.</td></tr>
+    <tr><td><code>helm.runtime.helm_test_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The chart's <code>helm test</code> hooks failed after the upgrade. Only with <code>--helm-test</code>.</td><td>Read the hook output in the report. This rule is recorded only when <code>--helm-test</code> is set.</td></tr>
+    <tr><td><code>helm.crd.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The CRDs in the new chart's <code>crds</code> directory could not be applied to the cluster.</td><td>Read the apply error in the report. Those CRDs were not accepted.</td></tr>
   </tbody>
 </table></div>
+<!-- /rules:live -->
 
 <h2>When a live rehearsal does not finish</h2>
 <p>A check you run without <code>--live</code> does not warn about that. The result is <code>PASSED</code> and the report says <code>checked: files</code>. These reasons appear only when <code>--live</code> was set and the rehearsal stopped before it could judge the upgrade. The result stays <code>PASSED</code> unless you also set <code>--require-rehearsal</code>, which makes it <code>NOT CHECKED</code>.</p>

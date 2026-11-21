@@ -150,6 +150,11 @@ kind cluster on this machine
               <td>Kustomize and loose manifests are ignored. A deleted file inside a chart is still that chart. A deleted HelmRelease is <code>NOT CHECKED</code>.</td>
             </tr>
             <tr>
+              <td>Explain</td>
+              <td><code>stageproof explain</code> prints the level, the meaning, and what to do for one rule id. The findings page is the same text.</td>
+              <td>It does not run a check and it does not use the network. An unknown id exits 2. The v0.1.8 binary does not have this command.</td>
+            </tr>
+            <tr>
               <td>Live rehearsal</td>
               <td><code>kind</code> starts a cluster on the requested minor version when Docker Hub has a node image. Helm installs, upgrades, and rolls back. Pods that crash stop the wait early.</td>
               <td>kind starts a real node container. An unprivileged CI job cannot do that, and the check stays on the files. The cluster is empty. A private image, a missing Secret, or a missing CRD stops the rehearsal. That is <code>PASSED</code> with a reason, or <code>NOT CHECKED</code> when <code>--require-rehearsal</code> is set. It is not <code>BLOCKED</code>.</td>

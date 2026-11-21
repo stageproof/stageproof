@@ -6,7 +6,7 @@ This page is the scope of the command line tool.
 
 ## The job, in one paragraph
 
-Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, an Argo CD Application might name the chart and the version, or a Flux HelmRelease might. Source on main can also compare two sets of rendered manifests. The released binary is v0.1.8 and does not read a HelmRelease or compare rendered manifests. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. It does not edit the pull request, it does not merge it, and it does not change any cluster you already have.
+Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, an Argo CD Application might name the chart and the version, or a Flux HelmRelease might. Source on main can also compare two sets of rendered manifests. The released binary is v0.1.8 and does not read a HelmRelease or compare rendered manifests. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. `stageproof explain <rule-id>` prints the level, the meaning, and what to do for one rule, and exits 2 when the id is not a rule. The released binary is v0.1.8 and does not have `explain`. It does not edit the pull request, it does not merge it, and it does not change any cluster you already have.
 
 ## Two different upgrades
 

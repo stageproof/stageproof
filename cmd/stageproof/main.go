@@ -54,6 +54,8 @@ func main() {
 		os.Exit(runCheckPRCtx(ctx, os.Args[2:]))
 	case "fetch-apiserver":
 		os.Exit(runFetchAPIServer(ctx, os.Args[2:]))
+	case "explain":
+		os.Exit(runExplain(os.Args[2:]))
 	case "version", "--version", "-v":
 		fmt.Printf("stageproof %s (Apache-2.0)\n", version)
 		os.Exit(0)
