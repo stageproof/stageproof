@@ -112,6 +112,8 @@ func emitReport(rep *verdict.Report, format, outPath, commentPath string) {
 	switch strings.ToLower(format) {
 	case "json":
 		_ = report.WriteJSON(os.Stdout, rep)
+	case "sarif":
+		_ = report.WriteSARIF(os.Stdout, []*verdict.Report{rep}, version, string(rep.Verdict), rep.ExitCode)
 	case "markdown", "md", "github", "gitlab-mr":
 		report.WriteMarkdown(os.Stdout, rep)
 	default:
@@ -218,7 +220,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
 	clusterName := fs.String("cluster-name", "", "kind cluster name. Default is unique per process.")
 	timeout := fs.Duration("timeout", 0, "Readiness wait per step. Default is 10m.")
-	format := fs.String("format", "text", "Output format: text | markdown | json")
+	format := fs.String("format", "text", "Output format: text | markdown | json | sarif")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
 	savedLive := fs.String("saved-live", "stageproof-live", "Directory of a live report CI cannot run. A report.json whose head_git is a commit on this merge request changes the gate verdict.")
@@ -386,6 +388,9 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	}
 
 	combined := &report.Combined{Verdict: worst, ExitCode: worst.ExitCode(), HeadGit: headSHA, Reports: reports}
+	if strings.EqualFold(*format, "sarif") {
+		_ = report.WriteSARIF(os.Stdout, reports, version, string(worst), worst.ExitCode())
+	}
 	if *outPath != "" {
 		if f, cErr := os.Create(*outPath); cErr == nil {
 			_ = report.WriteCombinedJSON(f, combined)

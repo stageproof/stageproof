@@ -128,6 +128,11 @@ func escapeHTML(s string) string {
 	return strings.NewReplacer("&", "&amp;", "<", "&lt;", ">", "&gt;", `"`, "&#34;").Replace(s)
 }
 
+// RenderPlain strips docs markup for a terminal line or a SARIF string.
+func RenderPlain(s string) string {
+	return renderPlain(s)
+}
+
 func renderPlain(s string) string {
 	var b strings.Builder
 	for _, part := range scan(s) {

@@ -60,7 +60,7 @@ Live Cluster Test (temporary kind cluster on this machine):
   --timeout <dur>          Readiness wait timeout per step (default 10m)
 
 Output:
-  --format <fmt>           text | markdown | json (default "text")
+  --format <fmt>           text | markdown | json | sarif (default "text")
   --out <file>             Save JSON evidence report to file
   --comment-file <file>    Also write the Markdown merge-request comment (job log stays colored text)
 
