@@ -72,19 +72,27 @@ type caseResult struct {
 }
 
 type summary struct {
-	IncidentsCaught int     `json:"incidents_caught"`
-	IncidentsActive int     `json:"incidents_active"`
-	ControlsPassed  int     `json:"controls_passed"`
-	Controls        int     `json:"controls"`
-	WrongBlocks     int     `json:"wrong_blocks"`
-	LabeledClean    int     `json:"labeled_clean"`
-	P50Seconds      float64 `json:"p50_seconds"`
-	P95Seconds      float64 `json:"p95_seconds"`
+	IncidentsCaught  int     `json:"incidents_caught"`
+	IncidentsActive  int     `json:"incidents_active"`
+	ControlsPassed   int     `json:"controls_passed"`
+	Controls         int     `json:"controls"`
+	WrongBlocks      int     `json:"wrong_blocks"`
+	LabeledClean     int     `json:"labeled_clean"`
+	P50Seconds       float64 `json:"p50_seconds"`
+	P95Seconds       float64 `json:"p95_seconds"`
+	ReplayCases      int     `json:"replay_cases,omitempty"`
+	ReplayChecked    int     `json:"replay_checked,omitempty"`
+	ReplayPassed     int     `json:"replay_passed,omitempty"`
+	ReplayBlocked    int     `json:"replay_blocked,omitempty"`
+	ReplayNotChecked int     `json:"replay_not_checked,omitempty"`
+	ReplayProven     int     `json:"replay_proven,omitempty"`
+	ReplayErrors     int     `json:"replay_errors,omitempty"`
 }
 
 type resultsFile struct {
 	Incidents []caseResult `json:"incidents"`
 	Pairs     []caseResult `json:"pairs"`
+	Replay    []caseResult `json:"replay,omitempty"`
 	Summary   summary      `json:"summary"`
 }
 

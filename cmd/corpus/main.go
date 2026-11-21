@@ -38,6 +38,8 @@ func usage() {
   go run ./cmd/corpus compare results.json corpus/baseline.json
   go run ./cmd/corpus fetch
 
-Replay is not built yet. fetch writes pairs/pairs.yaml and pairs/pairs.lock.
+fetch writes pairs/pairs.yaml and pairs/pairs.lock.
+replay reads corpus/replay/cases.jsonl, fetches those public Git commits, and prints aggregate counts.
+--set all runs incidents and pairs.
 `)
 }

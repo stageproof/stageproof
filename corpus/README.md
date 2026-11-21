@@ -20,12 +20,21 @@ A label in `labels/` is `{case, truth, evidence, by, date}`. `truth` is `clean` 
 
 `go run ./cmd/corpus compare results.json corpus/baseline.json` exits non-zero when an active incident is missed, a control is blocked, or a labeled-clean pair is blocked and was not blocked in the baseline. The corpus workflow runs that compare on the incident results and on the pair results.
 
+## Replay
+
+`corpus/replay/cases.jsonl` is one JSON object per line: `repo`, `sha`, `path`, `from`, `to`. `repo` is `owner/name`. `sha` is the commit that contains the new chart version. `path` is the Flux HelmRelease file. `from` and `to` are the chart versions. The file does not store values, manifests, or secrets.
+
+`go run ./cmd/corpus run --set replay --out replay.json` fetches each commit and its parent from GitHub, at most four at a time, and runs `stageproof check --flux-file` with `--api-server off`. The checkout is deleted after the case. The command prints how many cases were checked and the verdict counts. It does not print repository names. A check that exits 2 without a report is `NOT CHECKED`: the chart could not be read. A failed fetch is an error. `replay.json` is local output. Do not commit it.
+
+`--set all` runs incidents and pairs. It does not run replay.
+
 ## Run
 
 ```bash
 go run ./cmd/corpus run --set incidents --out results.json
 go run ./cmd/corpus run --set pairs --out results.json
 go run ./cmd/corpus compare results.json corpus/baseline.json
+go run ./cmd/corpus run --set replay --out replay.json
 ```
 
-`--set all` runs incidents and pairs. Replay is not built yet. The file `replay/cases.jsonl` stays empty until then, and it stores only a repository URL, a commit, a path, and two versions. It does not store values.
+`--set all` runs incidents and pairs. Replay is the separate command above. `replay/cases.jsonl` stores only a repository, a commit, a path, and two versions. It does not store values.
