@@ -116,6 +116,22 @@ func TestClassifyScrubsRejectedValues(t *testing.T) {
 	}
 }
 
+func TestClassifyUnquotedInvalidValueIsScrubbed(t *testing.T) {
+	const secret = "super-secret-token"
+	err := &apierrors.StatusError{ErrStatus: metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{
+			Type:    metav1.CauseTypeFieldValueInvalid,
+			Field:   "data.token",
+			Message: "Invalid value: " + secret,
+		}}},
+	}}
+	got := Classify(err)
+	if got.Class != ClassInvalid || strings.Contains(got.Detail, secret) {
+		t.Fatalf("unquoted value leaked: %+v", got)
+	}
+}
+
 func TestClassifyTypedPatchTypeMismatch(t *testing.T) {
 	const secret = "super-secret-token"
 	err := &apierrors.StatusError{ErrStatus: metav1.Status{

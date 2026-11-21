@@ -192,7 +192,9 @@ func Export(ctx context.Context, cfg *rest.Config, opt ExportOptions) (*Document
 		doc.Charts = append(doc.Charts, chartsFromHelmRelease(item)...)
 	}
 	if opt.HelmReleases {
-		secrets, err := cs.CoreV1().Secrets(metav1.NamespaceAll).List(ctx, metav1.ListOptions{})
+		secrets, err := cs.CoreV1().Secrets(metav1.NamespaceAll).List(ctx, metav1.ListOptions{
+			FieldSelector: "type=helm.sh/release.v1",
+		})
 		if err != nil {
 			return nil, fmt.Errorf("list secrets: %w", err)
 		}

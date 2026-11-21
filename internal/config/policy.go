@@ -66,6 +66,27 @@ func Apply(cfg *Config, rep *verdict.Report, now time.Time) {
 	}
 }
 
+// ApplyNew marks findings added after Apply.
+// It does not add config.ignore_expired again.
+func ApplyNew(cfg *Config, rep *verdict.Report, from int, now time.Time) {
+	if cfg == nil || rep == nil || from >= len(rep.Findings) {
+		return
+	}
+	if from < 0 {
+		from = 0
+	}
+	today := dateOnly(now.UTC())
+	for i := from; i < len(rep.Findings); i++ {
+		f := &rep.Findings[i]
+		f.Severity = cfg.level(f.RuleID, f.Severity)
+		if ign, ok := cfg.match(f.RuleID, f.Resource, today); ok {
+			f.Ignored = true
+			f.IgnoreReason = strings.TrimSpace(ign.Reason)
+			f.IgnoreExpires = strings.TrimSpace(ign.Expires)
+		}
+	}
+}
+
 // NoteConfigChanged appends config.changed_in_pr when it is not already there.
 // A blocker that is not ignored moves the result to BLOCKED.
 func NoteConfigChanged(cfg *Config, rep *verdict.Report, now time.Time) {

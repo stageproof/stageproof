@@ -600,7 +600,7 @@ func gitList(root, ref string) ([]string, error) {
 // ApplicationsReferencing returns Application files whose chart path or value
 // files include one of changed. changed entries may name files that no longer
 // exist. The walk does not clone anything.
-func ApplicationsReferencing(repoRoot string, changed []string) []string {
+func ApplicationsReferencing(repoRoot string, changed []string, ph map[string]string) []string {
 	if repoRoot == "" {
 		repoRoot = "."
 	}
@@ -635,12 +635,16 @@ func ApplicationsReferencing(repoRoot string, changed []string) []string {
 		if statErr != nil || info.Size() > 2<<20 {
 			return nil
 		}
-		spec, _, parseErr := ParseApplicationFile(path, nil)
+		spec, _, parseErr := ParseApplicationFile(path, ph)
 		if parseErr != nil || spec == nil {
 			return nil
 		}
 		if specMentions(spec, want) {
-			found = append(found, path)
+			rel, relErr := filepath.Rel(repoRoot, path)
+			if relErr != nil {
+				rel = path
+			}
+			found = append(found, filepath.ToSlash(rel))
 		}
 		return nil
 	})

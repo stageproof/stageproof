@@ -31,10 +31,13 @@ func Charts(ctx context.Context, in Input, st *State) {
 		baseOpts.SetStrings = append(baseOpts.SetStrings, st.Placeholders...)
 		baseYAML, bErr := helm.RenderChart(ctx, baseOpts)
 		if bErr != nil {
+			secrets := helm.SecretStrings(in.BaseValues)
+			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetValues)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetStrings)...)
 			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 				Name:    "baseline helm template",
 				Status:  "fail",
-				Summary: bErr.Error(),
+				Summary: helm.Scrub(bErr.Error(), secrets),
 			})
 			st.stop(false, true)
 			return
@@ -52,7 +55,10 @@ func Charts(ctx context.Context, in Input, st *State) {
 	headOpts.SetStrings = append(headOpts.SetStrings, st.Placeholders...)
 	headYAML, hErr := helm.RenderChart(ctx, headOpts)
 	if hErr != nil {
-		if detail, ok := helm.RequiredFailure(hErr, helm.SecretStrings(in.HeadValues)); ok {
+		secrets := helm.SecretStrings(in.HeadValues)
+		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetValues)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetStrings)...)
+		if detail, ok := helm.RequiredFailure(hErr, secrets); ok {
 			st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 				RuleID:   "helm.values.new_required_unset",
 				Severity: verdict.SeverityBlocker,
@@ -74,7 +80,7 @@ func Charts(ctx context.Context, in Input, st *State) {
 			Severity: verdict.SeverityBlocker,
 			File:     in.HeadDir,
 			Message:  "Candidate chart (`--to`) failed `helm template` rendering.",
-			Detail:   hErr.Error(),
+			Detail:   helm.Scrub(hErr.Error(), secrets),
 		})
 		st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 			Name:    "helm template",

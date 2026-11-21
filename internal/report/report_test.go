@@ -150,3 +150,25 @@ func TestTerminalPlainHasNoANSI(t *testing.T) {
 		t.Fatalf("warning mark must use one space, same as the pass mark:\n%s", out)
 	}
 }
+
+func TestIgnoredDeleteIsNotAHeadline(t *testing.T) {
+	rep := &verdict.Report{
+		Verdict: verdict.Passed,
+		Checked: "files, API server 1.35.0, live cluster",
+		Findings: []verdict.Finding{{
+			RuleID:   "impact.delete",
+			Severity: verdict.SeverityBlocker,
+			Ignored:  true,
+			Message:  "Deployment demo was deleted.",
+		}},
+		Checks: []verdict.CheckResult{{Name: "rehearsal version", Status: "warn"}},
+	}
+	lines := verdictHeadlines(rep)
+	text := strings.Join(lines, "\n")
+	if strings.Contains(text, "was deleted") {
+		t.Fatalf("ignored delete is a headline:\n%s", text)
+	}
+	if !strings.Contains(text, "different Kubernetes version") {
+		t.Fatalf("live mismatch missing:\n%s", text)
+	}
+}

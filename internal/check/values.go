@@ -3,6 +3,7 @@ package check
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 	"strings"
 
 	"github.com/stageproof/stageproof/internal/helm"
@@ -57,8 +58,12 @@ func Diff(ctx context.Context, in Input, st *State) {
 		})
 		return
 	}
-	base := in.renderOptions(in.BaseDir, in.HeadValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
+	base := in.renderOptions(in.BaseDir, baseValueFiles(in), in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
 	head := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
+	// A parameters file already holds --set and helm.parameters. Leaving the
+	// same assignments as --set puts a dropped key back, because --set wins over -f.
+	dropMaterializedSets(&base)
+	dropMaterializedSets(&head)
 	base.SetStrings = append(base.SetStrings, st.Placeholders...)
 	head.SetStrings = append(head.SetStrings, st.Placeholders...)
 	findings, sum, err := helm.ProveValues(ctx, helm.ProofRequest{
@@ -97,4 +102,45 @@ func Diff(ctx context.Context, in Input, st *State) {
 		Status:  status,
 		Summary: summary,
 	})
+}
+
+func baseValueFiles(in Input) []string {
+	if len(in.BaseValues) == 0 {
+		return in.HeadValues
+	}
+	out := append([]string{}, in.BaseValues...)
+	have := map[string]bool{}
+	for _, f := range out {
+		have[f] = true
+	}
+	for _, f := range in.HeadValues {
+		if !parameterFile(f) || have[f] {
+			continue
+		}
+		out = append(out, f)
+		have[f] = true
+	}
+	return out
+}
+
+func dropMaterializedSets(opts *helm.RenderOptions) {
+	if opts == nil || !parameterized(opts.ValuesFiles) {
+		return
+	}
+	opts.SetValues = nil
+	opts.SetStrings = nil
+}
+
+func parameterized(files []string) bool {
+	for _, f := range files {
+		if parameterFile(f) {
+			return true
+		}
+	}
+	return false
+}
+
+func parameterFile(path string) bool {
+	base := filepath.Base(path)
+	return base == "parameters.yaml" || base == "helm-parameters.yaml"
 }

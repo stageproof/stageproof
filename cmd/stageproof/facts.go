@@ -21,7 +21,7 @@ func runFacts(ctx context.Context, args []string) int {
 	kubeconfig := fs.String("kubeconfig", "", "Kubeconfig file. The default kubeconfig is not read.")
 	contextName := fs.String("context", "", "Context in that kubeconfig")
 	out := fs.String("out", "", "Path of the facts JSON file")
-	helmReleases := fs.Bool("helm-releases", false, "Also read Helm release Secrets. Only the chart name, version, appVersion, release, and namespace are kept.")
+	helmReleases := fs.Bool("helm-releases", false, "Also read Helm release Secrets. This needs deploy/facts-helm-releases-clusterrole.yaml. Only the chart name, version, appVersion, release, and namespace are kept.")
 	if err := fs.Parse(args[1:]); err != nil {
 		if err == flag.ErrHelp {
 			return 0

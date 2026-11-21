@@ -142,13 +142,42 @@ func TestClusterRoleIsGetAndList(t *testing.T) {
 			want[resource] = true
 		}
 	}
+	if want["secrets"] {
+		t.Fatal("the default role must not read secrets")
+	}
 	for _, resource := range []string{
-		"nodes", "secrets", "customresourcedefinitions",
+		"nodes", "customresourcedefinitions",
 		"validatingadmissionpolicies", "validatingadmissionpolicybindings",
 		"storageclasses", "applications", "helmreleases",
 	} {
 		if !want[resource] {
 			t.Fatalf("missing %s", resource)
+		}
+	}
+}
+
+func TestHelmReleasesClusterRoleIsSecretsOnly(t *testing.T) {
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		t.Fatal("caller")
+	}
+	raw, err := os.ReadFile(filepath.Join(filepath.Dir(file), "..", "..", "deploy", "facts-helm-releases-clusterrole.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var role rbacv1.ClusterRole
+	if err := yaml.Unmarshal(raw, &role); err != nil {
+		t.Fatal(err)
+	}
+	if role.Name != "stageproof-facts-helm-releases" {
+		t.Fatalf("name: %s", role.Name)
+	}
+	if len(role.Rules) != 1 || len(role.Rules[0].Resources) != 1 || role.Rules[0].Resources[0] != "secrets" {
+		t.Fatalf("rules: %+v", role.Rules)
+	}
+	for _, verb := range role.Rules[0].Verbs {
+		if verb != "get" && verb != "list" {
+			t.Fatalf("verb %s", verb)
 		}
 	}
 }

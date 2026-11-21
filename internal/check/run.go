@@ -90,6 +90,10 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 	Impact(in, st)
 	APIs(in, st)
 
+	if in.Config != nil {
+		config.Apply(in.Config, st.Report, time.Now().UTC())
+	}
+	applied := len(st.Report.Findings)
 	runtimeOK, inconclusive := Rehearse(ctx, in, st)
 	// --live was asked for. A file check that passed while the chart never
 	// came up is not PASSED, unless the report already names why the rehearsal
@@ -99,7 +103,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		inconclusive = true
 	}
 	if in.Config != nil {
-		config.Apply(in.Config, st.Report, time.Now().UTC())
+		config.ApplyNew(in.Config, st.Report, applied, time.Now().UTC())
 	}
 	st.Report.Findings = report.OrderFindings(st.Report.Findings)
 	st.Report.DurationMs = time.Since(in.Started).Milliseconds()

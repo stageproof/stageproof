@@ -1077,15 +1077,11 @@ func RequiredFailure(err error, secrets []string) (string, bool) {
 }
 
 // SecretStrings collects scalar strings from values files so a Helm error
-// can be scrubbed. Short tokens are left alone.
+// can be scrubbed. Values inside a list are included. Short tokens are left alone.
 func SecretStrings(files []string) []string {
 	var out []string
 	seen := map[string]bool{}
 	for _, file := range files {
-		leaves, _, err := ExtractUserValueLeaves(file)
-		if err != nil {
-			continue
-		}
 		raw, rErr := os.ReadFile(file)
 		if rErr != nil {
 			continue
@@ -1094,20 +1090,58 @@ func SecretStrings(files []string) []string {
 		if yaml.Unmarshal(raw, &doc) != nil {
 			continue
 		}
-		for _, segs := range leaves {
-			_, leaf, lErr := parentOf(&doc, segs)
-			if lErr != nil || leaf.Kind != yaml.ScalarNode {
-				continue
-			}
-			if len(leaf.Value) < 4 || seen[leaf.Value] {
-				continue
-			}
-			seen[leaf.Value] = true
-			out = append(out, leaf.Value)
-		}
+		collectValueScalars(&doc, seen, &out)
 	}
 	sort.Slice(out, func(i, j int) bool { return len(out[i]) > len(out[j]) })
 	return out
+}
+
+// SecretValuesFromSets returns the value after the first '=' in each Helm
+// assignment. key=val=more yields val=more. Short tokens are left alone.
+func SecretValuesFromSets(sets []string) []string {
+	var out []string
+	seen := map[string]bool{}
+	for _, raw := range sets {
+		_, val, ok := strings.Cut(raw, "=")
+		if !ok || len(val) < 4 || seen[val] {
+			continue
+		}
+		seen[val] = true
+		out = append(out, val)
+	}
+	sort.Slice(out, func(i, j int) bool { return len(out[i]) > len(out[j]) })
+	return out
+}
+
+// Scrub replaces secret strings in a Helm error. Longer strings are replaced first.
+func Scrub(msg string, secrets []string) string {
+	ordered := append([]string{}, secrets...)
+	sort.Slice(ordered, func(i, j int) bool { return len(ordered[i]) > len(ordered[j]) })
+	return scrubSecrets(msg, ordered)
+}
+
+func collectValueScalars(n *yaml.Node, seen map[string]bool, out *[]string) {
+	if n == nil {
+		return
+	}
+	switch n.Kind {
+	case yaml.DocumentNode, yaml.SequenceNode:
+		for _, child := range n.Content {
+			collectValueScalars(child, seen, out)
+		}
+	case yaml.MappingNode:
+		for i := 0; i+1 < len(n.Content); i += 2 {
+			collectValueScalars(n.Content[i+1], seen, out)
+		}
+	case yaml.AliasNode:
+		collectValueScalars(n.Alias, seen, out)
+	case yaml.ScalarNode:
+		if len(n.Value) < 4 || seen[n.Value] {
+			return
+		}
+		seen[n.Value] = true
+		*out = append(*out, n.Value)
+	}
 }
 
 func scrubSecrets(msg string, secrets []string) string {

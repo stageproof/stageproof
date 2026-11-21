@@ -354,7 +354,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		newSpec, used, aErr := argocd.ParseApplicationFile(*argoFile, placeholders)
 		if rep, ok := argoStop(aErr, *argoFile); ok {
 			emit(rep)
-			return verdict.NotChecked.ExitCode()
+			return rep.ExitCode
 		}
 		if aErr != nil {
 			fmt.Fprintf(os.Stderr, "error parsing --argocd-file %s: %v\n", *argoFile, aErr)
@@ -364,7 +364,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		headMat, mErr := argocd.Materialize(ctx, newSpec, argocd.MaterializeOptions{})
 		if rep, ok := argoStop(mErr, *argoFile); ok {
 			emit(rep)
-			return verdict.NotChecked.ExitCode()
+			return rep.ExitCode
 		}
 		if mErr != nil {
 			fmt.Fprintf(os.Stderr, "error reading --argocd-file %s: %v\n", *argoFile, mErr)
@@ -391,7 +391,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			parsed, usedOld, oErr := argocd.ParseApplicationFile(*currentArgo, placeholders)
 			if rep, ok := argoStop(oErr, *currentArgo); ok {
 				emit(rep)
-				return verdict.NotChecked.ExitCode()
+				return rep.ExitCode
 			}
 			if oErr != nil {
 				fmt.Fprintf(os.Stderr, "error parsing --current-argocd-file %s: %v\n", *currentArgo, oErr)
@@ -406,20 +406,22 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 				parsed, usedOld, oErr := argocd.ParseApplicationBytes(oldBytes, gitRef+":"+*argoFile, placeholders)
 				if rep, ok := argoStop(oErr, gitRef+":"+*argoFile); ok {
 					emit(rep)
-					return verdict.NotChecked.ExitCode()
+					return rep.ExitCode
 				}
-				if oErr == nil {
-					oldSpec = parsed
-					oldLabel = gitRef
-					placeholderTokens = append(placeholderTokens, usedOld...)
+				if oErr != nil {
+					fmt.Fprintf(os.Stderr, "error parsing %s:%s: %v\n", gitRef, *argoFile, oErr)
+					return 2
 				}
+				oldSpec = parsed
+				oldLabel = gitRef
+				placeholderTokens = append(placeholderTokens, usedOld...)
 			}
 		}
 		if oldSpec != nil {
 			baseMat, bErr := argocd.Materialize(ctx, oldSpec, argocd.MaterializeOptions{GitRef: gitRefFor(oldLabel, *currentArgo)})
 			if rep, ok := argoStop(bErr, oldLabel); ok {
 				emit(rep)
-				return verdict.NotChecked.ExitCode()
+				return rep.ExitCode
 			}
 			if bErr != nil {
 				fmt.Fprintf(os.Stderr, "error reading the current Application %s: %v\n", oldLabel, bErr)
@@ -445,16 +447,16 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		newRel, _, fErr := flux.ParseFile(*fluxFile, placeholders)
 		if rep, ok := fluxStop(fErr, *fluxFile); ok {
 			emit(rep)
-			return verdict.NotChecked.ExitCode()
+			return rep.ExitCode
 		}
 		if fErr != nil {
 			fmt.Fprintf(os.Stderr, "error parsing --flux-file %s: %v\n", *fluxFile, fErr)
 			return 2
 		}
-		headMat, mErr := flux.Materialize(ctx, newRel, flux.MaterializeOptions{})
+		headMat, mErr := flux.Materialize(ctx, newRel, flux.MaterializeOptions{Placeholders: placeholders})
 		if rep, ok := fluxStop(mErr, *fluxFile); ok {
 			emit(rep)
-			return verdict.NotChecked.ExitCode()
+			return rep.ExitCode
 		}
 		if mErr != nil {
 			fmt.Fprintf(os.Stderr, "error reading --flux-file %s: %v\n", *fluxFile, mErr)
@@ -478,7 +480,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			parsed, _, oErr := flux.ParseFile(*currentFlux, placeholders)
 			if rep, ok := fluxStop(oErr, *currentFlux); ok {
 				emit(rep)
-				return verdict.NotChecked.ExitCode()
+				return rep.ExitCode
 			}
 			if oErr != nil {
 				fmt.Fprintf(os.Stderr, "error parsing --current-flux-file %s: %v\n", *currentFlux, oErr)
@@ -492,19 +494,21 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 				parsed, _, oErr := flux.ParseBytes(oldBytes, gitRef+":"+*fluxFile, placeholders)
 				if rep, ok := fluxStop(oErr, gitRef+":"+*fluxFile); ok {
 					emit(rep)
-					return verdict.NotChecked.ExitCode()
+					return rep.ExitCode
 				}
-				if oErr == nil {
-					oldRel = parsed
-					oldLabel = gitRef
+				if oErr != nil {
+					fmt.Fprintf(os.Stderr, "error parsing %s:%s: %v\n", gitRef, *fluxFile, oErr)
+					return 2
 				}
+				oldRel = parsed
+				oldLabel = gitRef
 			}
 		}
 		if oldRel != nil {
-			baseMat, bErr := flux.Materialize(ctx, oldRel, flux.MaterializeOptions{GitRef: gitRefFor(oldLabel, *currentFlux)})
+			baseMat, bErr := flux.Materialize(ctx, oldRel, flux.MaterializeOptions{GitRef: gitRefFor(oldLabel, *currentFlux), Placeholders: placeholders})
 			if rep, ok := fluxStop(bErr, oldLabel); ok {
 				emit(rep)
-				return verdict.NotChecked.ExitCode()
+				return rep.ExitCode
 			}
 			if bErr != nil {
 				fmt.Fprintf(os.Stderr, "error reading the current HelmRelease %s: %v\n", oldLabel, bErr)

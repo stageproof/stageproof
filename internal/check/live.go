@@ -2,6 +2,7 @@ package check
 
 import (
 	"context"
+	"strings"
 
 	"github.com/stageproof/stageproof/internal/k8sschema"
 	"github.com/stageproof/stageproof/internal/rehearse"
@@ -35,7 +36,7 @@ func Rehearse(ctx context.Context, in Input, st *State) (runtimeOK, inconclusive
 		return false, true
 	}
 	if outcome.Rehearsed {
-		st.Report.Checked = verdict.CheckedFilesAndLive
+		st.Report.Checked = noteLiveChecked(st.Report.Checked)
 	}
 	st.Report.Checks = append(st.Report.Checks, outcome.Checks...)
 	st.Report.Findings = append(st.Report.Findings, outcome.Findings...)
@@ -45,4 +46,14 @@ func Rehearse(ctx context.Context, in Input, st *State) (runtimeOK, inconclusive
 		st.Report.Cluster = outcome.ClusterName
 	}
 	return outcome.RuntimeSucceeded, outcome.Inconclusive
+}
+
+func noteLiveChecked(checked string) string {
+	if strings.Contains(checked, "live cluster") {
+		return checked
+	}
+	if checked == "" {
+		return verdict.CheckedFilesAndLive
+	}
+	return checked + ", live cluster"
 }

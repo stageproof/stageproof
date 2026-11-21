@@ -238,17 +238,20 @@ func WriteCombinedMarkdown(w io.Writer, c *Combined) {
 func verdictHeadlines(r *verdict.Report) []string {
 	var lines []string
 	for _, f := range r.Findings {
-		if f.Severity != verdict.SeverityBlocker {
+		if f.Severity != verdict.SeverityBlocker || f.Ignored {
 			continue
 		}
 		if strings.HasPrefix(f.RuleID, "impact.delete") || strings.HasPrefix(f.RuleID, "crd.") {
 			lines = append(lines, f.Message)
 		}
 	}
-	if r.Checked == verdict.CheckedFilesAndLive && minorMismatch(r) {
+	if strings.Contains(r.Checked, "live cluster") && minorMismatch(r) {
 		lines = append(lines, "Rehearsed on a different Kubernetes version than the one requested. This proves less.")
 	}
 	for _, f := range r.Findings {
+		if f.Ignored {
+			continue
+		}
 		if f.RuleID == "helm.dependency.not_updated" {
 			lines = append(lines, "The packaged chart under charts/ did not change. This is not proof of the new dependency version.")
 			break

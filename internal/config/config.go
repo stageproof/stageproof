@@ -154,12 +154,14 @@ func (c *Config) validate() error {
 	return nil
 }
 
-// ValuesFilesFor returns the values files listed for the chart at chartPath
-// that exist on disk. Each one is a separate deployment of that chart, for
-// example values-prod.yaml and values-dev.yaml, so each is checked on its own.
-func (c *Config) ValuesFilesFor(chartPath string) []string {
+// ValuesFilesFor returns the values files listed for the chart at chartPath.
+// A listed file that is not on disk is an error. The chart is not checked
+// against its default values.yaml instead. A chart that is not in the config,
+// or a chart with no valuesFiles list, returns nil and no error so the caller
+// can use values.yaml.
+func (c *Config) ValuesFilesFor(chartPath string) ([]string, error) {
 	if c == nil {
-		return nil
+		return nil, nil
 	}
 	want := filepath.ToSlash(filepath.Clean(chartPath))
 	for _, ch := range c.Charts {
@@ -168,13 +170,17 @@ func (c *Config) ValuesFilesFor(chartPath string) []string {
 		}
 		var found []string
 		for _, vf := range ch.ValuesFiles {
-			if _, err := os.Stat(vf); err == nil {
-				found = append(found, vf)
+			if _, err := os.Stat(vf); err != nil {
+				if os.IsNotExist(err) {
+					return nil, fmt.Errorf("values file %s for chart %s is missing", vf, ch.Path)
+				}
+				return nil, fmt.Errorf("values file %s for chart %s: %w", vf, ch.Path, err)
 			}
+			found = append(found, vf)
 		}
-		return found
+		return found, nil
 	}
-	return nil
+	return nil, nil
 }
 
 // Discover scans rootDir for Chart.yaml files and adjacent values*.yaml overlays.

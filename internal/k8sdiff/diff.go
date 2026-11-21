@@ -219,8 +219,10 @@ func namedList(path string) bool {
 	if i := strings.LastIndex(path, "."); i >= 0 {
 		last = path[i+1:]
 	}
-	if i := strings.IndexByte(last, '['); i >= 0 {
-		last = last[:i]
+	// containers[name=app] is one container, not another named list.
+	// Only the list path itself (containers, env, ports, ...) is matched by name.
+	if strings.Contains(last, "[") {
+		return false
 	}
 	switch last {
 	case "containers", "initContainers", "ephemeralContainers", "env", "ports", "volumes", "volumeMounts":

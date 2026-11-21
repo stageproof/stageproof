@@ -392,7 +392,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 				config.NoteConfigChanged(baseCfg, rep, time.Now().UTC())
 			}
 			reports = append(reports, rep)
-			note(verdict.NotChecked)
+			note(rep.Verdict)
 			continue
 		}
 		if resolved.Cleanup != nil {
