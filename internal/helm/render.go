@@ -27,6 +27,15 @@ type RenderOptions struct {
 }
 
 func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
+	return RenderChartBinary(ctx, "helm", opts)
+}
+
+// RenderChartBinary renders with an explicit helm executable.
+// The argument is a path or a name on PATH. An empty name means helm.
+func RenderChartBinary(ctx context.Context, bin string, opts RenderOptions) (string, error) {
+	if bin == "" {
+		bin = "helm"
+	}
 	rel := opts.ReleaseName
 	if rel == "" {
 		rel = "stageproof-rel"
@@ -35,7 +44,6 @@ func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
 	if ns == "" {
 		ns = "stageproof-check"
 	}
-
 	args := []string{
 		"template", rel, opts.ChartDir,
 		"--namespace", ns,
@@ -67,13 +75,16 @@ func RenderChart(ctx context.Context, opts RenderOptions) (string, error) {
 	for _, sf := range opts.SetFiles {
 		args = append(args, "--set-file", sf)
 	}
+	return renderChart(ctx, bin, args, opts)
+}
 
+func renderChart(ctx context.Context, bin string, args []string, opts RenderOptions) (string, error) {
 	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "helm", args...)
+	cmd := exec.CommandContext(ctx, bin, args...)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("helm template %s failed: %w\n%s", opts.ChartDir, err, strings.TrimSpace(stderr.String()))
+		return "", fmt.Errorf("%s template %s failed: %w\n%s", bin, opts.ChartDir, err, strings.TrimSpace(stderr.String()))
 	}
 
 	var crdBuf strings.Builder

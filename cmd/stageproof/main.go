@@ -133,6 +133,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
 	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
 	offline := fs.Bool("offline", false, "Do not contact container registries. Does not change --api-server.")
+	helmCompare := fs.String("helm-compare", "", "Path to a second helm binary. Renders the chart with both.")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply is enabled in Argo CD / Flux / Helm")
 	applyMode := fs.String("apply-mode", "", "Apply mode: client | ssa")
 
@@ -253,6 +254,11 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	case "default", "full":
 	default:
 		fmt.Fprintf(os.Stderr, "error: --values-proof must be default or full\n")
+		return 2
+	}
+
+	if *helmCompare != "" && manifestMode {
+		fmt.Fprintf(os.Stderr, "error: --helm-compare renders a chart and cannot be combined with --before or --after\n")
 		return 2
 	}
 
@@ -557,6 +563,7 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		PlaceholderTokens: placeholderTokens,
 		ValuesFull:        *valuesProof == "full",
 		Offline:           *offline,
+		HelmCompare:       *helmCompare,
 		Started:           tStart,
 	})
 	emit(rep)

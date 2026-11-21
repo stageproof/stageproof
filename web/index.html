@@ -184,12 +184,13 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
             <tr><td>Live rehearsal</td><td>Does install, upgrade, and rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
             <tr><td>Image tags</td><td>Does a new or changed tag exist for linux/amd64?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
+            <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart apiVersion v3?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>API server</td><td>Does this Kubernetes minor accept the upgrade?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">Source on main proves a values key by rendering when the template reader cannot decide, asks a registry whether a new or changed image tag exists, starts a local API server for the file checks, and names deletes, restarts, and CRD breaks. The released binary is v0.1.8. That binary reads templates and does not render a key twice.</p>
+        <p class="sec-lede" style="margin-top:22px;">Source on main proves a values key by rendering when the template reader cannot decide, asks a registry whether a new or changed image tag exists, compares a second helm binary when you pass <code>--helm-compare</code>, starts a local API server for the file checks, and names deletes, restarts, and CRD breaks. The released binary is v0.1.8. That binary reads templates and does not render a key twice.</p>
       </div>
     </section>
 

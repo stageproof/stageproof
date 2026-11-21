@@ -52,7 +52,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	}
 	defer func() { _ = srv.Stop() }()
 
-	strict := in.ServerSideApply || helm.Major(ctx) >= 4
+	strict := strictUnknown(in.ServerSideApply, helm.Major(ctx), in.ManifestMode, in.BaseDir != "")
 	opt := apiserver.ProofOptions{StrictUnknown: strict}
 	res, err := srv.Prove(ctx, manifests(st.BaseObjs), manifests(st.HeadObjs), crdManifests(in.BaseDir), crdManifests(in.HeadDir), opt)
 	if err != nil {

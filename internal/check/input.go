@@ -48,7 +48,9 @@ type Input struct {
 	RequireRehearsal bool
 	Live             bool
 	// Offline skips registry HEAD and index requests. It does not change APIServer.
-	Offline           bool
+	Offline bool
+	// HelmCompare is a second helm binary. The chart is rendered with both.
+	HelmCompare       string
 	ClusterName       string
 	KeepCluster       bool
 	Timeout           time.Duration

@@ -41,9 +41,11 @@ type Manifest struct {
 
 // ProofOptions selects which half of the upgrade is being asked.
 type ProofOptions struct {
-	// StrictUnknown is set when the upgrade uses server-side apply.
+	// StrictUnknown is set when this apply uses server-side apply.
 	// Helm 3 client-side apply drops an unknown field and succeeds.
-	// Helm 4 server-side apply rejects the upgrade.
+	// A new Helm 4 install uses server-side apply. An upgrade of a Helm 3
+	// release stays client-side unless the caller sets this.
+	// https://helm.sh/docs/overview/#server-side-apply
 	StrictUnknown bool
 	// CreatesOnly dry-runs every object as a create. The next Kubernetes
 	// version has no current objects to update.

@@ -25,6 +25,7 @@ func (in Input) renderOptions(dir string, values, sets, setStrings, setFiles []s
 
 // Charts renders the current chart, when there is one, and the new chart.
 func Charts(ctx context.Context, in Input, st *State) {
+	NoteChartAPI(in, st)
 	if in.BaseDir != "" {
 		baseOpts := in.renderOptions(in.BaseDir, in.BaseValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
 		baseOpts.SetStrings = append(baseOpts.SetStrings, st.Placeholders...)

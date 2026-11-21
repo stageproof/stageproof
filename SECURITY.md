@@ -8,7 +8,7 @@ Do not open a public issue for a security report. There is no separate security 
 
 ## What runs where
 
-Stageproof runs on the machine that starts it. It does not phone home.
+Stageproof runs on the machine that starts it. It does not phone home. `--helm-compare` runs a second helm binary on that machine. It does not add a network call.
 
 A file check runs `helm template`. Helm executes chart templates. Treat a chart as code. A check of an Argo CD Application or a Flux HelmRelease also runs `helm pull` when the chart is a Helm repository or an OCI artifact named in that file. It reads a chart path in this checkout from Git. It does not clone another Git repository. Secret values from a `valuesFrom` Secret are not printed.
 
