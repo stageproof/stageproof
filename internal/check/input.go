@@ -54,4 +54,7 @@ type Input struct {
 	CRDFiles          []string
 	PlaceholderTokens []string
 	Started           time.Time
+	// ValuesFull render-tests every user key and every changed chart default.
+	// The default proves keys the template reader drops or cannot decide.
+	ValuesFull bool
 }

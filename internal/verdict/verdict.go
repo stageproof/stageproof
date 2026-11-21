@@ -74,6 +74,10 @@ type Finding struct {
 	File     string   `json:"file,omitempty"`
 	Message  string   `json:"message"`
 	Detail   string   `json:"detail,omitempty"`
+	// Proof is how a values finding was decided: "templates" or "render".
+	Proof string `json:"proof,omitempty"`
+	// Verified is set on helm.values.renamed. False is a suggestion.
+	Verified *bool `json:"verified,omitempty"`
 }
 
 // SkipNotice explains why a live rehearsal did not finish.

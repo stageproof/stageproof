@@ -210,6 +210,7 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	nextK8s := fs.String("next-k8s", "", "Next cluster Kubernetes version")
 	apiServer := fs.String("api-server", "auto", "API server proof: auto, off, or require")
 	apiServerDir := fs.String("api-server-dir", "", "Directory of kube-apiserver, etcd, and kubectl already on disk")
+	valuesProof := fs.String("values-proof", "default", "Values proof: default, or full to render every user key")
 	ssa := fs.Bool("server-side-apply", false, "Server-Side Apply enabled")
 	live := fs.Bool("live", false, "Run live kind upgrade/rollback")
 	requireRehearsal := fs.Bool("require-rehearsal", false, "Exit 2 unless the live rehearsal ran and passed")
@@ -224,6 +225,12 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 		if err == flag.ErrHelp {
 			return 0
 		}
+		return 2
+	}
+	switch *valuesProof {
+	case "default", "full":
+	default:
+		fmt.Fprintf(os.Stderr, "error: --values-proof must be default or full\n")
 		return 2
 	}
 
@@ -273,6 +280,9 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	}
 	if *apiServerDir != "" {
 		shared = append(shared, "--api-server-dir", *apiServerDir)
+	}
+	if *valuesProof == "full" {
+		shared = append(shared, "--values-proof", "full")
 	}
 	if *ssa {
 		shared = append(shared, "--server-side-apply")
