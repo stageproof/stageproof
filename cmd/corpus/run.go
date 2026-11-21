@@ -37,8 +37,13 @@ func run(args []string) error {
 	case "pairs":
 		res.Pairs, err = runPairs(root, bin, *prOnly)
 	case "replay":
-		fmt.Println("replay is not built yet. cases.jsonl is empty.")
-		res.Summary = summarize(nil, nil)
+		replay, sum, err := runReplay(root, bin)
+		if err != nil {
+			return err
+		}
+		res.Replay = replay
+		res.Summary = sum
+		fmt.Print(formatReplaySummary(sum))
 		return writeResults(*out, res)
 	case "all":
 		res.Incidents, err = runIncidents(root, bin)
@@ -46,7 +51,6 @@ func run(args []string) error {
 			return err
 		}
 		res.Pairs, err = runPairs(root, bin, false)
-		fmt.Println("replay is not built yet.")
 	default:
 		return fmt.Errorf("unknown set %q", *set)
 	}
