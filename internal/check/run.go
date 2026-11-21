@@ -80,6 +80,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		Changes(in, st)
 	}
 	Supply(ctx, in, st)
+	HelmCompare(ctx, in, st)
 	ServerProof(ctx, in, st)
 	if st.Stopped {
 		return st.Report

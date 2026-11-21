@@ -814,7 +814,7 @@ k8s  1.35  ·  checked: files, API server 1.35.0
          Kubernetes rejected the update. `spec.template` is immutable.
 
 verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
-<p>Helm 3.22.1 on kind 1.32.2 accepts a Deployment field the schema does not declare, warns, and drops it. Helm 4.3.2 rejects that upgrade. The finding is a warning unless you pass <code>--server-side-apply</code> or the <code>helm</code> on <code>PATH</code> is Helm 4 or newer.</p>
+<p>Helm 3.22.1 drops a field the schema does not declare, warns, and the upgrade succeeds. A new Helm 4 install uses server-side apply and rejects that field. An upgrade of a release Helm 3 created stays client-side, so the same field stays a warning unless you pass <code>--server-side-apply</code>. <a href="https://helm.sh/docs/overview/#server-side-apply">Helm's upgrade notes</a> describe that latch.</p>
 
 <h2>How the check works</h2>
 <ol>
@@ -1159,7 +1159,7 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
   <tbody>
     <tr><td>Argo CD</td><td>Add <code>ServerSideApply=true</code> to <code>spec.syncPolicy.syncOptions</code> in the Application.</td></tr>
     <tr><td>Flux</td><td>Set <code>install.crds</code> and <code>upgrade.crds</code> to <code>CreateReplace</code>.</td></tr>
-    <tr><td>Helm 4</td><td>Run <code>helm upgrade --server-side</code>.</td></tr>
+    <tr><td>Helm 4</td><td>A new install already uses server-side apply. An upgrade of a release Helm 3 created stays client-side unless you pass <code>--server-side</code>.</td></tr>
     <tr><td>kubectl</td><td>Run <code>kubectl apply --server-side -f crds/</code>.</td></tr>
   </tbody>
 </table></div>
@@ -1170,6 +1170,52 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
   <li>For a Flux HelmRelease, <code>spec.upgrade.crds</code> is read for the CRD schema rule. It does not turn off this size warning. Pass <code>--server-side-apply</code> when you apply with server-side apply.</li>
 </ul>
   </template>
+
+  <template data-topic="helm4" data-group="Guides" data-title="Moving to Helm 4">
+<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.1.8. It does not have <code>--helm-compare</code>.</p>
+
+<h2>What the check can decide</h2>
+<p><code>Chart.yaml</code> <code>apiVersion: v3</code> is <code>helm4.chart_v3</code>, a warning. Charts v3 are experimental. v2 charts work on Helm 3 and Helm 4. <a href="https://helm.sh/docs/overview/#charts-v3">Charts v3</a>.</p>
+<p><code>--helm-compare</code> renders the chart with the helm on <code>PATH</code> and with the binary you name. Objects are parsed and compared. A field that changes between two renders of the same binary is ignored. A remaining difference is <code>helm4.render_differs</code>, a warning. If one binary cannot render the chart, that is <code>helm4.render_failed</code> and the result is <code>BLOCKED</code>. <a href="https://helm.sh/docs/overview/#upgrading-to-helm-4">Upgrading to Helm 4</a> asks you to test existing charts. This is that test for the render.</p>
+<p>This run used Helm 3.22.1 on <code>PATH</code> and Helm 4.3.2 as <code>--helm-compare</code>. The chart prints <code>.Capabilities.HelmVersion.Version</code>, so the objects differ:</p>
+<pre data-kind="cmd">
+stageproof check --api-server off --new-chart testdata/helm4/version --current-k8s 1.35 --helm-compare /tmp/helm-bins/helm4</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  (single-chart check) -> testdata/helm4/version
+k8s  1.35  ·  checked: files
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  image tags               no new or changed image
+  ! WARN  Helm 4                   the rendered objects differ
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  WARN  helm4.render_differs
+         ConfigMap/default/c
+         helm (v3.22.1) and /tmp/helm-bins/helm4 (v4.3.2) rendered different objects for the new chart. ConfigMap/default/c at data.helm.
+         Fields that change between two renders of the same binary are ignored. The report names paths and does not print values. https://helm.sh/docs/overview/#upgrading-to-helm-4
+
+verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
+<p>A chart both binaries render the same way stays <code>PASSED</code>, and the Helm 4 line says the two binaries rendered the same objects. The commands Stageproof runs (<code>template</code>, <code>pull</code>, <code>install</code>, <code>upgrade</code>, <code>rollback</code>, <code>uninstall</code>, <code>test</code>, <code>status</code>, and <code>version --template</code>) were checked on Helm 3.22.1 and Helm 4.3.2. Helm 4.3.2 still has <code>template</code>. It does not have a <code>render</code> command.</p>
+
+<h2>What stays in the notes</h2>
+<p>These are real Helm 4 changes. A chart file does not show them, and rendering with both binaries does not show them either.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Change</th><th>Where Helm wrote it</th><th>What to do</th></tr></thead>
+  <tbody>
+    <tr><td>A post-renderer is a plugin name, not an executable path.</td><td><a href="https://helm.sh/docs/overview/#post-renderers-implemented-as-plugins">Post-renderers</a></td><td>Stageproof does not pass <code>--post-renderer</code>. Update a workflow that points that flag at a program.</td></tr>
+    <tr><td><code>helm registry login</code> takes a registry host, not a full URL.</td><td><a href="https://helm.sh/docs/overview/#registry-login-does-not-accept-full-urls">Registry login</a></td><td>Stageproof pulls charts with <code>helm pull</code>. It does not call <code>registry login</code>.</td></tr>
+    <tr><td>A new install uses server-side apply. An upgrade follows the previous apply method. A release Helm 3 created stays client-side.</td><td><a href="https://helm.sh/docs/overview/#server-side-apply">Server-side apply</a></td><td>Pass <code>--server-side-apply</code> when the release is applied that way. A check with no current chart treats a Helm 4 binary as a new install.</td></tr>
+    <tr><td><code>--atomic</code> is <code>--rollback-on-failure</code>. <code>--force</code> is <code>--force-replace</code>. The old flags still run and warn.</td><td><a href="https://helm.sh/docs/overview/#cli-flags-renamed">Renamed flags</a></td><td>Stageproof does not pass either flag. On Helm 4.3.2 both old flags still print a deprecation warning.</td></tr>
+    <tr><td><code>helm template --hide-notes</code> and <code>--render-subchart-notes</code> do nothing and will go away in Helm 5.</td><td><a href="https://helm.sh/docs/overview/#cli-flags-deprecated">Deprecated flags</a></td><td>Stageproof does not pass them. Helm 4.3.2 still accepts <code>--hide-notes</code> and warns.</td></tr>
+    <tr><td><code>helm install --create-pods</code> and <code>helm repo add --no-update</code> are gone.</td><td><a href="https://helm.sh/docs/changelog/">Changelog</a></td><td>Helm 4.3.2 rejects both flags. Stageproof does not pass them.</td></tr>
+    <tr><td>Plugin, SDK, and package paths moved. The cache can be content-addressed.</td><td><a href="https://helm.sh/docs/overview/#plugin-system-overhaul">Plugins</a> and <a href="https://helm.sh/docs/overview/#stable-sdk-api">the SDK</a></td><td>Stageproof shells out to the helm binary. It does not import the Helm SDK.</td></tr>
+  </tbody>
+</table></div>
+  </template>
+
 
   <!-- ================================================================ CI -->
 
@@ -1398,7 +1444,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, or <code>--offline</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, or <code>--helm-compare</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1438,6 +1484,7 @@ workflow:
     <tr><td><code>--set &lt;key=value&gt;</code></td><td>A single value, the same as in Helm. Repeat it for several values.</td></tr>
     <tr><td><code>--values-proof default|full</code></td><td><code>default</code> render-tests a key the template reader cannot decide. <code>full</code> render-tests every key.</td></tr>
     <tr><td><code>--offline</code></td><td>Do not ask a registry whether a new or changed image tag exists. Chart deprecation is still reported. This does not change <code>--api-server</code>.</td></tr>
+    <tr><td><code>--helm-compare &lt;path&gt;</code></td><td>Also render with this helm binary. A parsed difference is a warning. A binary that cannot render the chart blocks. See <a href="#helm4">Moving to Helm 4</a>.</td></tr>
   </tbody>
 </table></div>
 
@@ -1482,7 +1529,7 @@ workflow:
   <tbody>
     <tr><td><code>--current-git &lt;ref&gt;</code></td><td><code>origin/main</code></td><td>The branch or commit the pull request will merge into.</td></tr>
     <tr><td><code>--new-git &lt;ref&gt;</code></td><td><code>HEAD</code></td><td>The end of the pull request branch. It is used to list the changed files. The chart files are read from your working directory.</td></tr>
-    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--api-server</code>, <code>--offline</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
+    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
     <tr><td><code>--format</code></td><td><code>text</code></td><td>The same as for <code>stageproof check</code>.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
@@ -1689,6 +1736,9 @@ verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
     <tr><td><code>supply.registry_unreachable</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The request timed out, or the registry returned a rate limit or a server error.</td><td>Run the check again. This is not proof that the tag is missing.</td></tr>
     <tr><td><code>supply.image.moved</code></td><td><span class="verdict-badge slate">INFO</span></td><td>The registry or the repository changed. The message names both repositories.</td><td>Confirm the new repository is the one you meant.</td></tr>
     <tr><td><code>supply.chart.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The new chart's <code>Chart.yaml</code> sets <code>deprecated: true</code>.</td><td>Read the chart's notes before staying on it.</td></tr>
+    <tr><td><code>helm4.chart_v3</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The new chart's <code>Chart.yaml</code> <code>apiVersion</code> is <code>v3</code>. Charts v3 are experimental.</td><td>Keep <code>apiVersion: v2</code> until you mean to use the experimental format. See <a href="#helm4">Moving to Helm 4</a>.</td></tr>
+    <tr><td><code>helm4.render_differs</code></td><td><span class="verdict-badge warn">WARN</span></td><td><code>--helm-compare</code> rendered different objects. The message names the objects and paths. A field that changes between two renders of the same binary is ignored.</td><td>Read the path. The report does not print the value.</td></tr>
+    <tr><td><code>helm4.render_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>One of the two helm binaries could not render the chart.</td><td>Read the helm error in the report. Fix the chart, or stay on the helm that rendered it.</td></tr>
   </tbody>
 </table></div>
 <p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
@@ -1702,7 +1752,7 @@ verdict  BLOCKED (exit 1)  · 839ms · 0 AI calls</pre>
     <tr><td><code>k8s.api.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A resource uses an API version that is deprecated on the version in <code>--current-k8s</code>.</td><td>Plan the migration. The report names the version in which the API is removed.</td></tr>
     <tr><td><code>k8s.upgrade.immutable_selector_changed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The label selector of a Deployment, StatefulSet, or DaemonSet differs between the current and the new chart. Kubernetes does not allow that change on an existing workload.</td><td>Keep the selector as it was, or plan to delete and recreate the workload.</td></tr>
     <tr><td><code>k8s.apply.immutable_field</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The local API server rejected an update. The report names the field. A Job pod template and a StatefulSet <code>volumeClaimTemplates</code> change are this rule. A Helm hook is dry-run as a create, not as an update.</td><td>Keep the field, or plan to delete and recreate the object. On <code>--next-k8s</code> the same rejection is a warning.</td></tr>
-    <tr><td><code>k8s.apply.unknown_field</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The object has a field the schema does not declare. Helm 3.22.1 drops it and the upgrade succeeds. Helm 4.3.2 server-side apply rejects the upgrade, and so does <code>--server-side-apply</code>. Those two cases are <code>ERROR</code>.</td><td>Remove the field, or keep it only if your apply path drops unknown fields.</td></tr>
+    <tr><td><code>k8s.apply.unknown_field</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The object has a field the schema does not declare. Helm 3 drops it and the upgrade succeeds. A new Helm 4 install uses server-side apply and rejects it, and so does <code>--server-side-apply</code>. Those two cases are <code>ERROR</code>. An upgrade of a release Helm 3 created stays a warning.</td><td>Remove the field, or keep it only if your apply path drops unknown fields.</td></tr>
     <tr><td><code>k8s.apply.invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The API server rejected the object. An unsupported enum value is this rule. The report names the field and the constraint. It does not print the rejected value. On <code>--next-k8s</code> this is a warning.</td><td>Change the object so that Kubernetes version accepts it.</td></tr>
     <tr><td><code>crd.existing_object_invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>An object from the current chart does not match the new CRD schema. The same rule covers a storage version that was removed, and a field an existing custom resource uses when that field was removed, changed type, became required, or lost an enum value. The API server can also emit this rule.</td><td>Keep the stored object valid, or plan a migration before the upgrade.</td></tr>
     <tr><td><code>k8s.apply.not_exercised</code></td><td><span class="verdict-badge slate">INFO</span></td><td>A webhook configuration, an APIService, or an object the server could not judge was not sent. Sending a webhook configuration would make later requests fail.</td><td>Nothing, unless you needed that object judged. It is not a failure.</td></tr>

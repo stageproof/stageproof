@@ -86,7 +86,7 @@ stageproof check \
 
 ## Install
 
-Helm 3 is required for every check. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The container image includes the first three. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
+Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The container image includes the first three. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
 
 ### Container image
 
@@ -141,7 +141,7 @@ go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.8
 
 Your cluster stays as it is. You pass the Kubernetes version it runs.
 
-Kustomize and Helmfile are skipped. Source on main reads a Flux HelmRelease and compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. A new or changed image tag is asked of the registry named in that reference. `--offline` skips that ask and does not change `--api-server`. The v0.1.8 release does not ask. Charts stay on the machine that runs the command.
+Kustomize and Helmfile are skipped. Source on main reads a Flux HelmRelease and compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. A new or changed image tag is asked of the registry named in that reference. `--offline` skips that ask and does not change `--api-server`. The v0.1.8 release does not ask. `--helm-compare` renders with a second helm binary. The v0.1.8 release does not have that flag. Charts stay on the machine that runs the command.
 
 The values check reads the templates. A key that is mentioned and then ignored can still look used. The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 

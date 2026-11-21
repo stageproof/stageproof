@@ -115,6 +115,11 @@ kind cluster on this machine
               <td>The report does not print your values. A probe that <code>values.schema.json</code> rejects is not a finding. <code>--values-proof full</code> render-tests every key. The default mode does not.</td>
             </tr>
             <tr>
+              <td>Helm 4</td>
+              <td><code>--helm-compare</code> renders with a second helm binary and compares the parsed objects. A <code>Chart.yaml</code> apiVersion of v3 is a warning.</td>
+              <td>A post-renderer, a registry login, and a renamed Helm flag are not in the chart. A new Helm 4 install uses server-side apply. An upgrade of a Helm 3 release stays client-side unless <code>--server-side-apply</code> is set.</td>
+            </tr>
+            <tr>
               <td>Image tags</td>
               <td>A new or changed image is asked of the registry named in that reference, with HTTP HEAD. A manifest list is read only to see whether linux/amd64 is present.</td>
               <td>Layers are not downloaded. An unchanged tag is not asked. A 401, a 403, a timeout, or a rate limit is not a block. <code>--offline</code> sends nothing and does not change <code>--api-server</code>.</td>

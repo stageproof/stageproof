@@ -40,6 +40,7 @@ Chart, Argo CD & Values:
   --set <k=v>              Explicit Helm --set override(s) (repeatable)
   --values-proof <mode>    default, or full. default renders keys the template reader drops or cannot decide. full renders every user key and every changed chart default.
   --offline                Do not contact container registries. Does not change --api-server.
+  --helm-compare <path>    Render with this helm binary as well. A difference is a warning. A binary that cannot render the chart blocks.
 
 Kubernetes & GitOps Environment:
   --current-k8s <ver>      Current cluster Kubernetes version (default "1.33")
