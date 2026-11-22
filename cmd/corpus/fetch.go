@@ -375,7 +375,7 @@ func hashArchives(items []archive) (map[string]bool, error) {
 			key := item.Repo + "|" + item.Chart + "|" + item.Version
 			tgz := filepath.Join(cache, item.Chart+"-"+item.Version+".tgz")
 			if _, err := os.Stat(tgz); err != nil {
-				if err := helmPull(cache, item.Repo, item.Chart, item.Version); err != nil {
+				if err := helmPull(cache, tgz, item.Repo, item.Chart, item.Version); err != nil {
 					fmt.Fprintf(os.Stderr, "pull %s %s: %v\n", item.Chart, item.Version, err)
 					mu.Lock()
 					failed[key] = true

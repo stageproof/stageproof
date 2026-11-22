@@ -9,6 +9,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 func ensureChart(cache, repo, chart, version, want string) (string, error) {
@@ -20,7 +21,7 @@ func ensureChart(cache, repo, chart, version, want string) (string, error) {
 		return "", err
 	}
 	if !fileMatches(tgz, want) {
-		if err := helmPull(cache, repo, chart, version); err != nil {
+		if err := helmPull(cache, tgz, repo, chart, version); err != nil {
 			return "", err
 		}
 		got, err := fileSHA(tgz)
@@ -50,15 +51,39 @@ func ensureChart(cache, repo, chart, version, want string) (string, error) {
 	}
 	chartDir := filepath.Join(dest, chart)
 	if _, err := os.Stat(filepath.Join(chartDir, "Chart.yaml")); err != nil {
-		return "", fmt.Errorf("unpacked chart missing Chart.yaml in %s", chartDir)
+		matches, _ := filepath.Glob(filepath.Join(dest, "*", "Chart.yaml"))
+		if len(matches) != 1 {
+			return "", fmt.Errorf("unpacked chart missing Chart.yaml in %s", chartDir)
+		}
+		chartDir = filepath.Dir(matches[0])
 	}
 	return chartDir, nil
 }
 
-func helmPull(dir, repo, chart, version string) error {
-	args := []string{"pull", chart, "--version", version, "--destination", dir}
+func helmPull(cache, dest, repo, chart, version string) error {
+	var lastErr error
+	for attempt := 0; attempt < 3; attempt++ {
+		if attempt > 0 {
+			time.Sleep(time.Duration(attempt*2) * time.Second)
+		}
+		err := helmPullOnce(cache, dest, repo, chart, version)
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+	}
+	return lastErr
+}
+
+func helmPullOnce(cache, dest, repo, chart, version string) error {
+	tmp, err := os.MkdirTemp(cache, "pull-*")
+	if err != nil {
+		return err
+	}
+	defer func() { _ = os.RemoveAll(tmp) }()
+	args := []string{"pull", chart, "--version", version, "--destination", tmp}
 	if strings.HasPrefix(repo, "oci://") {
-		args = []string{"pull", strings.TrimRight(repo, "/") + "/" + chart, "--version", version, "--destination", dir}
+		args = []string{"pull", strings.TrimRight(repo, "/") + "/" + chart, "--version", version, "--destination", tmp}
 	} else {
 		args = append(args, "--repo", repo)
 	}
@@ -67,7 +92,14 @@ func helmPull(dir, repo, chart, version string) error {
 	if err != nil {
 		return fmt.Errorf("helm pull %s %s: %w\n%s", chart, version, err, out)
 	}
-	return nil
+	files, err := filepath.Glob(filepath.Join(tmp, "*.tgz"))
+	if err != nil {
+		return err
+	}
+	if len(files) != 1 {
+		return fmt.Errorf("helm pull %s %s wrote %d archives, want 1", chart, version, len(files))
+	}
+	return os.Rename(files[0], dest)
 }
 
 func fileMatches(path, sha string) bool {
