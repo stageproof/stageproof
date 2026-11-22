@@ -176,7 +176,7 @@ The `.sbom.json` file is an SPDX document produced by syft. It names the module 
 
 The guides are in [`web/`](web/) and are published at <https://stageproof.github.io/stageproof/>.
 
-The scope, in one page, is [docs/scope.md](docs/scope.md).
+The scope, in one page, is [docs/scope.md](docs/scope.md). Accuracy numbers are in [docs/accuracy.md](docs/accuracy.md).
 
 ## License
 

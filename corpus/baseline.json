@@ -6,8 +6,8 @@
     "controls": 12,
     "wrong_blocks": 0,
     "labeled_clean": 281,
-    "p50_seconds": 4.94,
-    "p95_seconds": 13.36
+    "p50_seconds": 5.186083209,
+    "p95_seconds": 15.408147145
   },
   "blocked_clean": [],
   "recorded": "2026-11-22"
