@@ -263,3 +263,20 @@ configs:
 		t.Fatalf("expected 1 new_required_unset blocker, got: %+v", blockersNew)
 	}
 }
+
+func TestRequiredInsideIfIsNotADefaultBlocker(t *testing.T) {
+	base := t.TempDir()
+	head := t.TempDir()
+	chart := "apiVersion: v2\nname: web\nversion: 0.1.0\n"
+	writeFile(t, filepath.Join(base, "Chart.yaml"), chart)
+	writeFile(t, filepath.Join(base, "values.yaml"), "tls:\n  enabled: false\n")
+	writeFile(t, filepath.Join(base, "templates/deploy.yaml"), "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n")
+	writeFile(t, filepath.Join(head, "Chart.yaml"), chart)
+	writeFile(t, filepath.Join(head, "values.yaml"), "tls:\n  enabled: false\n  existingSecret: \"\"\n")
+	writeFile(t, filepath.Join(head, "templates/deploy.yaml"), "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\n{{- if .Values.tls.enabled }}\ndata:\n  secret: {{ required \"An existing secret is required to enable TLS\" .Values.tls.existingSecret }}\n{{- end }}\n")
+
+	_, blockers := PlanRequiredPlaceholders(base, head, nil, nil)
+	if len(blockers) != 0 {
+		t.Fatalf("required inside if blocked a default upgrade: %+v", blockers)
+	}
+}

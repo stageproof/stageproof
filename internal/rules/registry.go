@@ -67,7 +67,7 @@ var rules = []Rule{
 	{
 		ID: "helm.values.new_required_unset", Severity: verdict.SeverityBlocker, Group: GroupValues,
 		Title:       "A newly required value is unset",
-		Explanation: "The new chart requires a value that the current chart did not require, and you do not set it. A requirement that only appears while rendering is included. The message does not include your values.",
+		Explanation: "The new chart requires a value that the current chart did not require, and you do not set it. A %%required%% call inside an %%if%% or an %%else%% is not this rule. The message does not include your values.",
 		Fix:         "Set the value in your values file or with %%--set%%.",
 	},
 	{
