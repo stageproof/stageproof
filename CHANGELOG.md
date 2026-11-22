@@ -7,6 +7,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 The next release is 0.2.0.
 
+### Breaking
+
+- `--saved-live` is removed. `check-pr` does not read `stageproof-live` or any other directory of saved rehearsal reports. A live rehearsal is `--live` on a runner that can start a temporary cluster.
+
 ### Added
 
 - `stageproof check --repo` compares two versions of a chart in a Helm repository or an OCI registry. `--chart` is the chart name. `--from` and `--to` are the versions. The repository is `http://`, `https://`, or `oci://`. The report names each side as `chart@version`. The downloaded charts are removed when the command exits. A failed download is `NOT CHECKED` (exit 2). Without `--repo`, `--chart`, `--from`, and `--to` stay aliases for local chart directories. `--offline` does not skip the download. The v0.1.8 release does not have `--repo`.
