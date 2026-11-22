@@ -150,6 +150,7 @@
   <thead><tr><th>Input</th><th>Status</th></tr></thead>
   <tbody>
     <tr><td>A Helm chart in a directory</td><td>Supported</td></tr>
+    <tr><td>Two versions of one chart in a Helm repository or an OCI registry (<code>--repo</code>, <code>--chart</code>, <code>--from</code>, <code>--to</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#cli">Commands and flags</a>.</td></tr>
     <tr><td>An Argo CD <code>Application</code> (HTTPS chart repository, <code>oci://</code> registry, local Git chart path, multi-source, and <code>.yaml.tmpl</code>)</td><td>Supported (multi-source and local paths in source on <code>main</code>; <code>v0.1.8</code> reads one remote chart)</td></tr>
     <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
@@ -176,7 +177,7 @@
   <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
   <tbody>
     <tr><td>Go</td><td>1.27.4</td><td>Building from source on <code>main</code></td></tr>
-    <tr><td>Helm</td><td>3 or 4 (tested on 3.22.1 and 4.3.2)</td><td>Chart, Argo CD, and Flux checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
+    <tr><td>Helm</td><td>3 or 4 (tested on 3.22.1 and 4.3.2)</td><td>Chart, Argo CD, and Flux checks, and <code>stageproof check --repo</code>. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
     <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
     <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
   </tbody>
@@ -1723,13 +1724,13 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>--cluster-facts</code>, <code>explain</code>, <code>fetch-apiserver</code>, or <code>facts export</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--repo</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>--cluster-facts</code>, <code>explain</code>, <code>fetch-apiserver</code>, or <code>facts export</code>.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Command</th><th>What it does</th></tr></thead>
   <tbody>
-    <tr><td><code>stageproof check</code></td><td>Checks one chart, one Argo CD Application, one Flux HelmRelease, or two sets of rendered manifests.</td></tr>
+    <tr><td><code>stageproof check</code></td><td>Checks one chart, two versions from a Helm repository or an OCI registry, one Argo CD Application, one Flux HelmRelease, or two sets of rendered manifests.</td></tr>
     <tr><td><code>stageproof check-pr</code></td><td>Finds the charts, Applications, and Flux HelmReleases that a branch changed, and checks each one.</td></tr>
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
     <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>. Not in the v0.1.8 binary.</td></tr>
@@ -1741,12 +1742,16 @@ workflow:
 </table></div>
 
 <h2><code>stageproof check</code>: what to compare</h2>
-<p>Give <code>--new-chart</code>, <code>--argocd-file</code>, <code>--flux-file</code>, or both <code>--before</code> and <code>--after</code>. Without one of those the command ends with exit code <code>2</code>.</p>
+<p>Give <code>--new-chart</code>, <code>--repo</code>, <code>--argocd-file</code>, <code>--flux-file</code>, or both <code>--before</code> and <code>--after</code>. Without one of those the command ends with exit code <code>2</code>.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><code>--new-chart &lt;dir&gt;</code></td><td>The chart you want to deploy.</td></tr>
     <tr><td><code>--current-chart &lt;dir&gt;</code></td><td>The chart you run today. Leave it out to check the new chart on its own.</td></tr>
+    <tr><td><code>--repo &lt;url&gt;</code></td><td>An <code>http://</code> or <code>https://</code> Helm repository, or an <code>oci://</code> registry. Requires <code>--chart</code>, <code>--from</code>, and <code>--to</code>. Stageproof downloads both versions, checks the upgrade, and deletes the temporary directories. A failed download is exit 2. <code>--offline</code> does not skip the download. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>--chart &lt;name&gt;</code></td><td>With <code>--repo</code>, the chart name in that repository. Without <code>--repo</code>, an older name for <code>--new-chart</code> (a directory).</td></tr>
+    <tr><td><code>--from &lt;version&gt;</code></td><td>With <code>--repo</code>, the version you run today. Without <code>--repo</code>, an older name for <code>--current-chart</code> (a directory).</td></tr>
+    <tr><td><code>--to &lt;version&gt;</code></td><td>With <code>--repo</code>, the version you want to deploy. Without <code>--repo</code>, an older name for <code>--new-chart</code> (a directory).</td></tr>
     <tr><td><code>--current-git &lt;ref&gt;</code></td><td>Read the current chart, the current Application, or the current HelmRelease from this branch, tag, or commit.</td></tr>
     <tr><td><code>--argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you want to deploy.</td></tr>
     <tr><td><code>--current-argocd-file &lt;file&gt;</code></td><td>An Argo CD Application file that names the chart you run today. Use it when the old file is not in Git.</td></tr>
@@ -1756,6 +1761,46 @@ workflow:
     <tr><td><code>--after &lt;dir or file&gt;</code></td><td>Rendered manifests after the change. Not combined with a chart, an Application, values files, <code>--set</code>, or <code>--live</code>.</td></tr>
   </tbody>
 </table></div>
+
+<h2>A chart in a repository</h2>
+<p><code>--repo</code> downloads the two versions and removes them when the command exits. This run compared cert-manager v1.21.2 with v1.21.3. <code>--api-server off</code> uses the built-in table and does not download an API server. An OCI registry uses the same flags, for example <code>--repo oci://docker.io/envoyproxy --chart gateway-helm --from v1.9.4 --to v1.10.0</code>.</p>
+<pre data-kind="cmd" data-label="Check two chart versions">
+stageproof check --repo https://charts.jetstack.io --chart cert-manager --from v1.21.2 --to v1.21.3 --current-k8s 1.35 --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  cert-manager@v1.21.2 -> cert-manager@v1.21.3
+k8s  1.35  ·  checked: files
+
+Restarts
+  INFO  The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+  INFO  The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager-cainjector changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+  INFO  The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager-webhook changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+
+  ✓ PASS  helm template            rendered 44 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ! WARN  upgrade signals          2 named changes
+  ✓ PASS  image tags               5 new or changed image tags checked
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  INFO  impact.restart
+         Deployment/stageproof-check/stageproof-rel-cert-manager
+         The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+  INFO  impact.restart
+         Deployment/stageproof-check/stageproof-rel-cert-manager-cainjector
+         The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager-cainjector changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+  INFO  impact.restart
+         Deployment/stageproof-check/stageproof-rel-cert-manager-webhook
+         The pod template of Deployment/stageproof-check/stageproof-rel-cert-manager-webhook changed at spec.template.metadata.labels.app.kubernetes.io/version. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.release.app_version_changed
+         appVersion moves from v1.21.2 to v1.21.3. The image that the chart runs may change with it.
+         This is the chart's declared application version. It is not a test that the registry tag exists.
+  WARN  helm.image.changed
+         5 container images changed. Deployment/stageproof-check/stageproof-rel-cert-manager-cainjector.template.spec.containers[0] cert-manager-cainjector container moves from quay.io/jetstack/cert-manager-cainjector:v1.21.2 to quay.io/jetstack/cert-manager-cainjector:v1.21.3. Deployment/stageproof-check/stageproof-rel-cert-manager-webhook.template.spec.containers[0] cert-manager-webhook container moves from quay.io/jetstack/cert-manager-webhook:v1.21.2 to quay.io/jetstack/cert-manager-webhook:v1.21.3. Deployment/stageproof-check/stageproof-rel-cert-manager.template.spec.containers[0] acme-http01-solver-image argument moves from quay.io/jetstack/cert-manager-acmesolver:v1.21.2 to quay.io/jetstack/cert-manager-acmesolver:v1.21.3. Deployment/stageproof-check/stageproof-rel-cert-manager.template.spec.containers[0] cert-manager-controller container moves from quay.io/jetstack/cert-manager-controller:v1.21.2 to quay.io/jetstack/cert-manager-controller:v1.21.3. Job/stageproof-check/stageproof-rel-cert-manager-startupapicheck.template.spec.containers[0] cert-manager-startupapicheck container moves from quay.io/jetstack/cert-manager-startupapicheck:v1.21.2 to quay.io/jetstack/cert-manager-startupapicheck:v1.21.3.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
+
+verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 
 <h2><code>stageproof check</code>: values</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1853,12 +1898,12 @@ workflow:
 </table></div>
 
 <h2>Older flag names</h2>
-<p>These names from earlier versions still work.</p>
+<p>These names from earlier versions still work when <code>--repo</code> is not set. With <code>--repo</code>, <code>--chart</code> is the chart name and <code>--from</code> and <code>--to</code> are versions.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Current name</th><th>Older names</th></tr></thead>
   <tbody>
-    <tr><td><code>--new-chart</code></td><td><code>--to</code>, <code>--chart</code></td></tr>
-    <tr><td><code>--current-chart</code></td><td><code>--from</code>, <code>--base-chart</code></td></tr>
+    <tr><td><code>--new-chart</code></td><td><code>--to</code>, <code>--chart</code>. Directories, unless <code>--repo</code> is set.</td></tr>
+    <tr><td><code>--current-chart</code></td><td><code>--from</code>, <code>--base-chart</code>. <code>--from</code> is a version when <code>--repo</code> is set.</td></tr>
     <tr><td><code>--current-git</code></td><td><code>--from-git</code>, <code>--git-base</code></td></tr>
     <tr><td><code>--base-values</code></td><td><code>--from-values</code></td></tr>
     <tr><td><code>--current-k8s</code></td><td><code>--current-kubernetes</code>, <code>--target-k8s</code>, <code>--k8s-version</code></td></tr>

@@ -151,11 +151,13 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 	format := fs.String("format", "text", "Output format: text | markdown | json | sarif")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
+	chartRepo := fs.String("repo", "", "Helm repository URL or oci:// registry. Requires --chart, --from, and --to")
 
-	// Backwards-compatible aliases
-	aliasTo := fs.String("to", "", "Alias for --new-chart")
-	aliasFrom := fs.String("from", "", "Alias for --current-chart")
-	aliasChart := fs.String("chart", "", "Alias for --new-chart")
+	// Backwards-compatible aliases. With --repo, --chart is the chart name
+	// and --from and --to are versions, not directories.
+	aliasTo := fs.String("to", "", "Alias for --new-chart. With --repo, the new chart version")
+	aliasFrom := fs.String("from", "", "Alias for --current-chart. With --repo, the current chart version")
+	aliasChart := fs.String("chart", "", "Alias for --new-chart. With --repo, the chart name")
 	aliasBaseChart := fs.String("base-chart", "", "Alias for --current-chart")
 	aliasFromGit := fs.String("from-git", "", "Alias for --current-git")
 	aliasGitBase := fs.String("git-base", "", "Alias for --current-git")
@@ -175,8 +177,20 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 		return 2
 	}
 
-	headDir := firstNonEmpty(*newChart, *aliasTo, *aliasChart)
-	baseDir := firstNonEmpty(*currentChart, *aliasFrom, *aliasBaseChart)
+	repoURL := strings.TrimSpace(*chartRepo)
+	chartName := strings.TrimSpace(*aliasChart)
+	fromVer := strings.TrimSpace(*aliasFrom)
+	toVer := strings.TrimSpace(*aliasTo)
+	var headDir, baseDir string
+	if repoURL != "" {
+		if msg := remoteFlagError(repoURL, chartName, fromVer, toVer, remoteConflicts(fs)); msg != "" {
+			fmt.Fprintln(os.Stderr, msg)
+			return 2
+		}
+	} else {
+		headDir = firstNonEmpty(*newChart, *aliasTo, *aliasChart)
+		baseDir = firstNonEmpty(*currentChart, *aliasFrom, *aliasBaseChart)
+	}
 	gitRef := firstNonEmpty(*currentGit, *aliasFromGit, *aliasGitBase)
 	effK8s := firstNonEmpty(*aliasCurrentK8sFull, *aliasTargetK8s, *aliasK8sVersion, *currentK8s)
 	effNextK8s := firstNonEmpty(*nextK8s, *aliasNextK8sFull, *aliasK8sNext)
@@ -260,8 +274,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after are both required")
 			return 2
 		}
-		if headDir != "" || baseDir != "" || *argoFile != "" || *currentArgo != "" || *fluxFile != "" || *currentFlux != "" || gitRef != "" {
-			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a chart, an Argo CD Application, or a Flux HelmRelease")
+		if headDir != "" || baseDir != "" || repoURL != "" || *argoFile != "" || *currentArgo != "" || *fluxFile != "" || *currentFlux != "" || gitRef != "" {
+			fmt.Fprintln(os.Stderr, "stageproof check: --before and --after cannot be combined with a chart, a Helm repository, an Argo CD Application, or a Flux HelmRelease")
 			return 2
 		}
 		if len(valuesFiles) > 0 || len(baseValuesFiles) > 0 || len(setValues) > 0 {
@@ -273,8 +287,8 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			return 2
 		}
 	}
-	if !manifestMode && headDir == "" && *argoFile == "" && *fluxFile == "" {
-		fmt.Fprintln(os.Stderr, "error: --new-chart <dir>, --argocd-file <file>, or --flux-file <file> is required")
+	if !manifestMode && headDir == "" && repoURL == "" && *argoFile == "" && *fluxFile == "" {
+		fmt.Fprintln(os.Stderr, "error: --new-chart <dir>, --repo <url>, --argocd-file <file>, or --flux-file <file> is required")
 		fmt.Fprintln(os.Stderr, "Run `stageproof check --help` for examples.")
 		return 2
 	}
@@ -532,6 +546,28 @@ func runCheckCollect(ctx context.Context, args []string, collected *[]*verdict.R
 			valueGaps = append(valueGaps, baseMat.Gaps...)
 			placeholderTokens = append(placeholderTokens, baseMat.Used...)
 		}
+	} else if repoURL != "" {
+		tmp, tErr := os.MkdirTemp("", "stageproof-remote-")
+		if tErr != nil {
+			fmt.Fprintf(os.Stderr, "stageproof check: %v\n", tErr)
+			return 2
+		}
+		defer func() { _ = os.RemoveAll(tmp) }()
+		baseLabel = chartName + "@" + fromVer
+		headLabel = chartName + "@" + toVer
+		secrets := append(helm.SecretStrings([]string(valuesFiles)), helm.SecretValuesFromSets([]string(setValues))...)
+		fromDir, pErr := helm.Pull(ctx, repoURL, chartName, fromVer, filepath.Join(tmp, "from"))
+		if pErr != nil {
+			emit(remotePullReport(baseLabel, headLabel, scrubRemoteErr(pErr, secrets, tmp)))
+			return 2
+		}
+		toDir, pErr := helm.Pull(ctx, repoURL, chartName, toVer, filepath.Join(tmp, "to"))
+		if pErr != nil {
+			emit(remotePullReport(baseLabel, headLabel, scrubRemoteErr(pErr, secrets, tmp)))
+			return 2
+		}
+		resolvedBaseDir = fromDir
+		headDir = toDir
 	} else {
 		if resolvedBaseDir == "" && gitRef != "" {
 			tmpGitDir, cleanup, gErr := extractChartFromGitRef(gitRef, headDir)
@@ -704,4 +740,98 @@ func gitRefFor(oldLabel, currentArgo string) string {
 		return ""
 	}
 	return oldLabel
+}
+
+func remoteConflicts(fs *flag.FlagSet) []string {
+	names := []string{
+		"current-chart", "new-chart", "base-chart",
+		"argocd-file", "current-argocd-file",
+		"flux-file", "current-flux-file",
+		"before", "after",
+		"current-git", "from-git", "git-base",
+	}
+	var hit []string
+	for _, name := range names {
+		if flagWasSet(fs, name) {
+			hit = append(hit, "--"+name)
+		}
+	}
+	return hit
+}
+
+func remoteFlagError(repo, chart, from, to string, conflicts []string) string {
+	if len(conflicts) > 0 {
+		return "stageproof check: --repo cannot be combined with " + strings.Join(conflicts, ", ")
+	}
+	if !remoteRepoOK(repo) {
+		return "stageproof check: --repo must be an http://, https://, or oci:// URL"
+	}
+	var missing []string
+	if chart == "" {
+		missing = append(missing, "--chart")
+	}
+	if from == "" {
+		missing = append(missing, "--from")
+	}
+	if to == "" {
+		missing = append(missing, "--to")
+	}
+	if len(missing) > 0 {
+		return "stageproof check: --repo requires " + strings.Join(missing, ", ")
+	}
+	if !remoteTokenOK(chart) {
+		return "stageproof check: --chart must be a chart name when --repo is set"
+	}
+	if !remoteTokenOK(from) || !remoteTokenOK(to) {
+		return "stageproof check: --from and --to must be chart versions when --repo is set"
+	}
+	return ""
+}
+
+func remoteRepoOK(repo string) bool {
+	var rest string
+	switch {
+	case strings.HasPrefix(repo, "https://"):
+		rest = strings.TrimPrefix(repo, "https://")
+	case strings.HasPrefix(repo, "http://"):
+		rest = strings.TrimPrefix(repo, "http://")
+	case strings.HasPrefix(repo, "oci://"):
+		rest = strings.TrimPrefix(repo, "oci://")
+	default:
+		return false
+	}
+	rest = strings.Trim(rest, "/")
+	return rest != "" && !strings.ContainsAny(rest, " \t")
+}
+
+func remoteTokenOK(s string) bool {
+	if s == "" || s == "." || s == ".." || strings.HasPrefix(s, "-") {
+		return false
+	}
+	return !strings.Contains(s, "..") && !strings.ContainsAny(s, "/\\ \t\r\n")
+}
+
+func remotePullReport(baseRef, headRef, summary string) *verdict.Report {
+	return &verdict.Report{
+		Verdict:   verdict.NotChecked,
+		ExitCode:  verdict.NotChecked.ExitCode(),
+		Adapter:   "helm",
+		BaseRef:   baseRef,
+		HeadRef:   headRef,
+		Checked:   verdict.CheckedFiles,
+		Timestamp: time.Now().UTC(),
+		Checks: []verdict.CheckResult{{
+			Name:    "Helm repository",
+			Status:  "fail",
+			Summary: summary,
+		}},
+	}
+}
+
+func scrubRemoteErr(err error, secrets []string, tmp string) string {
+	msg := helm.Scrub(err.Error(), secrets)
+	if tmp != "" {
+		msg = strings.ReplaceAll(msg, tmp, "stageproof-remote")
+	}
+	return strings.TrimSpace(msg)
 }
