@@ -44,7 +44,7 @@ func (crdifySchema) Compare(old, new map[string]any, stored []string) ([]schemaC
 		return nil, err
 	}
 	res := crdifyRun.Run(oldCRD, newCRD)
-	return crdifyChanges(res), nil
+	return crdifyChanges(res, oldCRD, newCRD), nil
 }
 
 // Charts do not carry status.storedVersions. The version marked storage is
@@ -108,7 +108,7 @@ func crdifyConfig() *config.Config {
 	return cfg
 }
 
-func crdifyChanges(res *runner.Results) []schemaChange {
+func crdifyChanges(res *runner.Results, oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition) []schemaChange {
 	if res == nil {
 		return nil
 	}
@@ -140,6 +140,9 @@ func crdifyChanges(res *runner.Results) []schemaChange {
 				if text == "" {
 					continue
 				}
+				if c.Name == "enum" && isEnumRelaxation(oldCRD, newCRD, version.Version, prop.Property, text) {
+					continue
+				}
 				out = append(out, schemaChange{
 					Class: c.Name, Version: version.Version, Property: prop.Property,
 					Detail: text, Values: listFromDetail(text),
@@ -148,6 +151,185 @@ func crdifyChanges(res *runner.Results) []schemaChange {
 		}
 	}
 	return out
+}
+
+// isEnumRelaxation filters false positives from crdify's enum comparator:
+// 1. Dropping the enum constraint altogether (old had enum, new has none) widens
+//    the schema to accept any value, so no stored object can be rejected.
+// 2. Cleaning up an unreachable value from one allOf[i] branch when sibling allOf
+//    branches already forbade that value leaves the effective enum unchanged.
+func isEnumRelaxation(oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition, ver, propPath, detail string) bool {
+	if !strings.Contains(detail, "allowed enum values removed") {
+		return false
+	}
+	if newProp := lookupSchemaProp(newCRD, ver, propPath); newProp != nil && len(newProp.Enum) == 0 {
+		return true
+	}
+	if parentPath, ok := stripAllOfSuffix(propPath); ok {
+		oldParent := lookupSchemaProp(oldCRD, ver, parentPath)
+		newParent := lookupSchemaProp(newCRD, ver, parentPath)
+		if oldParent != nil && newParent != nil {
+			oldEff, oldRestricted := effectiveAllOfEnum(oldParent)
+			newEff, newRestricted := effectiveAllOfEnum(newParent)
+			if !newRestricted {
+				return true
+			}
+			if oldRestricted {
+				allKept := true
+				for v := range oldEff {
+					if !newEff[v] {
+						allKept = false
+						break
+					}
+				}
+				if allKept {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func stripAllOfSuffix(path string) (string, bool) {
+	i := strings.LastIndex(path, ".allOf[")
+	if i < 0 || !strings.HasSuffix(path, "]") {
+		return "", false
+	}
+	idxStr := path[i+len(".allOf[") : len(path)-1]
+	if _, err := strconv.Atoi(idxStr); err != nil {
+		return "", false
+	}
+	return path[:i], true
+}
+
+func effectiveAllOfEnum(s *apiextensionsv1.JSONSchemaProps) (map[string]bool, bool) {
+	var sets []map[string]bool
+	if len(s.Enum) > 0 {
+		m := make(map[string]bool, len(s.Enum))
+		for _, j := range s.Enum {
+			m[string(j.Raw)] = true
+		}
+		sets = append(sets, m)
+	}
+	for i := range s.AllOf {
+		if len(s.AllOf[i].Enum) > 0 {
+			m := make(map[string]bool, len(s.AllOf[i].Enum))
+			for _, j := range s.AllOf[i].Enum {
+				m[string(j.Raw)] = true
+			}
+			sets = append(sets, m)
+		}
+	}
+	if len(sets) == 0 {
+		return nil, false
+	}
+	inter := make(map[string]bool, len(sets[0]))
+	for k := range sets[0] {
+		keep := true
+		for _, other := range sets[1:] {
+			if !other[k] {
+				keep = false
+				break
+			}
+		}
+		if keep {
+			inter[k] = true
+		}
+	}
+	return inter, true
+}
+
+func lookupSchemaProp(crd *apiextensionsv1.CustomResourceDefinition, ver, propPath string) *apiextensionsv1.JSONSchemaProps {
+	if crd == nil {
+		return nil
+	}
+	var root *apiextensionsv1.JSONSchemaProps
+	for i := range crd.Spec.Versions {
+		if crd.Spec.Versions[i].Name == ver {
+			if crd.Spec.Versions[i].Schema != nil {
+				root = crd.Spec.Versions[i].Schema.OpenAPIV3Schema
+			}
+			break
+		}
+	}
+	if root == nil {
+		return nil
+	}
+	p := strings.TrimPrefix(propPath, "^")
+	p = strings.TrimPrefix(p, ".")
+	if p == "" {
+		return root
+	}
+	cur := root
+	for _, seg := range strings.Split(p, ".") {
+		if cur == nil || seg == "" {
+			return nil
+		}
+		if seg == "items" {
+			if cur.Items == nil {
+				return nil
+			}
+			cur = cur.Items.Schema
+			continue
+		}
+		if seg == "additionalProperties" {
+			if cur.AdditionalProperties == nil {
+				return nil
+			}
+			cur = cur.AdditionalProperties.Schema
+			continue
+		}
+		if seg == "not" {
+			cur = cur.Not
+			continue
+		}
+		if base, idx, ok := parseIndexedSeg(seg); ok {
+			switch base {
+			case "allOf":
+				if idx < 0 || idx >= len(cur.AllOf) {
+					return nil
+				}
+				cur = &cur.AllOf[idx]
+			case "anyOf":
+				if idx < 0 || idx >= len(cur.AnyOf) {
+					return nil
+				}
+				cur = &cur.AnyOf[idx]
+			case "oneOf":
+				if idx < 0 || idx >= len(cur.OneOf) {
+					return nil
+				}
+				cur = &cur.OneOf[idx]
+			case "items":
+				if cur.Items == nil || idx < 0 || idx >= len(cur.Items.JSONSchemas) {
+					return nil
+				}
+				cur = &cur.Items.JSONSchemas[idx]
+			default:
+				return nil
+			}
+			continue
+		}
+		next, ok := cur.Properties[seg]
+		if !ok {
+			return nil
+		}
+		cur = &next
+	}
+	return cur
+}
+
+func parseIndexedSeg(seg string) (string, int, bool) {
+	i := strings.IndexByte(seg, '[')
+	if i <= 0 || !strings.HasSuffix(seg, "]") {
+		return "", 0, false
+	}
+	idx, err := strconv.Atoi(seg[i+1 : len(seg)-1])
+	if err != nil {
+		return "", 0, false
+	}
+	return seg[:i], idx, true
 }
 
 func firstText(errors, warnings []string) string {
