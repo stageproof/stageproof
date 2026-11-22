@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/stageproof/stageproof/internal/config"
 	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
@@ -43,6 +44,10 @@ type KindOptions struct {
 	ExtraCRDFiles     []string
 	Timeout           time.Duration
 	RunHelmTest       bool
+	// Smoke runs after the upgrade and before rollback. Empty skips the step.
+	Smoke []config.SmokeTest
+	// Secrets are user values. Smoke output is scrubbed with them.
+	Secrets []string
 }
 
 type Outcome struct {
@@ -409,6 +414,10 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 			Status:  "pass",
 			Summary: "chart test hooks passed",
 		})
+	}
+
+	if !runSmoke(ctx, out, kubeconfig, ns, relName, waitTimeout, opts) {
+		return out, nil
 	}
 
 	if opts.BaseChartDir != "" {
@@ -1143,14 +1152,20 @@ func keepPod(labels map[string]string, deleting bool, current map[string]bool) b
 }
 
 func runCmd(ctx context.Context, kubeconfig, bin string, args ...string) (string, error) {
+	return runCmdEnv(ctx, kubeconfig, nil, bin, args...)
+}
+
+func runCmdEnv(ctx context.Context, kubeconfig string, extra []string, bin string, args ...string) (string, error) {
 	var stdout, stderr bytes.Buffer
 	cmd := exec.CommandContext(ctx, bin, args...)
 	env := os.Environ()
+	env = append(env, extra...)
 	if kubeconfig != "" {
 		absKube, err := filepath.Abs(kubeconfig)
 		if err == nil {
 			kubeconfig = absKube
 		}
+		// Last KUBECONFIG wins. The temporary file must come after the caller's.
 		env = append(env, "KUBECONFIG="+kubeconfig)
 	}
 	cmd.Env = env

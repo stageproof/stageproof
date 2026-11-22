@@ -20,7 +20,7 @@ A new or changed container image is asked of the registry named in that image re
 
 `stageproof facts export` reads the cluster named by `--kubeconfig` and `--context`. It does not open the default kubeconfig. The calls are get and list. The default role is `deploy/facts-clusterrole.yaml`. It does not include Secrets. Helm release Secrets are read only with `--helm-releases`, which also needs `deploy/facts-helm-releases-clusterrole.yaml`. Only the chart name, version, appVersion, release name, and namespace are written. Values are not. The Secret list is limited to type `helm.sh/release.v1`. `--cluster-facts` reads that file from the path you pass. It is not read from git. The host is the one in the kubeconfig. There is no fixed cluster address.
 
-`--live` starts a temporary kind cluster on that same machine, pulls the chart's images, and runs its hooks. It does not contact a cluster you already have. Run it on a machine you trust with that chart.
+`--live` starts a temporary kind cluster on that same machine, pulls the chart's images, and runs its hooks. It does not contact a cluster you already have. Run it on a machine you trust with that chart. `smoke` commands in `.stageproof.yaml` run only then, after the upgrade and before the rollback, as `sh -c` in that temporary cluster. `KUBECONFIG` is the temporary file. `check-pr` reads the list from the base ref. A `smoke` entry that exists only in the pull request does not run.
 
 The node is a container that sets up its own networking and starts more containers. An unprivileged container is blocked from doing that, so a normal CI job cannot run `--live`.
 
