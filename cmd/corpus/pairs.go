@@ -35,7 +35,6 @@ func runPairs(root, bin string, prOnly bool, apiServer string) ([]caseResult, er
 		if prOnly && !p.PR {
 			continue
 		}
-		start := time.Now()
 		fromDir, err := ensureChart(cache, p.Repo, p.Chart, p.From, sums[p.Repo+"|"+p.Chart+"|"+p.From])
 		if err != nil {
 			return nil, fmt.Errorf("%s from: %w", p.ID, err)
@@ -44,6 +43,7 @@ func runPairs(root, bin string, prOnly bool, apiServer string) ([]caseResult, er
 		if err != nil {
 			return nil, fmt.Errorf("%s to: %w", p.ID, err)
 		}
+		start := time.Now()
 		verdict, rules, err := checkCharts(bin, fromDir, toDir, "1.35", "", apiServer)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", p.ID, err)

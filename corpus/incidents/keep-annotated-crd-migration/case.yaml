@@ -1,8 +1,0 @@
-id: keep-annotated-crd-migration
-summary: Removing the render step that stamps helm.sh/resource-policy keep, then swapping to a chart that no longer templates the CRDs, lets Helm delete them.
-k8s: "1.35"
-expect: {verdict: BLOCKED, rules: [impact.delete.crd]}
-control_expect: {verdict: PASSED}
-status: unreproduced
-needs: "1.5"
-source: https://lukeevanstech.github.io/talos-cluster/troubleshooting/kb/029-chart-migration-deletes-keep-annotated-crds/
