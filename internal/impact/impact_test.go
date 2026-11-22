@@ -661,3 +661,63 @@ func joined(findings []verdict.Finding, id string) string {
 	}
 	return b.String()
 }
+
+func TestCRDEnumRelaxationAndRedundantAllOfDoNotBlock(t *testing.T) {
+	// Removing an enum constraint widens the schema and must not report an incompatible change.
+	oldRelaxed := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {target: {type: string, enum: [pod, volumes]}}}}}}
+`)
+	newRelaxed := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {target: {type: string}}}}}}
+`)
+	changes, err := (crdifySchema{}).Compare(oldRelaxed[0].Object, newRelaxed[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 0 {
+		t.Fatalf("removing enum constraint reported incompatible changes: %+v", changes)
+	}
+
+	// Dropping an unreachable value from one allOf branch when another branch already forbade it
+	// leaves the effective allowed enum unchanged and must not block.
+	oldAllOf := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {codeType: {type: string, allOf: [{enum: [HTTP, Image]}, {enum: [HTTP, Image, ConfigMap]}]}}}}}}
+`)
+	newAllOf := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {codeType: {type: string, allOf: [{enum: [HTTP, Image]}, {enum: [HTTP, Image]}]}}}}}}
+`)
+	changes, err = (crdifySchema{}).Compare(oldAllOf[0].Object, newAllOf[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) != 0 {
+		t.Fatalf("unreachable allOf enum cleanup reported incompatible changes: %+v", changes)
+	}
+
+	// Narrowing an effective allOf enum still blocks.
+	narrowAllOf := crdWith(t, `
+    - name: v1
+      served: true
+      storage: true
+      schema: {openAPIV3Schema: {type: object, properties: {spec: {type: object, properties: {codeType: {type: string, allOf: [{enum: [HTTP, Image]}, {enum: [HTTP]}]}}}}}}
+`)
+	changes, err = (crdifySchema{}).Compare(oldAllOf[0].Object, narrowAllOf[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(changes) == 0 {
+		t.Fatal("narrowing effective allOf enum was ignored")
+	}
+}

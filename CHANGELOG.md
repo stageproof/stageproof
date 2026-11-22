@@ -49,6 +49,7 @@ The next release is 0.2.0.
 
 ### Fixed
 
+- Removing a CRD property's `enum` constraint completely, or removing an unreachable value from one `allOf` branch when another branch already forbade it, no longer reports an incompatible CRD schema change.
 - A `required` value that sits inside an `if` or an `else` no longer blocks an upgrade that does not render that branch. An unconditional new `required` value still blocks.
 - `GOOS=windows` builds cleanly again: Unix process-group termination for timed-out `smoke` commands is isolated behind `//go:build unix`.
 - Container arguments and raw manifest scans no longer treat file paths (`/cert/tls.crt`) or untagged flag values (`--secret-type=kubernetes.io/tls`) as container images, preventing false `supply.image.not_found` blocks.
