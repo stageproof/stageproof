@@ -18,30 +18,6 @@ import (
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
-// mergeRequestSHAs is the head plus the commits this merge request adds.
-// A saved live report records the chart commit. The file that carries it is
-// often committed on top of that, so the gate has to recognize both.
-func mergeRequestSHAs(base, head, headSHA string) map[string]bool {
-	accept := map[string]bool{}
-	if headSHA != "" {
-		accept[headSHA] = true
-	}
-	if strings.TrimSpace(base) == "" || strings.TrimSpace(head) == "" {
-		return accept
-	}
-	out, err := gitCommand("rev-list", "--max-count=30", head, "--not", base).Output()
-	if err != nil {
-		return accept
-	}
-	for _, line := range strings.Split(string(out), "\n") {
-		line = strings.TrimSpace(line)
-		if line != "" {
-			accept[line] = true
-		}
-	}
-	return accept
-}
-
 func counted(n int, singular, plural string) string {
 	if n == 1 {
 		return "1 " + singular
@@ -226,7 +202,6 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	format := fs.String("format", "text", "Output format: text | markdown | json | sarif")
 	outPath := fs.String("out", "", "Optional JSON report output file")
 	commentFile := fs.String("comment-file", "", "Also write the Markdown merge-request comment to this file")
-	savedLive := fs.String("saved-live", "stageproof-live", "Directory of a live report CI cannot run. A report.json whose head_git is a commit on this merge request changes the gate verdict.")
 
 	if err := fs.Parse(args); err != nil {
 		if err == flag.ErrHelp {
@@ -440,22 +415,6 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	for _, r := range reports {
 		if r.HeadGit == "" {
 			r.HeadGit = headSHA
-		}
-	}
-	if extra, err := report.LoadSavedLive(*savedLive, mergeRequestSHAs(*currentGit, *newGit, headSHA)); err == nil {
-		for _, r := range extra {
-			reports = append(reports, r)
-			// A rehearsal that could not run is shown. It does not fail the job.
-			// A blocker in that report still does.
-			if r.Verdict == verdict.Blocked {
-				note(r.Verdict)
-			}
-		}
-		if len(extra) > 0 && strings.EqualFold(*format, "text") {
-			fmt.Println()
-			for _, r := range extra {
-				report.WriteTerminal(os.Stdout, r)
-			}
 		}
 	}
 

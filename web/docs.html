@@ -1862,7 +1862,6 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
     <tr><td><code>--cluster-name</code>, <code>--timeout</code></td><td>Same as <code>check</code></td><td>Passed through when this command also runs <code>--live</code>.</td></tr>
-    <tr><td><code>--saved-live &lt;dir&gt;</code></td><td><code>stageproof-live</code></td><td>A directory of <code>report.json</code> files from a rehearsal CI cannot run. A file counts when its <code>head_git</code> is a commit on this merge request. A <code>NOT CHECKED</code> live result fails the job and is included in the comment.</td></tr>
   </tbody>
 </table></div>
 <p>Which values files a chart is checked with comes from the <a href="#config">configuration file</a>. See <a href="#values-files">Check each values file of a chart</a>.</p>
