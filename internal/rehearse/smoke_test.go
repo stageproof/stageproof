@@ -49,7 +49,8 @@ func TestSmokeTimeout(t *testing.T) {
 	out := &Outcome{}
 	start := time.Now()
 	ok := runSmoke(context.Background(), out, "", "ns", "rel", "30s", KindOptions{
-		Smoke: []config.SmokeTest{{Name: "slow", Run: "sleep 5", Timeout: "200ms"}},
+		// The child holds the stdout pipe. Killing only the shell would wait for it.
+		Smoke: []config.SmokeTest{{Name: "slow", Run: "/usr/bin/sleep 5 & wait", Timeout: "200ms"}},
 	})
 	if ok || time.Since(start) > 3*time.Second {
 		t.Fatalf("timeout did not stop the command, ok=%v after %s", ok, time.Since(start))
