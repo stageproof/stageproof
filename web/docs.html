@@ -93,7 +93,7 @@
   <!-- ================================================================ START HERE -->
 
   <template data-topic="overview" data-group="Start here" data-title="What Stageproof does">
-<p class="docs-lede">Stageproof checks a Helm chart upgrade before you merge it. It compares the chart version you run today with the version you want to run, and reports whether the upgrade is safe to apply to your cluster.</p>
+<p class="docs-lede">Stageproof checks a Kubernetes upgrade before you merge it: Helm charts, Argo CD Applications, Flux HelmReleases, and rendered YAML manifests. It compares what you run today with what you want to deploy, and reports whether the upgrade is safe to apply to your cluster.</p>
 
 <h2>The problem</h2>
 <p>A chart upgrade can pass <code>helm lint</code> and <code>helm template</code> and still break a cluster. Those tools read the new chart on its own. They do not know which version you run today, which values you set, or which Kubernetes version your cluster runs. Three failures come from that gap:</p>
@@ -109,13 +109,15 @@
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Check</th><th>Question it answers</th><th>When it runs</th></tr></thead>
   <tbody>
-    <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Every run</td></tr>
-    <tr><td>Values</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file</td></tr>
-    <tr><td>Kubernetes API versions</td><td>Does the chart use an API that your Kubernetes version has removed?</td><td>Every run</td></tr>
-    <tr><td>Upgrade safety</td><td>Does the upgrade change a field that Kubernetes does not allow to change?</td><td>When you give a current chart</td></tr>
-    <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>When you give a current chart</td></tr>
+    <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart, Argo CD, and Flux runs (skipped for <code>--before</code> / <code>--after</code>)</td></tr>
+    <tr><td>Values proof</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file (render-proven on <code>main</code>, templates-only in <code>v0.1.8</code>)</td></tr>
+    <tr><td>Image tags</td><td>Does a new or changed container image tag exist for your node architecture?</td><td>Source on <code>main</code> (skip with <code>--offline</code>)</td></tr>
+    <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is <code>apiVersion: v3</code> set?</td><td>Source on <code>main</code> (<code>--helm-compare</code>)</td></tr>
+    <tr><td>Local API server and API versions</td><td>Does a local Kubernetes API server of <code>--current-k8s</code> accept the upgrade, and are any APIs removed or deprecated?</td><td>Every run (local API server default on <code>main</code>; table-only with <code>--api-server off</code> or in <code>v0.1.8</code>)</td></tr>
+    <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>When comparing before and after (source on <code>main</code>)</td></tr>
+    <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does your real cluster run?</td><td>With <code>stageproof facts export</code> and <code>--cluster-facts</code> (source on <code>main</code>, read-only)</td></tr>
     <tr><td>CRD size</td><td>Is a CRD too large to apply without server-side apply?</td><td>Every run</td></tr>
-    <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
+    <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, run base-ref <code>smoke</code> commands (source on <code>main</code>), and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
   </tbody>
 </table></div>
 
@@ -148,15 +150,15 @@
   <thead><tr><th>Input</th><th>Status</th></tr></thead>
   <tbody>
     <tr><td>A Helm chart in a directory</td><td>Supported</td></tr>
-    <tr><td>A Helm chart named in an Argo CD Application (HTTPS chart repository or <code>oci://</code> registry)</td><td>Supported</td></tr>
-    <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported in source on main. Not in the v0.1.8 binary. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
+    <tr><td>An Argo CD <code>Application</code> (HTTPS chart repository, <code>oci://</code> registry, local Git chart path, multi-source, and <code>.yaml.tmpl</code>)</td><td>Supported (multi-source and local paths in source on <code>main</code>; <code>v0.1.8</code> reads one remote chart)</td></tr>
+    <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
+    <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
-    <tr><td>Container image contents</td><td>Not supported</td></tr>
-    <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on main. Not in the v0.1.8 binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
+    <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are supported on <code>main</code>)</td></tr>
     <tr><td>Kustomize and Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
   </tbody>
 </table></div>
-<p>The full list is in <a href="#limits">Scope and limits</a>.</p>
+<p>The full list is in <a href="#limits">Scope and limits</a>. Measured accuracy numbers on 12 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects are in <a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>.</p>
 
 <h2>What it never does</h2>
 <ul>
@@ -167,20 +169,27 @@
   </template>
 
   <template data-topic="install" data-group="Start here" data-title="Install">
-<p class="docs-lede">Stageproof is a single command line program. There is no packaged release yet, so you build it from source. The build takes a few seconds.</p>
+<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.1.8</code> binary from Homebrew, GitHub Releases, or the container image, or build source on <code>main</code> for the Phase 1 features ahead of <code>v0.2.0</code>.</p>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
   <tbody>
-    <tr><td>Go</td><td>1.23 or newer</td><td>Building the program</td></tr>
-    <tr><td>Helm</td><td>3 or 4</td><td>Chart, Argo CD, and Flux checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
+    <tr><td>Go</td><td>1.27.4</td><td>Building from source on <code>main</code></td></tr>
+    <tr><td>Helm</td><td>3 or 4 (tested on 3.22.1 and 4.3.2)</td><td>Chart, Argo CD, and Flux checks. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
     <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
     <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
   </tbody>
 </table></div>
 
-<h2>Build</h2>
+<h2>Install the released binary (v0.1.8)</h2>
+<pre data-kind="cmd" data-label="Homebrew">
+brew install stageproof/stageproof/stageproof</pre>
+<pre data-kind="cmd" data-label="Container image">
+docker run --rm ghcr.io/stageproof/stageproof:v0.1.8 version</pre>
+<p>Signed archives and SBOMs are published on <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>.</p>
+
+<h2>Build from source (main)</h2>
 <p>In the Stageproof source tree, build from the repository root.</p>
 <pre data-kind="cmd" data-label="Build the program">
 go build -o stageproof ./cmd/stageproof</pre>
@@ -1803,7 +1812,7 @@ workflow:
   <tbody>
     <tr><td><code>--current-git &lt;ref&gt;</code></td><td><code>origin/main</code></td><td>The branch or commit the pull request will merge into.</td></tr>
     <tr><td><code>--new-git &lt;ref&gt;</code></td><td><code>HEAD</code></td><td>The end of the pull request branch. It is used to list the changed files. The chart files are read from your working directory.</td></tr>
-    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart that is checked.</td></tr>
+    <tr><td><code>--current-k8s</code>, <code>--next-k8s</code>, <code>--api-server</code>, <code>--api-server-dir</code>, <code>--values-proof</code>, <code>--offline</code>, <code>--cluster-facts</code>, <code>--helm-compare</code>, <code>--server-side-apply</code>, <code>--live</code>, <code>--require-rehearsal</code></td><td></td><td>The same as for <code>stageproof check</code>. They apply to every chart, Application, and HelmRelease that is checked.</td></tr>
     <tr><td><code>--format</code></td><td><code>text</code></td><td>The same as for <code>stageproof check</code>.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>One Markdown file for the whole pull request. With several checks it starts with a summary table.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>One JSON file with <code>verdict</code>, <code>exit_code</code>, and a <code>reports</code> list that holds every report.</td></tr>
@@ -2241,9 +2250,10 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
   <li><strong>The temporary cluster may run another Kubernetes version than yours.</strong> That happens when kind has no image for your version. The report then says which version the rehearsal ran on.</li>
   <li><strong>The API check uses a local API server when the binaries are available.</strong> Deprecations still come from the table in <a href="#cluster-version">Check against your Kubernetes version</a>. <code>--api-server off</code> uses only that table. APIs added by CRDs are not judged by the removal table.</li>
   <li><strong>A restart is not a failure.</strong> The report names the field that changed. The result stays <code>PASSED</code> when nothing else is blocked.</li>
-  <li><strong>The values check follows references.</strong> It knows whether a chart reads a key. It does not know whether the chart does something sensible with the value.</li>
+  <li><strong>The values check proves whether a key changes the render.</strong> On <code>main</code>, keys the template reader cannot decide are render-tested (<code>--values-proof full</code> render-tests every key), and <code>v0.1.8</code> reads templates only. It does not know whether the application uses the rendered value correctly at runtime.</li>
   <li><strong>A pull request check covers the values files it knows about.</strong> Without a <code>charts</code> list in the configuration file, a chart in your repository is checked with its own <code>values.yaml</code> only. See <a href="#values-files">Check each values file of a chart</a>.</li>
 </ul>
+<p>Measured accuracy on 12 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects is published in <a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>.</p>
   </template>
 </body>
 </html>

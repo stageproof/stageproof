@@ -64,3 +64,5 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | `NOT CHECKED` | 2 | Stageproof did not finish, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. A file check that did not rehearse stays `PASSED` and says it was not tested live. |
 
 `check-pr` reads `stageproof-live/**/report.json` when that file is already in the checkout (`--saved-live` changes the directory). The file counts when its `head_git` is a commit on the merge request. The comment includes that rehearsal. A rehearsal that could not test the upgrade does not fail the job. A pipeline that runs before the file exists cannot see it, and its `PASSED` line says the upgrade was not tested live.
+
+Measured accuracy across 12 active incidents and 316 CNCF upgrade pairs (105 CNCF projects) is in [docs/accuracy.md](accuracy.md).
