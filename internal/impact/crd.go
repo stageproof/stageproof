@@ -102,11 +102,17 @@ func compareCRD(old, neu obj, users []obj, stored []string) []verdict.Finding {
 	}
 	if len(unused) > 0 {
 		sort.Strings(unused)
+		deduped := unused[:0]
+		for _, item := range unused {
+			if len(deduped) == 0 || deduped[len(deduped)-1] != item {
+				deduped = append(deduped, item)
+			}
+		}
 		findings = append(findings, verdict.Finding{
 			RuleID:   "crd.schema.incompatible",
 			Severity: verdict.SeverityWarning,
 			Resource: neu.ID,
-			Message:  fmt.Sprintf("Incompatible fields on %s: %s. No object rendered from the current chart uses them.", neu.Name, strings.Join(unused, ", ")),
+			Message:  fmt.Sprintf("Incompatible fields on %s: %s. No object rendered from the current chart uses them.", neu.Name, strings.Join(deduped, ", ")),
 			Detail:   "A field was removed, its type changed, it became required, or its enum was narrowed. This stays a warning until a rendered object uses the field.",
 		})
 	}

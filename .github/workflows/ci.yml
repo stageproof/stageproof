@@ -26,6 +26,10 @@ jobs:
           version: ${{ matrix.helm }}
       - name: Vet
         run: go vet ./...
+      - name: Cross-compile
+        run: |
+          GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o /dev/null ./cmd/stageproof
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /dev/null ./cmd/stageproof
       - name: Test
         run: go test ./...
       - name: Vulnerability check

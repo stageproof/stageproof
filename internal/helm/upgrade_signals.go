@@ -424,15 +424,27 @@ func imageTag(ref string) string {
 }
 
 // renderedImageRe finds an image after "image:" or "=".
-// Official images such as redis:8-alpine have no slash. Registry images do.
-var renderedImageRe = regexp.MustCompile(`(?i)(?:image:\s*|=\s*)["']?([A-Za-z0-9][A-Za-z0-9._:@/-]{2,220})`)
+// Official images such as redis:8-alpine have no slash and only match after
+// an explicit "image:" key. Untyped "=" matches require a registry/repo slash
+// and an explicit tag or digest so flags like --secret-type=kubernetes.io/tls
+// or --web.cert-file=/cert/tls.crt are never treated as images.
+var renderedImageRe = regexp.MustCompile(`(?i)(?:(image:\s*)|(=\s*))["']?([A-Za-z0-9][A-Za-z0-9._:@/-]{2,220})`)
 
 func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
 	out := map[string]imageRef{}
 	for _, obj := range objs {
 		walkImages(obj.Spec, obj.ID(), out)
-		for i, ref := range renderedImageRe.FindAllString(obj.RawYAML, -1) {
-			if !looksLikeImage(ref) {
+		for i, match := range renderedImageRe.FindAllStringSubmatch(obj.RawYAML, -1) {
+			if len(match) < 4 {
+				continue
+			}
+			isField := match[1] != ""
+			ref := cleanImageToken(match[3])
+			if isField {
+				if !looksLikeImage(ref) {
+					continue
+				}
+			} else if !looksLikeUntypedImage(ref) {
 				continue
 			}
 			key := obj.ID() + "/raw/" + imageRepo(ref)
@@ -484,8 +496,13 @@ func walkImages(v any, path string, out map[string]imageRef) {
 				out[path+"/args/"+flag+"/arg"] = imageRef{where: path + " " + flag, image: img}
 			}
 		}
-		for k, child := range t {
-			walkImages(child, path+"."+k, out)
+		keys := make([]string, 0, len(t))
+		for k := range t {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		for _, k := range keys {
+			walkImages(t[k], path+"."+k, out)
 		}
 	case []any:
 		for i, child := range t {
@@ -529,7 +546,25 @@ func looksLikeImage(s string) bool {
 	if strings.Contains(s, "://") {
 		return false
 	}
+	if strings.HasPrefix(s, "/") || strings.HasPrefix(s, "./") || strings.HasPrefix(s, "../") || strings.HasPrefix(s, "=") {
+		return false
+	}
 	return strings.Contains(s, "/") || strings.Contains(s, ":")
+}
+
+// looksLikeUntypedImage requires a repository path plus an explicit tag or
+// digest. Untyped flag values like --secret-type=kubernetes.io/tls,
+// --web.cert-file=/cert/tls.crt, or --mime=application/json do not qualify.
+func looksLikeUntypedImage(s string) bool {
+	if !looksLikeImage(s) || !strings.Contains(s, "/") {
+		return false
+	}
+	if idx := strings.Index(s, "@"); idx > 0 {
+		digest := s[idx+1:]
+		return strings.Contains(digest, ":") && len(digest) > 8
+	}
+	tag := imageTag(s)
+	return tag != "" && !strings.ContainsAny(tag, "/\\")
 }
 
 func imageFromArg(s string) (img, flag string) {
@@ -538,8 +573,8 @@ func imageFromArg(s string) (img, flag string) {
 		return "", ""
 	}
 	flag = strings.TrimLeft(s[:eq], "-")
-	img = strings.TrimSpace(s[eq+1:])
-	if flag == "" || !strings.Contains(img, "/") || !looksLikeImage(img) {
+	img = cleanImageToken(s[eq+1:])
+	if flag == "" || !looksLikeUntypedImage(img) {
 		return "", ""
 	}
 	return img, flag

@@ -70,3 +70,17 @@ func TestSmokeUsesTheTemporaryKubeconfig(t *testing.T) {
 		t.Fatalf("env = %q", text)
 	}
 }
+
+func TestRunCmdRedactsSetValuesInError(t *testing.T) {
+	_, err := runCmd(context.Background(), "", "sh", "-c", "exit 1", "--set", "db.password=supersecret123", "--set-string=api.token=tokensecret999")
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	msg := err.Error()
+	if strings.Contains(msg, "supersecret123") || strings.Contains(msg, "tokensecret999") {
+		t.Fatalf("error leaked --set value: %s", msg)
+	}
+	if !strings.Contains(msg, "db.password=[redacted]") || !strings.Contains(msg, "--set-string=api.token=[redacted]") {
+		t.Fatalf("expected redacted keys in error: %s", msg)
+	}
+}
