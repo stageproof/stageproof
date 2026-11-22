@@ -11,6 +11,7 @@ func printUsage() {
 Usage:
   stageproof init     [--dir .] [--out .stageproof.yaml]
   stageproof check    --current-chart <dir> --new-chart <dir> [flags]
+  stageproof check    --repo <url> --chart <name> --from <version> --to <version> [flags]
   stageproof check    --argocd-file <app.yaml> --current-git <git-ref> [flags]
   stageproof check    --flux-file <helmrelease.yaml> --current-git <git-ref> [flags]
   stageproof check    --before <dir|file> --after <dir|file> [flags]
@@ -28,6 +29,10 @@ Results:
 Chart, Argo CD & Values:
   --current-chart <dir>    Currently deployed Helm chart directory (before upgrade)
   --new-chart <dir>        New candidate Helm chart directory to verify (after upgrade)
+  --repo <url>             Helm http(s) repository or oci:// registry. Requires --chart, --from, and --to.
+                           Those three are the chart name and the two versions. The charts are downloaded
+                           and removed when the command exits. Without --repo, --chart, --from, and --to
+                           stay aliases for local chart directories.
   --argocd-file <file>     Argo CD Application YAML / .yaml.tmpl. A remote chart is pulled. A Git path in this checkout is read locally.
   --current-argocd-file <file>
                            Previously deployed Argo CD Application, compared with --argocd-file
@@ -82,5 +87,8 @@ Examples:
   # 5. Read a cluster you name, then check with that file. The export uses get and list only.
   stageproof facts export --kubeconfig ~/.kube/prod --context prod --out facts.json
   stageproof check --before rendered/main --after rendered/pr --cluster-facts facts.json
+
+  # 6. Compare two versions from a Helm repository. The charts are downloaded and removed.
+  stageproof check --repo https://charts.jetstack.io --chart cert-manager --from v1.21.2 --to v1.21.3 --current-k8s 1.35
 `)
 }

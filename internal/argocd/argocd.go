@@ -1,17 +1,15 @@
 package argocd
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"os"
-	"os/exec"
-	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 
+	"github.com/stageproof/stageproof/internal/helm"
 	"gopkg.in/yaml.v3"
 )
 
@@ -366,26 +364,9 @@ func uniqueStrings(in []string) []string {
 	return out
 }
 
-// PullChart downloads and untars a specific (repoURL, chart, version) into destParentDir,
-// returning the unpacked chart directory path (<destParentDir>/<chart>).
+// PullChart downloads one chart version into destParentDir and returns the
+// directory that contains Chart.yaml. The archive may unpack under a name
+// other than chart.
 func PullChart(ctx context.Context, repoURL, chart, version, destParentDir string) (string, error) {
-	if err := os.MkdirAll(destParentDir, 0o755); err != nil {
-		return "", err
-	}
-	var args []string
-	if strings.HasPrefix(repoURL, "oci://") {
-		ref := strings.TrimRight(repoURL, "/") + "/" + chart
-		args = []string{"pull", ref, "--version", version, "--untar", "--untardir", destParentDir}
-	} else {
-		args = []string{"pull", chart, "--repo", repoURL, "--version", version, "--untar", "--untardir", destParentDir}
-	}
-
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, "helm", args...)
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("helm %s failed: %w (%s)", strings.Join(args, " "), err, strings.TrimSpace(stderr.String()))
-	}
-	return filepath.Join(destParentDir, chart), nil
+	return helm.Pull(ctx, repoURL, chart, version, destParentDir)
 }

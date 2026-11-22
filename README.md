@@ -73,6 +73,17 @@ stageproof check \
   --live
 ```
 
+Two versions in a Helm repository or an OCI registry (`main`). The charts are downloaded and removed. The released binary is v0.1.8 and does not have `--repo`. Without `--repo`, `--chart`, `--from`, and `--to` are still names for local chart directories.
+
+```bash
+stageproof check \
+  --repo https://charts.jetstack.io \
+  --chart cert-manager \
+  --from v1.21.2 \
+  --to v1.21.3 \
+  --current-k8s 1.35
+```
+
 ## What it looks at
 
 | Question | How |

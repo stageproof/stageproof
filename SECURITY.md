@@ -10,7 +10,7 @@ Do not open a public issue for a security report. There is no separate security 
 
 Stageproof runs on the machine that starts it. It does not phone home. `--helm-compare` runs a second helm binary on that machine. It does not add a network call.
 
-A file check runs `helm template`. Helm executes chart templates. Treat a chart as code. A check of an Argo CD Application or a Flux HelmRelease also runs `helm pull` when the chart is a Helm repository or an OCI artifact named in that file. It reads a chart path in this checkout from Git. It does not clone another Git repository. Secret values from a `valuesFrom` Secret are not printed.
+A file check runs `helm template`. Helm executes chart templates. Treat a chart as code. A check of an Argo CD Application or a Flux HelmRelease also runs `helm pull` when the chart is a Helm repository or an OCI artifact named in that file. `stageproof check --repo` runs `helm pull` for the two versions you name. The host is that repository URL (`http://`, `https://`, or `oci://`). It is not a fixed host. The downloaded charts are removed when the command exits. A failed download is NOT CHECKED. `--offline` does not skip this download. It still skips image registry checks. The check reads a chart path in this checkout from Git. It does not clone another Git repository. Secret values from a `valuesFrom` Secret are not printed.
 
 The corpus replay command is not in the release binary. It fetches the public commits named in `corpus/replay/cases.jsonl` from `github.com`, at most four at a time, and deletes each checkout when the case finishes. Its printed summary is counts and timings.
 
