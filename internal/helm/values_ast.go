@@ -361,9 +361,17 @@ func walkNode(n parse.Node, scopes *[]scopeFrame, u *ChartUsage, withPfx func([]
 	case *parse.ActionNode:
 		walkPipe(x.Pipe, scopes, u, withPfx)
 	case *parse.IfNode:
+		// An if body is conditional. required inside it is not a value the
+		// default render refuses to start without. with and range already
+		// push a scope; if has to as well, or a TLS-only required blocks
+		// an upgrade that leaves TLS off.
 		walkPipe(x.Pipe, scopes, u, withPfx)
+		pushScope(scopes, varBinding{})
 		walkNode(x.List, scopes, u, withPfx)
+		popScope(scopes)
+		pushScope(scopes, varBinding{})
 		walkNode(x.ElseList, scopes, u, withPfx)
+		popScope(scopes)
 	case *parse.WithNode:
 		var target varBinding
 		if x.Pipe != nil && len(x.Pipe.Cmds) > 0 {
