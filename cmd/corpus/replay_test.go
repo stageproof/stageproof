@@ -16,6 +16,13 @@ func TestReplayCasesFile(t *testing.T) {
 	if len(cases) < 50 {
 		t.Fatalf("got %d cases", len(cases))
 	}
+	repos := map[string]bool{}
+	for _, c := range cases {
+		repos[c.Repo] = true
+	}
+	if len(repos) < 3 {
+		t.Fatalf("cases come from %d repositories", len(repos))
+	}
 	raw, err := os.ReadFile(filepath.Join("..", "..", "corpus", "replay", "cases.jsonl"))
 	if err != nil {
 		t.Fatal(err)

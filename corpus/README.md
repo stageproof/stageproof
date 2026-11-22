@@ -28,6 +28,8 @@ A label in `labels/` is `{case, truth, evidence, by, date}`. `truth` is `clean` 
 
 `go run ./cmd/corpus run --set replay --out replay.json` fetches each commit and its parent from GitHub, at most four at a time, and runs `stageproof check --flux-file` with `--api-server off`. The checkout is deleted after the case. The command prints how many cases were checked and the verdict counts. It does not print repository names. A check that exits 2 without a report is `NOT CHECKED`: the chart could not be read. A failed fetch is an error. `replay.json` is local output. Do not commit it.
 
+The cases come from more than one public repository. Each HelmRelease's HelmRepository or OCIRepository is in that same repository, so the chart can be pulled. `from` and `to` are the chart versions in that commit.
+
 `--set all` runs incidents and pairs. It does not run replay.
 
 ## Run
