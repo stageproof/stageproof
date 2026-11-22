@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"errors"
+	"sort"
 	"strings"
 
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
@@ -35,6 +36,7 @@ const (
 type Classified struct {
 	Class  Class
 	Field  string
+	Fields []string
 	Detail string
 	Reason metav1.StatusReason
 }
@@ -67,15 +69,26 @@ func Classify(err error) Classified {
 	out := Classified{Reason: st.Reason}
 	var causes []metav1.StatusCause
 	if st.Details != nil {
-		causes = st.Details.Causes
+		causes = append([]metav1.StatusCause(nil), st.Details.Causes...)
+		// Sort causes so repeated runs report the same field first regardless of
+		// kube-apiserver's internal map iteration order.
+		sort.Slice(causes, func(i, j int) bool {
+			if causes[i].Field != causes[j].Field {
+				return causes[i].Field < causes[j].Field
+			}
+			if causes[i].Type != causes[j].Type {
+				return causes[i].Type < causes[j].Type
+			}
+			return causes[i].Message < causes[j].Message
+		})
 	}
+	var invalidFields []string
+	seenField := map[string]bool{}
+	var firstInvalid *Classified
 	for _, cause := range causes {
 		switch cause.Type {
 		case metav1.CauseTypeForbidden:
 			return Classified{Class: ClassImmutable, Field: cause.Field, Reason: st.Reason}
-		case metav1.CauseTypeFieldValueNotSupported:
-			// An unsupported enum value is a rejection, not an unknown field.
-			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
 		case metav1.CauseTypeFieldValueInvalid:
 			// An immutable update is FieldValueInvalid. The validation detail is
 			// the suffix "field is immutable". The message also quotes the
@@ -83,21 +96,41 @@ func Classify(err error) Classified {
 			if strings.HasSuffix(cause.Message, "field is immutable") {
 				return Classified{Class: ClassImmutable, Field: cause.Field, Reason: st.Reason}
 			}
-			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
-		case metav1.CauseTypeFieldValueRequired,
+			if cause.Field != "" && !seenField[cause.Field] {
+				seenField[cause.Field] = true
+				invalidFields = append(invalidFields, cause.Field)
+			}
+			if firstInvalid == nil {
+				c := Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
+				firstInvalid = &c
+			}
+		case metav1.CauseTypeFieldValueNotSupported,
+			metav1.CauseTypeFieldValueRequired,
 			metav1.CauseTypeTypeInvalid,
 			metav1.CauseTypeFieldValueNotFound,
 			metav1.CauseTypeFieldValueDuplicate,
 			metav1.CauseTypeTooLong,
 			metav1.CauseTypeTooMany:
-			return Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
+			// An unsupported enum value is a rejection, not an unknown field.
+			if cause.Field != "" && !seenField[cause.Field] {
+				seenField[cause.Field] = true
+				invalidFields = append(invalidFields, cause.Field)
+			}
+			if firstInvalid == nil {
+				c := Classified{Class: ClassInvalid, Field: cause.Field, Detail: scrubDetail(cause.Message), Reason: st.Reason}
+				firstInvalid = &c
+			}
 		}
+	}
+	if firstInvalid != nil {
+		firstInvalid.Fields = invalidFields
+		return *firstInvalid
 	}
 	if field, ok := typedUnknownField(st); ok {
 		return Classified{Class: ClassUnknown, Field: field, Reason: st.Reason}
 	}
 	if field, detail, ok := typedMismatch(st.Message); ok {
-		return Classified{Class: ClassInvalid, Field: field, Detail: detail, Reason: st.Reason}
+		return Classified{Class: ClassInvalid, Field: field, Fields: []string{field}, Detail: detail, Reason: st.Reason}
 	}
 	switch st.Reason {
 	case metav1.StatusReasonBadRequest:

@@ -149,3 +149,20 @@ func TestClassifyTypedPatchTypeMismatch(t *testing.T) {
 		t.Fatalf("typed patch detail: %q", got.Detail)
 	}
 }
+
+func TestClassifySortsAndCollectsInvalidFields(t *testing.T) {
+	err := &apierrors.StatusError{ErrStatus: metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{
+			{Type: metav1.CauseTypeFieldValueRequired, Field: "spec.provider", Message: "Required value"},
+			{Type: metav1.CauseTypeTypeInvalid, Field: "spec.credential", Message: "must be object"},
+		}},
+	}}
+	got := Classify(err)
+	if got.Class != ClassInvalid || got.Field != "spec.credential" {
+		t.Fatalf("expected deterministic first field spec.credential, got %+v", got)
+	}
+	if len(got.Fields) != 2 || got.Fields[0] != "spec.credential" || got.Fields[1] != "spec.provider" {
+		t.Fatalf("expected sorted Fields [spec.credential spec.provider], got %+v", got.Fields)
+	}
+}
