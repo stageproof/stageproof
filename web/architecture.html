@@ -5,7 +5,7 @@
   <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Architecture - Stageproof</title>
-  <meta name="description" content="How the Stageproof CLI checks a Helm upgrade: render, values, Kubernetes API rules, and an optional kind rehearsal. What is planned is labeled planned." />
+  <meta name="description" content="How the Stageproof CLI checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered Kubernetes manifests: render, values proof, image tags, local API server proof, impact diff, and optional kind rehearsal." />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -51,7 +51,7 @@
       <div class="wrap">
         <p class="kicker"><span class="kicker-num">ARCH</span> How a check runs</p>
         <h1>One program. It renders, compares, and optionally rehearses.</h1>
-        <p class="sec-lede">Stageproof is a command line tool. It runs on your laptop or in your CI job. The steps below are what <code>stageproof check</code> does on one pair of charts.</p>
+        <p class="sec-lede">Stageproof is a command line tool. It runs on your laptop or in your CI job. The steps below are what <code>stageproof check</code> does on one chart, Argo CD Application, Flux HelmRelease, or rendered manifest pair.</p>
       </div>
     </section>
 
@@ -59,24 +59,33 @@
       <div class="wrap">
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">01</span> The path of one check</p>
-          <h2>Files first. A cluster only if you ask.</h2>
+          <h2>Files and local API server first. A kind cluster only if you ask.</h2>
         </div>
         <div class="diagram-box">
           <pre style="margin:0;font-family:var(--mono);font-size:0.78rem;line-height:1.65;color:var(--text-2);">chart directories, Argo CD Application, Flux HelmRelease, or rendered manifests
         |
         v
-helm template  (current chart, then new chart, at --current-k8s)
+helm template  (current and new at --current-k8s; optional --helm-compare; skipped for --before/--after)
         |
         v
-values keys    (templates of the new chart still reference your keys?)
+values proof   (template AST + render proof for uncertain keys, renames, changed defaults)
         |
         v
-API rules      (removed APIs, immutable selectors, oversized CRDs)
+image tags     (HTTP HEAD + platform check for changed images; skipped with --offline)
         |
-        +-- blocker found ---------------> BLOCKED          exit 1
+        v
+API server     (local kube-apiserver at --current-k8s: apply current, upgrade CRDs, dry-run new, check stored CRs)
+        |
+        v
+impact &amp; CRDs  (deletes, crds/ vs templates/, crdify schema diff, restarts, privilege, exposure, capacity, API table)
+        |
+        v
+policy/ignores (.stageproof.yaml from base ref applied before exit code or --live)
+        |
+        +-- blocker remains -------------> BLOCKED          exit 1
         |
         +-- --live not set --------------> PASSED           exit 0
-        |                                  checked: files
+        |                                  checked: files, API server &lt;patch&gt;
         |                                  (NOT CHECKED, exit 2, if --require-rehearsal)
         |
         v
@@ -84,10 +93,10 @@ kind cluster on this machine
   install current -> upgrade to new -> smoke commands -> roll back -> delete cluster
         |
         +-- upgrade, smoke, or rollback failed --> BLOCKED  exit 1
-        |                                  checked: files, live cluster
+        |                                  checked: files, API server &lt;patch&gt;, live cluster
         +-- rehearsal could not start ---> NOT CHECKED      exit 2
-        +-- both steps passed -----------> PROVEN           exit 0
-                                           checked: files, live cluster</pre>
+        +-- upgrade, smoke, rollback ok -> PROVEN           exit 0
+                                           checked: files, API server &lt;patch&gt;, live cluster</pre>
         </div>
         <p class="sec-lede" style="margin-top:18px;"><code>stageproof check-pr</code> runs that path once per changed chart. A file the pull request deleted is still a change when it sat inside a chart. The pull request result is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. Rendered manifests skip the Helm steps. The API server, the impact check, and the API table still run. <code>--live</code> is not available for that mode.</p>
       </div>
@@ -126,7 +135,7 @@ kind cluster on this machine
             </tr>
             <tr>
               <td>Kubernetes APIs</td>
-              <td>A local API server of the minor you named applies the current objects and dry-runs the new ones. Deprecations, label selectors, and the CRD size check still come from the built-in table.</td>
+              <td>A local API server of the minor you named applies the current objects and dry-runs the new ones. Pre-existing invalid defaults on the current chart do not block upgrades that fix them, and identical pre-existing field rejections downgrade to a warning. Deprecations, label selectors, and the CRD size check still come from the built-in table.</td>
               <td>The server is not your cluster. The patch it ran is named in the report. <code>--api-server off</code> uses only the table. Webhook configurations are not sent.</td>
             </tr>
             <tr>

@@ -51,7 +51,7 @@
       <div class="wrap">
         <p class="kicker"><span class="kicker-num">PLAN</span> In order, and labeled</p>
         <h1>What exists, and what does not.</h1>
-        <p class="sec-lede">Stageproof is a Helm and Kubernetes upgrade check. The rows marked <span class="verdict-badge ok">Ships</span> are in the CLI. The rows marked <span class="verdict-badge warn">Planned</span> are not in this release.</p>
+        <p class="sec-lede">Stageproof checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered Kubernetes manifests. Rows marked <span class="verdict-badge ok">Ships</span> are implemented on <code>main</code> (with differences from the <code>v0.1.8</code> binary noted). Rows marked <span class="verdict-badge warn">Planned</span> are next.</p>
       </div>
     </section>
 
@@ -64,33 +64,53 @@
           <tbody>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
-              <td>File checks</td>
-              <td>Render, values keys read by templates, removed Kubernetes APIs, immutable selectors, oversized CRDs. Result <code>PASSED</code> or <code>BLOCKED</code>.</td>
+              <td>File checks and values proof</td>
+              <td>Render, values keys proven by template walk and rendering (<code>--values-proof default|full</code>, verified renames, changed defaults), removed Kubernetes APIs, immutable selectors, oversized CRDs. Render-based values proof is in source on <code>main</code>; <code>v0.1.8</code> reads templates only.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
               <td>Pull request check</td>
-              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed chart, Argo CD Application, and Flux HelmRelease, and writes one comment and one JSON report. The v0.1.8 binary does not read a HelmRelease.</td>
+              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed Helm chart, Argo CD Application (multi-source, local paths, <code>.yaml.tmpl</code>), and Flux HelmRelease, and writes one comment and one JSON or SARIF report. Flux HelmReleases and multi-source Applications are in source on <code>main</code>.</td>
+            </tr>
+            <tr>
+              <td><span class="verdict-badge ok">Ships</span></td>
+              <td>Flux HelmRelease and rendered manifests</td>
+              <td>Source on <code>main</code> reads Flux <code>HelmRelease</code> (<code>v2</code>, <code>v2beta2</code>, <code>v2beta1</code>, <code>valuesFrom</code>, <code>spec.upgrade.crds</code>) and compares raw rendered YAML trees with <code>--before</code> and <code>--after</code>. Not in the <code>v0.1.8</code> binary.</td>
+            </tr>
+            <tr>
+              <td><span class="verdict-badge ok">Ships</span></td>
+              <td>Local API server proof, impact, and CRD safety</td>
+              <td>Source on <code>main</code> runs a local Kubernetes API server (<code>--api-server auto</code>) to validate updates, immutable fields, and stored custom resources against upgraded CRDs; classifies deletes, restarts, exposure, privilege, capacity, and <code>crds/</code> vs <code>templates/</code> breaks. Not in the <code>v0.1.8</code> binary.</td>
+            </tr>
+            <tr>
+              <td><span class="verdict-badge ok">Ships</span></td>
+              <td>Image tag checks and Helm 4 readiness</td>
+              <td>Source on <code>main</code> checks new or changed image tags and node architectures via HTTP HEAD (<code>--offline</code> skips it), reports chart deprecation, warns on <code>apiVersion: v3</code>, and compares renders across two helm binaries with <code>--helm-compare</code>. Not in the <code>v0.1.8</code> binary.</td>
+            </tr>
+            <tr>
+              <td><span class="verdict-badge ok">Ships</span></td>
+              <td>Read-only cluster facts, explain, SARIF, ignores, and policy</td>
+              <td>Source on <code>main</code> adds <code>stageproof facts export</code> and <code>--cluster-facts</code> (<code>get</code> and <code>list</code> only, no values), <code>stageproof explain &lt;rule-id&gt;</code>, structured summary sections, <code>--format sarif</code>, and base-ref <code>.stageproof.yaml</code> <code>ignores</code>, <code>policy</code>, and live <code>smoke</code> commands. Not in the <code>v0.1.8</code> binary.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
               <td>Live rehearsal</td>
-              <td><code>--live</code> installs, upgrades, and rolls back in a temporary kind cluster on the machine that runs the command. Result <code>PROVEN</code> when that succeeds. <code>--require-rehearsal</code> makes a missing rehearsal <code>NOT CHECKED</code>.</td>
+              <td><code>--live</code> installs, upgrades, runs base-ref <code>smoke</code> commands (source on <code>main</code>), and rolls back in a temporary kind cluster on the machine that runs the command. Result <code>PROVEN</code> when that succeeds. <code>--require-rehearsal</code> makes a missing rehearsal <code>NOT CHECKED</code>.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
-              <td>Flux HelmRelease</td>
-              <td>Source on main reads <code>spec.chart</code>, <code>spec.chartRef</code>, <code>spec.values</code>, <code>spec.valuesFrom</code>, and <code>spec.upgrade.crds</code>. A chart in another Git repository is <code>NOT CHECKED</code>. The v0.1.8 binary does not.</td>
+              <td>Measured accuracy gate</td>
+              <td>Phase 1 accuracy gate passed on <code>ubuntu-latest</code> (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>): 12/12 active incidents caught, 12/12 controls passed, 0/281 (0.00%) wrong blocks across 316 CNCF upgrade pairs covering 105 CNCF projects, p95 4.13s file check and 15.41s API server proof, plus 70/70 public Flux replay upgrades.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge warn">Planned</span></td>
-              <td>An engine people can measure</td>
-              <td>The accuracy corpus, including a replay of public Flux upgrades that prints only counts and timings, the local API server proof, the impact report, values proof by rendering, image tag checks, a Helm 4 render comparison, <code>stageproof explain</code>, a summary of deletes, CRDs, privilege, exposure, values, restarts, and checks that did not finish, SARIF 2.1.0 output, ignores, policy, and live <code>smoke</code> commands in <code>.stageproof.yaml</code>, and a read-only cluster facts export ship in source on main. The released binary is v0.1.8. Still planned: Kustomize.</td>
+              <td>A public upgrade index (Phase 2)</td>
+              <td>Nightly upgrade reports for version pairs of top public charts, with a browsable site, static JSON API, and pull request badges.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge warn">Planned</span></td>
-              <td>A public upgrade index</td>
-              <td>An upgrade report for version pairs of public charts, with a page, an API, and a badge a pull request can show.</td>
+              <td>Kustomize support</td>
+              <td>Direct support for Kustomize overlays (today you can compare rendered output with <code>--before</code> and <code>--after</code>).</td>
             </tr>
           </tbody>
         </table>

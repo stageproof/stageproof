@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stageproof - Check a Helm upgrade before you merge it</title>
-  <meta name="description" content="Stageproof compares the Helm chart you run with the chart you want to run. It reports PASSED, PROVEN, BLOCKED, or NOT CHECKED. File checks and an optional rehearsal in a temporary cluster." />
-  <meta property="og:title" content="Stageproof - Check a Helm upgrade before you merge it" />
-  <meta property="og:description" content="A command line tool for Helm chart upgrades. It exits 0, 1, or 2." />
+  <title>Stageproof - Check a Kubernetes upgrade before you merge it</title>
+  <meta name="description" content="Stageproof compares Helm charts, Argo CD Applications, Flux HelmReleases, and rendered Kubernetes manifests before you merge. It reports PASSED, PROVEN, BLOCKED, or NOT CHECKED." />
+  <meta property="og:title" content="Stageproof - Check a Kubernetes upgrade before you merge it" />
+  <meta property="og:description" content="A command line upgrade check for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It exits 0, 1, or 2." />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -57,12 +57,12 @@
         <div class="hero-inner">
           <div class="hero-copy">
             <div class="eyebrow-row">
-              <span class="pill pill-accent">Helm and Kubernetes</span>
-              <span class="pill">CLI v0.1.8</span>
+              <span class="pill pill-accent">Helm, Argo CD, Flux, Manifests</span>
+              <span class="pill">CLI v0.1.8 · Phase 1 on main</span>
             </div>
-            <h1>Check a chart upgrade<br /><span class="accent-grad">before you merge it.</span></h1>
+            <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">before you merge it.</span></h1>
             <p class="hero-lede">
-              <code>helm lint</code> and <code>helm template</code> read the new chart on its own. They do not know which version you run, which values you set, or which Kubernetes version your cluster runs. Stageproof compares the two and exits <strong>0</strong>, <strong>1</strong>, or <strong>2</strong>.
+              <code>helm lint</code> and <code>helm template</code> read the new chart on its own. They do not know which version you run, which values you set, or which Kubernetes version your cluster runs. Stageproof compares Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests, and exits <strong>0</strong>, <strong>1</strong>, or <strong>2</strong>.
             </p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="docs.html#first-check">Run a check</a>
@@ -169,28 +169,29 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
       <div class="wrap">
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">02</span> What ships</p>
-          <h2>One command. Two charts. A result you can gate on.</h2>
-          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts a git diff touched and checks each one. A deleted file inside a chart still counts. The manifest flags are in the source on main, not in the v0.1.8 binary.</p>
+          <h2>One command. Four input types. A result you can gate on.</h2>
+          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, a Flux HelmRelease, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts, Applications, and HelmReleases a git diff touched and checks each one. A deleted file inside a chart still counts. Flux HelmReleases and rendered manifest trees are in the source on main, not in the v0.1.8 binary.</p>
         </div>
         <table class="spec-table">
           <thead>
             <tr><th>Check</th><th>Question</th><th>When</th></tr>
           </thead>
           <tbody>
-            <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart and Argo CD checks</td></tr>
-            <tr><td>Values</td><td>Does every key in your values file still have an effect?</td><td>When you pass a values file</td></tr>
-            <tr><td>Kubernetes APIs</td><td>Does the chart use an API your version has removed?</td><td>Every run</td></tr>
-            <tr><td>In-place upgrade</td><td>Does the upgrade change a field Kubernetes will not change?</td><td>When you give the current chart or the previous manifests</td></tr>
+            <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart, Argo CD, and Flux checks</td></tr>
+            <tr><td>Values proof</td><td>Does every key in your values file still have an effect?</td><td>When you pass a values file (render proof on main)</td></tr>
+            <tr><td>Kubernetes APIs</td><td>Does the upgrade use an API your version has removed?</td><td>Every run</td></tr>
+            <tr><td>Local API server</td><td>Does this Kubernetes minor accept the upgrade on top of current objects?</td><td>Source on main (default <code>--api-server auto</code>)</td></tr>
+            <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
+            <tr><td>Image tags</td><td>Does a new or changed tag exist for <code>linux/amd64</code> or your cluster node architectures?</td><td>Source on main. Skip with <code>--offline</code>.</td></tr>
+            <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart <code>apiVersion: v3</code>?</td><td>Source on main (<code>--helm-compare</code>).</td></tr>
+            <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main (<code>--before</code> / <code>--after</code>).</td></tr>
+            <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does my real cluster run?</td><td>Source on main (<code>facts export</code> / <code>--cluster-facts</code>, read-only).</td></tr>
+            <tr><td>CI controls</td><td>Can I explain a rule, export SARIF 2.1.0, or set timed ignores and severity policy?</td><td>Source on main (<code>explain</code>, <code>--format sarif</code>, <code>.stageproof.yaml</code>).</td></tr>
             <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
-            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the smoke commands (source on main), and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
-            <tr><td>Image tags</td><td>Does a new or changed tag exist for linux/amd64?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
-            <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart apiVersion v3?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
-            <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
-            <tr><td>API server</td><td>Does this Kubernetes minor accept the upgrade?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
-            <tr><td>Impact</td><td>What does the upgrade delete, restart, expose, or break?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
+            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the <code>smoke</code> commands (source on main), and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">Source on main proves a values key by rendering when the template reader cannot decide, asks a registry whether a new or changed image tag exists, compares a second helm binary when you pass <code>--helm-compare</code>, starts a local API server for the file checks, names deletes, restarts, and CRD breaks, prints one rule with <code>stageproof explain</code>, lists Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked when those sections are not empty, can print the report as SARIF 2.1.0, can ignore a finding until a date or change its level from <code>.stageproof.yaml</code> on the base ref, and can read a cluster's version, custom resource definitions, and installed chart versions with <code>stageproof facts export</code>. The released binary is v0.1.8. That binary reads templates and does not render a key twice.</p>
+        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>): <strong>12 / 12</strong> active incidents caught, <strong>12 / 12</strong> controls passed, <strong>0 / 281</strong> wrong blocks (0.00%) across 316 hand-checked CNCF upgrade pairs covering 105 CNCF projects, p95 <strong>4.13s</strong> file check and <strong>15.41s</strong> API server proof. The released binary is v0.1.8; these Phase 1 checks ship in source on main.</p>
       </div>
     </section>
 
@@ -259,7 +260,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             </svg>
             <span class="brand-word">stageproof</span>
           </a>
-          <p>A Helm chart upgrade check. It compares the release you run with the release a pull request wants.</p>
+          <p>A Kubernetes upgrade check for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests.</p>
         </div>
         <div class="footer-cols">
           <div class="footer-col">

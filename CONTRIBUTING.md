@@ -1,6 +1,6 @@
 # Contributing
 
-Stageproof checks a Helm chart upgrade. The scope is [docs/scope.md](docs/scope.md). A change that adds Terraform plans or image scanning does not belong in this repository.
+Stageproof checks Helm chart, Argo CD Application, Flux HelmRelease, and rendered Kubernetes manifest upgrades. The scope is [docs/scope.md](docs/scope.md). A change that adds Terraform plans or image scanning does not belong in this repository.
 
 ## Build and test
 
@@ -24,7 +24,7 @@ Helm is required for the checks. The live test also needs kind, kubectl, and Doc
 
 ## Release checklist
 
-1. `main` is green, including the `live` job and, once it exists, the corpus.
+1. `main` is green, including the `live` job and the corpus.
 2. `CHANGELOG.md` has the new section. Anything under Breaking is also the first line of the release notes.
 3. Version strings are updated in `cmd/stageproof/main.go`, `README.md`, `web/docs.html`, `web/index.html`, `web/security.html`, `web/architecture.html`, and `.github/ISSUE_TEMPLATE/bug.yml`. Check with `rg -n '0\.<old>\.<old>'`. It must return nothing.
 4. That change is merged by pull request. Then `git tag vX.Y.Z <merge sha>` and `git push origin vX.Y.Z`. The tag is lightweight.
