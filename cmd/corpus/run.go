@@ -19,8 +19,14 @@ func run(args []string) error {
 	set := fs.String("set", "incidents", "incidents, pairs, replay, or all")
 	out := fs.String("out", "results.json", "where to write the JSON results")
 	prOnly := fs.Bool("pr", false, "run only the fixed pull-request pair subset")
+	apiServer := fs.String("api-server", "auto", "API server proof mode passed to stageproof check: auto, off, or require")
 	if err := fs.Parse(args); err != nil {
 		return err
+	}
+	switch *apiServer {
+	case "auto", "off", "require":
+	default:
+		return fmt.Errorf("--api-server must be auto, off, or require")
 	}
 	root, err := moduleRoot()
 	if err != nil {
@@ -30,12 +36,13 @@ func run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer func() { _ = os.RemoveAll(filepath.Dir(bin)) }()
 	var res resultsFile
 	switch *set {
 	case "incidents":
-		res.Incidents, err = runIncidents(root, bin)
+		res.Incidents, err = runIncidents(root, bin, *apiServer)
 	case "pairs":
-		res.Pairs, err = runPairs(root, bin, *prOnly)
+		res.Pairs, err = runPairs(root, bin, *prOnly, *apiServer)
 	case "replay":
 		replay, sum, err := runReplay(root, bin)
 		if err != nil {
@@ -46,11 +53,11 @@ func run(args []string) error {
 		fmt.Print(formatReplaySummary(sum))
 		return writeResults(*out, res)
 	case "all":
-		res.Incidents, err = runIncidents(root, bin)
+		res.Incidents, err = runIncidents(root, bin, *apiServer)
 		if err != nil {
 			return err
 		}
-		res.Pairs, err = runPairs(root, bin, false)
+		res.Pairs, err = runPairs(root, bin, false, *apiServer)
 	default:
 		return fmt.Errorf("unknown set %q", *set)
 	}
@@ -83,7 +90,7 @@ func buildCLI(root string) (string, error) {
 	return bin, nil
 }
 
-func runIncidents(root, bin string) ([]caseResult, error) {
+func runIncidents(root, bin, apiServer string) ([]caseResult, error) {
 	dir := filepath.Join(root, "corpus", "incidents")
 	entries, err := os.ReadDir(dir)
 	if err != nil {
@@ -98,7 +105,7 @@ func runIncidents(root, bin string) ([]caseResult, error) {
 	sort.Strings(ids)
 	var out []caseResult
 	for _, id := range ids {
-		got, err := runIncident(root, bin, filepath.Join(dir, id))
+		got, err := runIncident(root, bin, filepath.Join(dir, id), apiServer)
 		if err != nil {
 			return nil, err
 		}
@@ -108,7 +115,7 @@ func runIncidents(root, bin string) ([]caseResult, error) {
 	return out, nil
 }
 
-func runIncident(root, bin, dir string) (caseResult, error) {
+func runIncident(root, bin, dir, apiServer string) (caseResult, error) {
 	raw, err := os.ReadFile(filepath.Join(dir, "case.yaml"))
 	if err != nil {
 		return caseResult{}, err
@@ -124,7 +131,7 @@ func runIncident(root, bin, dir string) (caseResult, error) {
 		return res, nil
 	}
 	start := time.Now()
-	verdict, rules, err := checkCharts(bin, filepath.Join(dir, "before"), filepath.Join(dir, "after"), spec.K8s, valuesPath(dir, spec.Values))
+	verdict, rules, err := checkCharts(bin, filepath.Join(dir, "before"), filepath.Join(dir, "after"), spec.K8s, valuesPath(dir, spec.Values), apiServer)
 	if err != nil {
 		return caseResult{}, fmt.Errorf("%s: %w", spec.ID, err)
 	}
@@ -132,7 +139,7 @@ func runIncident(root, bin, dir string) (caseResult, error) {
 	res.Rules = rules
 	// expected-fail may miss. That miss does not fail the run. The control still must pass.
 	res.OK = verdictMatches(verdict, rules, spec.Expect.Verdict, spec.Expect.Rules)
-	cverdict, crules, err := checkCharts(bin, filepath.Join(dir, "before"), filepath.Join(dir, "control"), spec.K8s, valuesPath(dir, spec.Values))
+	cverdict, crules, err := checkCharts(bin, filepath.Join(dir, "before"), filepath.Join(dir, "control"), spec.K8s, valuesPath(dir, spec.Values), apiServer)
 	if err != nil {
 		return caseResult{}, fmt.Errorf("%s control: %w", spec.ID, err)
 	}
@@ -165,10 +172,18 @@ func verdictMatches(verdict string, rules []string, want string, wantRules []str
 	return true
 }
 
-func checkCharts(bin, before, after, k8s, values string) (string, []string, error) {
-	out := filepath.Join(os.TempDir(), "stageproof-corpus-"+filepath.Base(after)+".json")
+func checkCharts(bin, before, after, k8s, values, apiServer string) (string, []string, error) {
+	f, err := os.CreateTemp("", "stageproof-corpus-*.json")
+	if err != nil {
+		return "", nil, err
+	}
+	out := f.Name()
+	_ = f.Close()
 	defer func() { _ = os.Remove(out) }()
 	args := []string{"check", "--current-chart", before, "--new-chart", after, "--current-k8s", k8s, "--format", "json", "--out", out}
+	if apiServer != "" {
+		args = append(args, "--api-server", apiServer)
+	}
 	if values != "" {
 		args = append(args, "-f", values)
 	}

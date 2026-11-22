@@ -315,3 +315,51 @@ func TestPostgresPrimarySignal_SameDatabaseImage(t *testing.T) {
 		t.Fatal("a changed postgres tag is not this finding")
 	}
 }
+
+func TestImageUses_IgnoresPathsSecretTypesAndUntaggedArgs(t *testing.T) {
+	raw := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: op
+  namespace: mon
+spec:
+  template:
+    spec:
+      containers:
+      - name: operator
+        image: quay.io/prometheus-operator/prometheus-operator:v0.90.0
+        args:
+        - --web.cert-file=/cert/tls.crt
+        - --web.key-file=/cert/tls.key
+        - --secret-type=kubernetes.io/tls
+        - --mime=application/json
+        - --url=https://example.com/v1/api:8443
+        - --listen=0.0.0.0:8080
+        - --prometheus-config-reloader=quay.io/prometheus-operator/prometheus-config-reloader:v0.90.0
+        - --digest-image=ghcr.io/example/helper@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+`
+	objs, err := k8sschema.ParseManifestStream(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	uses := ImageUses(objs)
+	seen := map[string]bool{}
+	for _, u := range uses {
+		seen[u.Image] = true
+		for _, bad := range []string{"/cert/tls.crt", "/cert/tls.key", "kubernetes.io/tls", "=kubernetes.io/tls", "application/json", "0.0.0.0:8080", "https://example.com/v1/api:8443"} {
+			if u.Image == bad || strings.HasPrefix(u.Image, "=") || strings.HasPrefix(u.Image, "/") {
+				t.Fatalf("non-image value extracted as image: %+v", u)
+			}
+		}
+	}
+	for _, want := range []string{
+		"quay.io/prometheus-operator/prometheus-operator:v0.90.0",
+		"quay.io/prometheus-operator/prometheus-config-reloader:v0.90.0",
+		"ghcr.io/example/helper@sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+	} {
+		if !seen[want] {
+			t.Fatalf("expected image %s missing from %+v", want, uses)
+		}
+	}
+}

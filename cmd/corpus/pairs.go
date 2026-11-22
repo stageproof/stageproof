@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func runPairs(root, bin string, prOnly bool) ([]caseResult, error) {
+func runPairs(root, bin string, prOnly bool, apiServer string) ([]caseResult, error) {
 	var file pairsFile
 	if err := loadYAML(filepath.Join(root, "corpus", "pairs", "pairs.yaml"), &file); err != nil {
 		return nil, fmt.Errorf("pairs.yaml: %w", err)
@@ -44,7 +44,7 @@ func runPairs(root, bin string, prOnly bool) ([]caseResult, error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s to: %w", p.ID, err)
 		}
-		verdict, _, err := checkCharts(bin, fromDir, toDir, "1.35", "")
+		verdict, rules, err := checkCharts(bin, fromDir, toDir, "1.35", "", apiServer)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", p.ID, err)
 		}
@@ -52,6 +52,7 @@ func runPairs(root, bin string, prOnly bool) ([]caseResult, error) {
 			ID:      p.ID,
 			Kind:    "pair",
 			Verdict: verdict,
+			Rules:   rules,
 			Labeled: truth[p.ID],
 			Seconds: time.Since(start).Seconds(),
 			OK:      true,

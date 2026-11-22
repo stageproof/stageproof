@@ -54,3 +54,9 @@ func TestCompareFailsAMissedIncident(t *testing.T) {
 		t.Fatal("a missed active incident must fail the compare")
 	}
 }
+
+func TestRunRejectsUnknownAPIServerMode(t *testing.T) {
+	if err := run([]string{"--set", "incidents", "--api-server", "bogus"}); err == nil {
+		t.Fatal("invalid --api-server mode was accepted")
+	}
+}

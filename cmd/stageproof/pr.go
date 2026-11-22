@@ -268,8 +268,18 @@ func runCheckPRCtx(ctx context.Context, args []string) int {
 	set := adapter.NewWithConfig(baseCfg)
 	targets := set.Discover(".", changed)
 	if len(targets) == 0 {
-		fmt.Printf("stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between %s and %s.\n", *currentGit, *newGit)
+		machineOut := strings.EqualFold(*format, "json") || strings.EqualFold(*format, "sarif")
+		if machineOut {
+			fmt.Fprintf(os.Stderr, "stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between %s and %s.\n", *currentGit, *newGit)
+		} else {
+			fmt.Printf("stageproof check-pr: no Helm charts, Argo CD Applications, or Flux HelmReleases modified between %s and %s.\n", *currentGit, *newGit)
+		}
 		if !configChanged {
+			if strings.EqualFold(*format, "sarif") {
+				_ = report.WriteSARIF(os.Stdout, nil, version, string(verdict.Passed), 0)
+			} else if strings.EqualFold(*format, "json") {
+				_ = report.WriteCombinedJSON(os.Stdout, &report.Combined{Verdict: verdict.Passed, ExitCode: 0, Reports: []*verdict.Report{}})
+			}
 			return 0
 		}
 		rep := &verdict.Report{

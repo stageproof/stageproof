@@ -37,6 +37,7 @@ The cases come from more than one public repository. Each HelmRelease's HelmRepo
 ```bash
 go run ./cmd/corpus run --set incidents --out results.json
 go run ./cmd/corpus run --set pairs --out results.json
+go run ./cmd/corpus run --set pairs --api-server off --out pairs-files.json
 go run ./cmd/corpus compare results.json corpus/baseline.json
 go run ./cmd/corpus run --set replay --out replay.json
 ```

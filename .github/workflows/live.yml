@@ -6,6 +6,8 @@ on:
   pull_request:
     paths:
       - "internal/rehearse/**"
+      - "internal/check/live.go"
+      - "internal/config/**"
       - "cmd/**"
       - ".github/workflows/live.yml"
   schedule:

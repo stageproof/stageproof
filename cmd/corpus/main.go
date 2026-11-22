@@ -34,7 +34,7 @@ func main() {
 func usage() {
 	fmt.Fprint(os.Stderr, `stageproof corpus
 
-  go run ./cmd/corpus run --set incidents|pairs|replay|all --out results.json
+  go run ./cmd/corpus run --set incidents|pairs|replay|all [--api-server auto|off|require] --out results.json
   go run ./cmd/corpus compare results.json corpus/baseline.json
   go run ./cmd/corpus fetch
 

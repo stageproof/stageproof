@@ -71,7 +71,7 @@
             <div class="install-box">
               <div class="install-cmd">
                 <span class="prompt">$</span>
-                <code id="hero-install-cmd">cd cli && go build -o stageproof ./cmd/stageproof</code>
+                <code id="hero-install-cmd">go build -o stageproof ./cmd/stageproof</code>
                 <button class="copy-btn" type="button" data-copy-target="#hero-install-cmd">Copy</button>
               </div>
             </div>
@@ -182,7 +182,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>Kubernetes APIs</td><td>Does the chart use an API your version has removed?</td><td>Every run</td></tr>
             <tr><td>In-place upgrade</td><td>Does the upgrade change a field Kubernetes will not change?</td><td>When you give the current chart or the previous manifests</td></tr>
             <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
-            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the smoke commands, and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
+            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the smoke commands (source on main), and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
             <tr><td>Image tags</td><td>Does a new or changed tag exist for linux/amd64?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart apiVersion v3?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
             <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>

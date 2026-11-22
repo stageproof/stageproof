@@ -1,6 +1,6 @@
 # What Stageproof does and does not do
 
-Last updated: 2026-11-21.
+Last updated: 2026-11-22.
 
 This page is the scope of the command line tool.
 

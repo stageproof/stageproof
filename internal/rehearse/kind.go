@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/stageproof/stageproof/internal/config"
+	"github.com/stageproof/stageproof/internal/helm"
 	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
@@ -189,7 +190,8 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 		bErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, installArgs)
 		if bErr != nil {
-			diag, cat, rem := diagnoseNamespaceFailure(ctx, kubeconfig, ns, bErr.Error())
+			diag, cat, rem := diagnoseNamespaceFailure(ctx, kubeconfig, ns, scrubRehearsal(bErr.Error(), opts.Secrets))
+			diag = scrubRehearsal(diag, opts.Secrets)
 			if cat == failExternalEnvGap {
 				out.Degraded = append(out.Degraded, verdict.DegradedNotice{
 					Code:        "baseline_requires_external_dependency",
@@ -221,7 +223,8 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 					headArgs := helmInstallArgs(relName, opts.HeadChartDir, ns, waitTimeout, opts.HeadValues, opts.SetValues, opts.SetStrings)
 					cErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, headArgs)
 					if cErr != nil {
-						cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, cErr.Error())
+						cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, scrubRehearsal(cErr.Error(), opts.Secrets))
+						cdiag = scrubRehearsal(cdiag, opts.Secrets)
 						out.Inconclusive = true
 						out.Checks = append(out.Checks, verdict.CheckResult{
 							Name:    "candidate install",
@@ -271,17 +274,18 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	if info, stErr := os.Stat(headCRDsDir); stErr == nil && info.IsDir() {
 		if entries, _ := os.ReadDir(headCRDsDir); len(entries) > 0 {
 			if _, crdErr := runCmd(ctx, kubeconfig, "kubectl", "apply", "--server-side", "--force-conflicts", "-f", headCRDsDir); crdErr != nil {
+				crdDetail := scrubRehearsal(crdErr.Error(), opts.Secrets)
 				out.Findings = append(out.Findings, verdict.Finding{
 					RuleID:   "helm.crd.upgrade_failed",
 					Severity: verdict.SeverityBlocker,
 					Resource: headCRDsDir,
 					Message:  "Upgraded chart CRDs failed Kubernetes Server-Side Apply.",
-					Detail:   truncateOneLine(crdErr.Error(), 240),
+					Detail:   truncateOneLine(crdDetail, 240),
 				})
 				out.Checks = append(out.Checks, verdict.CheckResult{
 					Name:    "CRD schema upgrade",
 					Status:  "fail",
-					Summary: truncateOneLine(crdErr.Error(), 120),
+					Summary: truncateOneLine(crdDetail, 120),
 				})
 				return out, nil
 			}
@@ -313,7 +317,9 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 	uErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, upgArgs)
 	if uErr != nil {
-		diag, cat, rem := diagnoseNamespaceFailure(ctx, kubeconfig, ns, uErr.Error())
+		uDetail := scrubRehearsal(uErr.Error(), opts.Secrets)
+		diag, cat, rem := diagnoseNamespaceFailure(ctx, kubeconfig, ns, uDetail)
+		diag = scrubRehearsal(diag, opts.Secrets)
 		if opts.BaseChartDir == "" && cat == failExternalEnvGap {
 			out.Rehearsed = false
 			out.Degraded = append(out.Degraded, verdict.DegradedNotice{
@@ -335,7 +341,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 			Severity: verdict.SeverityBlocker,
 			Resource: ns + "/" + relName,
 			Message:  fmt.Sprintf("In-place `helm upgrade` failed against healthy baseline: %s", diag),
-			Detail:   truncateOneLine(uErr.Error(), 240),
+			Detail:   truncateOneLine(uDetail, 240),
 		})
 		out.Checks = append(out.Checks, verdict.CheckResult{
 			Name:    "in-place helm upgrade",
@@ -353,17 +359,18 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 					Summary: fmt.Sprintf("reverted cleanly to revision 1 in %s after failed upgrade", time.Since(tRb).Round(100*time.Millisecond)),
 				})
 			} else {
+				rbDetail := scrubRehearsal(rbErr.Error(), opts.Secrets)
 				out.Findings = append(out.Findings, verdict.Finding{
 					RuleID:   "helm.runtime.rollback_failed",
 					Severity: verdict.SeverityBlocker,
 					Resource: ns + "/" + relName,
 					Message:  "Rollback to revision 1 ALSO failed after broken upgrade.",
-					Detail:   truncateOneLine(rbErr.Error(), 220),
+					Detail:   truncateOneLine(rbDetail, 220),
 				})
 				out.Checks = append(out.Checks, verdict.CheckResult{
 					Name:    "rollback rehearsal",
 					Status:  "fail",
-					Summary: truncateOneLine(rbErr.Error(), 120),
+					Summary: truncateOneLine(rbDetail, 120),
 				})
 			}
 		}
@@ -395,17 +402,18 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 	if opts.RunHelmTest {
 		if _, tErr := runCmd(ctx, kubeconfig, "helm", "test", relName, "--namespace", ns, "--timeout", waitTimeout); tErr != nil {
+			tDetail := scrubRehearsal(tErr.Error(), opts.Secrets)
 			out.Findings = append(out.Findings, verdict.Finding{
 				RuleID:   "helm.runtime.helm_test_failed",
 				Severity: verdict.SeverityBlocker,
 				Resource: ns + "/" + relName,
 				Message:  "Chart `helm test` suite failed after upgrade.",
-				Detail:   truncateOneLine(tErr.Error(), 220),
+				Detail:   truncateOneLine(tDetail, 220),
 			})
 			out.Checks = append(out.Checks, verdict.CheckResult{
 				Name:    "helm test",
 				Status:  "fail",
-				Summary: truncateOneLine(tErr.Error(), 120),
+				Summary: truncateOneLine(tDetail, 120),
 			})
 			return out, nil
 		}
@@ -433,17 +441,18 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 				})
 				return out, nil
 			}
+			rbDetail := scrubRehearsal(rbErr.Error(), opts.Secrets)
 			out.Findings = append(out.Findings, verdict.Finding{
 				RuleID:   "helm.runtime.rollback_failed",
 				Severity: verdict.SeverityBlocker,
 				Resource: ns + "/" + relName,
 				Message:  "Upgrade succeeded, but `helm rollback` back to revision 1 failed!",
-				Detail:   truncateOneLine(rbErr.Error(), 220),
+				Detail:   truncateOneLine(rbDetail, 220),
 			})
 			out.Checks = append(out.Checks, verdict.CheckResult{
 				Name:    "rollback rehearsal",
 				Status:  "fail",
-				Summary: truncateOneLine(rbErr.Error(), 120),
+				Summary: truncateOneLine(rbDetail, 120),
 			})
 			return out, nil
 		}
@@ -1176,9 +1185,47 @@ func runCmdEnv(ctx context.Context, kubeconfig string, extra []string, bin strin
 		if errMsg == "" {
 			errMsg = strings.TrimSpace(stdout.String())
 		}
-		return stdout.String(), fmt.Errorf("%s %s: %w (%s)", bin, strings.Join(args, " "), err, errMsg)
+		return stdout.String(), fmt.Errorf("%s %s: %w (%s)", bin, strings.Join(sanitizeArgs(args), " "), err, errMsg)
 	}
 	return stdout.String(), nil
+}
+
+// sanitizeArgs redacts values in --set and --set-string arguments so a failed
+// command line never echoes a user value into the report.
+func sanitizeArgs(args []string) []string {
+	out := make([]string, len(args))
+	redactNext := false
+	for i, arg := range args {
+		if redactNext {
+			redactNext = false
+			if key, _, ok := strings.Cut(arg, "="); ok {
+				out[i] = key + "=[redacted]"
+			} else {
+				out[i] = "[redacted]"
+			}
+			continue
+		}
+		if arg == "--set" || arg == "--set-string" {
+			redactNext = true
+			out[i] = arg
+			continue
+		}
+		if strings.HasPrefix(arg, "--set=") || strings.HasPrefix(arg, "--set-string=") {
+			flagPart, val, _ := strings.Cut(arg, "=")
+			if key, _, ok := strings.Cut(val, "="); ok {
+				out[i] = flagPart + "=" + key + "=[redacted]"
+			} else {
+				out[i] = flagPart + "=[redacted]"
+			}
+			continue
+		}
+		out[i] = arg
+	}
+	return out
+}
+
+func scrubRehearsal(text string, secrets []string) string {
+	return helm.Scrub(text, secrets)
 }
 
 func truncateOneLine(s string, maxLen int) string {

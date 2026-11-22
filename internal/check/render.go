@@ -44,7 +44,10 @@ func Charts(ctx context.Context, in Input, st *State) {
 		}
 		objs, pErr := k8sschema.ParseManifestStream(baseYAML)
 		if pErr != nil {
-			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{Name: "baseline manifest parse", Status: "fail", Summary: pErr.Error()})
+			secrets := helm.SecretStrings(in.BaseValues)
+			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetValues)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetStrings)...)
+			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{Name: "baseline manifest parse", Status: "fail", Summary: helm.Scrub(pErr.Error(), secrets)})
 			st.stop(false, true)
 			return
 		}
@@ -92,11 +95,14 @@ func Charts(ctx context.Context, in Input, st *State) {
 	}
 	headObjs, hpErr := k8sschema.ParseManifestStream(headYAML)
 	if hpErr != nil {
+		secrets := helm.SecretStrings(in.HeadValues)
+		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetValues)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetStrings)...)
 		st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 			RuleID:   "helm.template.invalid_yaml",
 			Severity: verdict.SeverityBlocker,
 			File:     in.HeadDir,
-			Message:  hpErr.Error(),
+			Message:  helm.Scrub(hpErr.Error(), secrets),
 		})
 		st.stop(false, false)
 		return
