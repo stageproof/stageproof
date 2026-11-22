@@ -1229,7 +1229,7 @@ verdict  PASSED (exit 0)  · 46ms · 0 AI calls</pre>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want proof that the upgrade works on a running release, and that you can roll it back.</dd></div>
-  <div><dt>Finds</dt><dd>Pods that fail to start or restart after the upgrade, a failed <code>helm upgrade</code>, and a failed <code>helm rollback</code>.</dd></div>
+  <div><dt>Finds</dt><dd>Pods that fail to start or restart after the upgrade, a failed <code>helm upgrade</code>, a failed <code>smoke</code> command, and a failed <code>helm rollback</code>.</dd></div>
   <div><dt>Needs</dt><dd>Helm, kind, kubectl, and Docker on the machine that runs the command.</dd></div>
 </dl>
 
@@ -1268,9 +1268,41 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
   <li><strong>Missing CRDs are installed.</strong> If the chart creates resources whose CRD it does not ship, Stageproof installs the CRD from a built-in list. See the list below.</li>
   <li><strong>The current chart is installed</strong> in a new namespace. Stageproof waits until its pods are ready.</li>
   <li><strong>The new chart is applied as an upgrade</strong> of that release, with <code>helm upgrade --wait</code>. If the new chart has a <code>crds</code> directory, those CRDs are applied first. Stageproof then checks that every pod is ready and that no container restarted.</li>
+  <li><strong>Smoke commands run</strong> when <code>.stageproof.yaml</code> lists them. They run after the upgrade and before the rollback. Each command is <code>sh -c</code>, with <code>KUBECONFIG</code> pointed at the temporary cluster and <code>STAGEPROOF_NAMESPACE</code> and <code>STAGEPROOF_RELEASE</code> set. A failure is <code>live.smoke_failed</code>, and Stageproof rolls the release back.</li>
   <li><strong>The release is rolled back</strong> to the first revision, and Stageproof waits until it is healthy again.</li>
   <li><strong>The cluster is deleted.</strong></li>
 </ol>
+
+<h2>Run a command after the upgrade</h2>
+<p>The commands live in <code>.stageproof.yaml</code>. This file asks whether the Deployment is there after the upgrade.</p>
+<pre data-kind="file" data-label=".stageproof.yaml">
+currentKubernetes: "1.33"
+smoke:
+  - name: deploy
+    run: kubectl get deploy -n "$STAGEPROOF_NAMESPACE"
+    timeout: 30s</pre>
+<pre data-kind="cmd">
+stageproof check --api-server off --current-chart ./webapp-1.0.0 --new-chart ./webapp-1.1.0 --live --cluster-name sp-docs-smoke-ok --timeout 90s</pre>
+<pre data-kind="out">
+!  kind cluster sp-docs-smoke-ok
+!  This rehearsal used an empty cluster. No existing data was in it.
+stageproof  PROVEN  exit 0
+compare  ./webapp-1.0.0 -> ./webapp-1.1.0
+k8s  1.33  ·  checked: files, live cluster
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  image tags               no new or changed image
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ✓ PASS  kind cluster boot        isolated cluster `sp-docs-smoke-ok` ready on Kubernetes v1.33.12
+  ✓ PASS  baseline install         baseline revision 1 healthy in 6.2s
+  ✓ PASS  in-place helm upgrade    empty cluster upgraded in 500ms, 0 restarts. No existing data was in this cluster.
+  ✓ PASS  smoke: deploy            passed
+  ✓ PASS  rollback rehearsal       reverted to revision 1 cleanly in 200ms
+
+verdict  PROVEN (exit 0)  · 37232ms · 0 AI calls</pre>
+<p>The smoke line is before the rollback. The command saw the upgraded release.</p>
 
 <h2>When the upgrade fails</h2>
 <p>In this run, chart 1.6.0 starts the container with a command that exits with an error.</p>
@@ -1863,9 +1895,43 @@ charts:
     <tr><td><code>charts</code></td><td>The values files of each chart. Used by <code>stageproof check-pr</code>. See <a href="#values-files">Check each values file of a chart</a>.</td><td>There is no flag for it. <code>check-pr</code> uses the list on the base ref.</td></tr>
     <tr><td><code>ignores</code></td><td>A finding that stays in the report and does not make the result <code>BLOCKED</code>. Each entry needs <code>rule</code>, <code>reason</code>, and <code>expires</code> (<code>YYYY-MM-DD</code>, and that date still matches). <code>resource</code> is a glob. <code>*</code> matches every resource. The rule is the exact id, not a prefix.</td><td>There is no flag for it. <code>check-pr</code> uses the entries on the base ref.</td></tr>
     <tr><td><code>policy</code></td><td>A rule id or a prefix, mapped to <code>block</code>, <code>warn</code>, or <code>info</code>. The longest match wins. <code>impact.delete</code> matches <code>impact.delete.pvc</code>.</td><td>There is no flag for it. <code>check-pr</code> uses the map on the base ref.</td></tr>
+    <tr><td><code>smoke</code></td><td>Commands that run in the temporary cluster after the upgrade and before the rollback. Each entry needs <code>name</code> and <code>run</code>. <code>timeout</code> is a Go duration greater than zero. The default is <code>2m</code>.</td><td>There is no flag for it. The commands run only with <code>--live</code>. <code>check-pr</code> uses the list on the base ref.</td></tr>
   </tbody>
 </table></div>
 <p>Every setting is optional. Leave out the ones you do not need.</p>
+<h2>Run a command in the temporary cluster</h2>
+<p><code>smoke</code> runs only with <code>--live</code>. <code>check-pr</code> uses the list on the base ref. This file makes the rehearsal fail on purpose. The same charts as the passing run above were checked with <code>--cluster-name sp-docs-smoke-fail</code>.</p>
+<pre data-kind="file" data-label=".stageproof.yaml">
+currentKubernetes: "1.33"
+smoke:
+  - name: boom
+    run: echo "smoke boom" &amp;&amp; exit 1
+    timeout: 30s</pre>
+<pre data-kind="cmd">
+stageproof check --api-server off --current-chart ./webapp-1.0.0 --new-chart ./webapp-1.1.0 --live --cluster-name sp-docs-smoke-fail --timeout 90s</pre>
+<pre data-kind="out">
+!  kind cluster sp-docs-smoke-fail
+stageproof  BLOCKED  exit 1
+compare  ./webapp-1.0.0 -> ./webapp-1.1.0
+k8s  1.33  ·  checked: files, live cluster
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ✓ PASS  image tags               no new or changed image
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ✓ PASS  kind cluster boot        isolated cluster `sp-docs-smoke-fail` ready on Kubernetes v1.33.12
+  ✓ PASS  baseline install         baseline revision 1 healthy in 4.2s
+  ✓ PASS  in-place helm upgrade    empty cluster upgraded in 200ms, 0 restarts. No existing data was in this cluster.
+  ✕ FAIL  smoke: boom              smoke boom
+  ✓ PASS  rollback rehearsal       reverted cleanly to revision 1 in 100ms after a failed smoke test
+
+  ERROR  live.smoke_failed
+         sp-trial-553199/sp-rel
+         Smoke test `boom` failed.
+         smoke boom
+
+verdict  BLOCKED (exit 1)  · 34149ms · 0 AI calls</pre>
 <h2>Ignore a finding</h2>
 <p>An ignore keeps the finding on the page and stops it from making the result <code>BLOCKED</code>. This file ignores the dropped key in the dropped-key fixture. The command exits 0. The finding is still printed.</p>
 <pre data-kind="file" data-label=".stageproof.yaml">
@@ -2133,6 +2199,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
     <tr><td><code>helm.runtime.pod_restarts</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The upgrade finished, and afterwards a pod was not ready or a container had restarted.</td><td>Read which pod the report names. The upgrade command itself had already finished.</td></tr>
     <tr><td><code>helm.runtime.rollback_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm rollback</code> to the first revision failed.</td><td>Read the helm error in the report. The rollback to the first revision did not finish.</td></tr>
     <tr><td><code>helm.runtime.helm_test_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The chart's <code>helm test</code> hooks failed after the upgrade. Only with <code>--helm-test</code>.</td><td>Read the hook output in the report. This rule is recorded only when <code>--helm-test</code> is set.</td></tr>
+    <tr><td><code>live.smoke_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>A command from <code>smoke</code> in the base <code>.stageproof.yaml</code> failed or timed out after the upgrade and before the rollback. The message names the test. The detail is the end of its output, with your values removed. <code>check-pr</code> does not run a <code>smoke</code> entry added only in the pull request.</td><td>Read the output in the report. The command runs in the temporary cluster, with <code>STAGEPROOF_NAMESPACE</code> and <code>STAGEPROOF_RELEASE</code> set.</td></tr>
     <tr><td><code>helm.crd.upgrade_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The CRDs in the new chart's <code>crds</code> directory could not be applied to the cluster.</td><td>Read the apply error in the report. Those CRDs were not accepted.</td></tr>
   </tbody>
 </table></div>

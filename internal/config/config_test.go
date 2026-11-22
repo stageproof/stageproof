@@ -80,3 +80,26 @@ func TestValuesFilesForReturnsOnlyExistingFilesOfThatChart(t *testing.T) {
 		t.Fatalf("a chart with no valuesFiles list falls back, got %v %v", got, err)
 	}
 }
+
+func TestSmokeValidation(t *testing.T) {
+	ok, err := LoadBytes("x", []byte("smoke:\n  - name: deploy\n    run: kubectl get deploy\n"))
+	if err != nil || len(ok.Smoke) != 1 {
+		t.Fatalf("omitted timeout must load, got %+v %v", ok, err)
+	}
+	d, err := ok.Smoke[0].Duration()
+	if err != nil || d != DefaultSmokeTimeout {
+		t.Fatalf("default timeout = %s %v", d, err)
+	}
+	if _, err := LoadBytes("x", []byte("smoke:\n  - run: kubectl get deploy\n")); err == nil || !strings.Contains(err.Error(), "name is required") {
+		t.Fatalf("missing name: %v", err)
+	}
+	if _, err := LoadBytes("x", []byte("smoke:\n  - name: deploy\n")); err == nil || !strings.Contains(err.Error(), "run is required") {
+		t.Fatalf("missing run: %v", err)
+	}
+	if _, err := LoadBytes("x", []byte("smoke:\n  - name: deploy\n    run: true\n    timeout: nope\n")); err == nil || !strings.Contains(err.Error(), "timeout") {
+		t.Fatalf("bad timeout: %v", err)
+	}
+	if _, err := LoadBytes("x", []byte("smoke:\n  - name: deploy\n    run: true\n    timeout: 0s\n")); err == nil || !strings.Contains(err.Error(), "timeout") {
+		t.Fatalf("zero timeout: %v", err)
+	}
+}

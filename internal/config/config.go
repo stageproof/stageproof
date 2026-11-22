@@ -24,6 +24,7 @@ type Config struct {
 	CRDFiles             []string          `yaml:"crdFiles,omitempty"`
 	Ignores              []Ignore          `yaml:"ignores,omitempty"`
 	Policy               map[string]string `yaml:"policy,omitempty"`
+	Smoke                []SmokeTest       `yaml:"smoke,omitempty"`
 
 	// Legacy aliases accepted when loading older configs
 	TargetKubernetes string   `yaml:"targetKubernetes,omitempty"`
@@ -52,6 +53,30 @@ type Application struct {
 type FileMatch struct {
 	File  string `yaml:"file"`
 	Regex string `yaml:"regex"`
+}
+
+// SmokeTest is a command that runs in the temporary cluster after the upgrade
+// and before the rollback. check-pr reads the list from the base ref.
+type SmokeTest struct {
+	Name    string `yaml:"name"`
+	Run     string `yaml:"run"`
+	Timeout string `yaml:"timeout,omitempty"`
+}
+
+// DefaultSmokeTimeout is used when a smoke test omits timeout.
+const DefaultSmokeTimeout = 2 * time.Minute
+
+// Duration returns the timeout for one smoke test. An empty timeout is two minutes.
+func (s SmokeTest) Duration() (time.Duration, error) {
+	raw := strings.TrimSpace(s.Timeout)
+	if raw == "" {
+		return DefaultSmokeTimeout, nil
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil || d <= 0 {
+		return 0, fmt.Errorf("timeout must be greater than 0")
+	}
+	return d, nil
 }
 
 // Ignore keeps a finding in the report and stops it from blocking.
@@ -149,6 +174,17 @@ func (c *Config) validate() error {
 		case "block", "warn", "info":
 		default:
 			return fmt.Errorf("policy %s: level must be block, warn, or info", rule)
+		}
+	}
+	for i, sm := range c.Smoke {
+		if strings.TrimSpace(sm.Name) == "" {
+			return fmt.Errorf("smoke[%d]: name is required", i)
+		}
+		if strings.TrimSpace(sm.Run) == "" {
+			return fmt.Errorf("smoke[%d]: run is required", i)
+		}
+		if _, err := sm.Duration(); err != nil {
+			return fmt.Errorf("smoke[%d]: %w", i, err)
 		}
 	}
 	return nil

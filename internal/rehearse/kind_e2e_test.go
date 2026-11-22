@@ -391,3 +391,59 @@ func TestE2E_ParallelClusters(t *testing.T) {
 		}
 	}
 }
+
+func TestE2E_SmokePasses(t *testing.T) {
+	requireKindE2E(t)
+	text, code := runSmokeE2E(t, "sp-e2e-smoke-ok", `currentKubernetes: "1.33"
+smoke:
+  - name: deploy
+    run: kubectl get deploy -n "$STAGEPROOF_NAMESPACE"
+    timeout: 30s
+`)
+	t.Log(text)
+	if code != 0 || !strings.Contains(text, "PROVEN") || !strings.Contains(text, "smoke: deploy") {
+		t.Fatalf("exit %d\n%s", code, text)
+	}
+	if strings.Index(text, "smoke: deploy") > strings.Index(text, "rollback rehearsal") {
+		t.Fatalf("smoke ran after rollback:\n%s", text)
+	}
+}
+
+func TestE2E_SmokeFails(t *testing.T) {
+	requireKindE2E(t)
+	text, code := runSmokeE2E(t, "sp-e2e-smoke-fail", `currentKubernetes: "1.33"
+smoke:
+  - name: boom
+    run: echo "smoke boom" && exit 1
+    timeout: 30s
+`)
+	t.Log(text)
+	if code != 1 || !strings.Contains(text, "BLOCKED") || !strings.Contains(text, "live.smoke_failed") || !strings.Contains(text, "smoke boom") {
+		t.Fatalf("exit %d\n%s", code, text)
+	}
+	if strings.Index(text, "smoke: boom") > strings.Index(text, "rollback rehearsal") {
+		t.Fatalf("smoke ran after rollback:\n%s", text)
+	}
+}
+
+func runSmokeE2E(t *testing.T, cluster, cfg string) (string, int) {
+	t.Helper()
+	bin := e2eBinary(t)
+	work := t.TempDir()
+	base := filepath.Join(work, "base")
+	head := filepath.Join(work, "head")
+	writeTinyChart(t, base, "1.0.0", "busybox:1.36", "")
+	writeTinyChart(t, head, "1.1.0", "busybox:1.36", "")
+	writeFixture(t, filepath.Join(work, ".stageproof.yaml"), cfg)
+	defer func() { _ = exec.Command("kind", "delete", "cluster", "--name", cluster).Run() }()
+	cmd := exec.Command(bin, "check", "--api-server", "off", "--current-chart", base, "--new-chart", head,
+		"--live", "--cluster-name", cluster, "--timeout", "90s")
+	cmd.Dir = work
+	cmd.Env = append(os.Environ(), "NO_COLOR=1")
+	out, _ := cmd.CombinedOutput()
+	code := 1
+	if cmd.ProcessState != nil {
+		code = cmd.ProcessState.ExitCode()
+	}
+	return string(out), code
+}

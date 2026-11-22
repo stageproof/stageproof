@@ -455,6 +455,12 @@ var rules = []Rule{
 		Fix:         "Read the hook output in the report. This rule is recorded only when %%--helm-test%% is set.",
 	},
 	{
+		ID: "live.smoke_failed", Severity: verdict.SeverityBlocker, Group: GroupLive,
+		Title:       "A smoke test failed after the upgrade",
+		Explanation: "A command from %%smoke%% in the base %%.stageproof.yaml%% failed or timed out after the upgrade and before the rollback. The message names the test. The detail is the end of its output, with your values removed. %%check-pr%% does not run a %%smoke%% entry added only in the pull request.",
+		Fix:         "Read the output in the report. The command runs in the temporary cluster, with %%STAGEPROOF_NAMESPACE%% and %%STAGEPROOF_RELEASE%% set.",
+	},
+	{
 		ID: "helm.crd.upgrade_failed", Severity: verdict.SeverityBlocker, Group: GroupLive,
 		Title:       "The rehearsal could not apply chart CRDs",
 		Explanation: "The CRDs in the new chart's %%crds%% directory could not be applied to the cluster.",

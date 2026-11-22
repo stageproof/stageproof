@@ -81,9 +81,9 @@ API rules      (removed APIs, immutable selectors, oversized CRDs)
         |
         v
 kind cluster on this machine
-  install current -> upgrade to new -> roll back -> delete cluster
+  install current -> upgrade to new -> smoke commands -> roll back -> delete cluster
         |
-        +-- upgrade or rollback failed --> BLOCKED          exit 1
+        +-- upgrade, smoke, or rollback failed --> BLOCKED  exit 1
         |                                  checked: files, live cluster
         +-- rehearsal could not start ---> NOT CHECKED      exit 2
         +-- both steps passed -----------> PROVEN           exit 0
