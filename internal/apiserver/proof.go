@@ -130,7 +130,10 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 	if opt.CreatesOnly {
 		s.installCRDs(ctx, afterCRDs, installed, &result, opt)
 	} else {
-		s.installCRDs(ctx, beforeCRDs, installed, &result, opt)
+		// Installing the current chart's CRDs is setup for the upgrade check.
+		// A defect in the old chart must not block upgrading to a fixed new chart.
+		var ignored ProofResult
+		s.installCRDs(ctx, beforeCRDs, installed, &ignored, opt)
 	}
 	if err := s.refreshMapper(); err != nil {
 		return result, err
@@ -141,6 +144,7 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 	}
 
 	applied := map[string]bool{}
+	beforeInvalid := map[string]map[string]bool{}
 	if !opt.CreatesOnly {
 		// A hook in the new chart is created on its own. Helm does not update
 		// a same-named object in place, so the current object is not applied
@@ -156,9 +160,20 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 			if hook(u) || afterHook[key(u)] {
 				continue
 			}
-			got, finding := s.putObject(ctx, u, false, opt)
-			if finding != nil {
-				result.Findings = append(result.Findings, *finding)
+			// Installing the current chart is setup. A validation failure on the
+			// old chart must not block upgrading to a chart that fixes it, and a
+			// pre-existing invalid default on the same fields is recorded so
+			// afterRest can downgrade it to a warning rather than a false block.
+			got, err := s.apply(ctx, u, false)
+			if err != nil {
+				cls := Classify(err)
+				if cls.Class == ClassInvalid && len(cls.Fields) > 0 {
+					set := map[string]bool{}
+					for _, f := range cls.Fields {
+						set[f] = true
+					}
+					beforeInvalid[key(u)] = set
+				}
 				continue
 			}
 			if got != nil {
@@ -208,9 +223,19 @@ func (s *Server) Prove(ctx context.Context, before, after, beforeExtra, afterExt
 	for _, u := range afterRest {
 		// Dry-run only. A hook was not stored, so this apply is a create.
 		// A stored object is an update, which is what rejects an immutable field.
-		got, finding := s.putObject(ctx, u, true, opt)
-		if finding != nil {
-			result.Findings = append(result.Findings, *finding)
+		got, err := s.apply(ctx, u, true)
+		if err != nil {
+			finding, _ := s.finding(ctx, u, err, opt, false)
+			if finding != nil {
+				if !opt.CreatesOnly && finding.RuleID == ruleInvalid {
+					cls := Classify(err)
+					if pre := beforeInvalid[key(u)]; len(pre) > 0 && len(cls.Fields) > 0 && allIn(cls.Fields, pre) {
+						finding.Severity = verdict.SeverityWarning
+						finding.Message += " The current chart failed the same validation; the upgrade did not introduce it."
+					}
+				}
+				result.Findings = append(result.Findings, *finding)
+			}
 			continue
 		}
 		if got != nil {
@@ -266,13 +291,13 @@ func (s *Server) putCRD(ctx context.Context, u *unstructured.Unstructured, dry b
 	return nil, f, skip
 }
 
-func (s *Server) putObject(ctx context.Context, u *unstructured.Unstructured, dry bool, opt ProofOptions) (*unstructured.Unstructured, *verdict.Finding) {
-	got, err := s.apply(ctx, u, dry)
-	if err == nil {
-		return got, nil
+func allIn(fields []string, allowed map[string]bool) bool {
+	for _, f := range fields {
+		if !allowed[f] {
+			return false
+		}
 	}
-	f, _ := s.finding(ctx, u, err, opt, false)
-	return nil, f
+	return true
 }
 
 func (s *Server) putExisting(ctx context.Context, u *unstructured.Unstructured, opt ProofOptions) (*unstructured.Unstructured, *verdict.Finding) {

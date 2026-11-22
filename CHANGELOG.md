@@ -49,6 +49,7 @@ The next release is 0.2.0.
 
 ### Fixed
 
+- API server upgrade checks no longer block when the current (`--current-chart`) chart has a pre-existing invalid manifest that the new chart fixes, and downgrade a pre-existing `k8s.apply.invalid` failure on the exact same fields in both charts to a warning. Validation causes are sorted so repeated runs report the same field first.
 - Removing a CRD property's `enum` constraint completely, or removing an unreachable value from one `allOf` branch when another branch already forbade it, no longer reports an incompatible CRD schema change.
 - A `required` value that sits inside an `if` or an `else` no longer blocks an upgrade that does not render that branch. An unconditional new `required` value still blocks.
 - `GOOS=windows` builds cleanly again: Unix process-group termination for timed-out `smoke` commands is isolated behind `//go:build unix`.

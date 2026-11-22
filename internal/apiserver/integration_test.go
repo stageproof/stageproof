@@ -473,3 +473,98 @@ func itoa(n int) string {
 	}
 	return string(b[i:])
 }
+
+func TestAPIServer_PreexistingInvalidDoesNotBlockUpgrade(t *testing.T) {
+	version := apiServerOn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	srv, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Stop() }()
+
+	crd := manifest(t, `
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: gadgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Gadget, plural: gadgets}
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              required: [key]
+              properties:
+                key: {type: string}
+                count: {type: integer}
+`)
+	badBefore := manifest(t, `
+apiVersion: example.com/v1
+kind: Gadget
+metadata: {name: demo, namespace: default}
+spec:
+  key: null
+`)
+	fixedAfter := manifest(t, `
+apiVersion: example.com/v1
+kind: Gadget
+metadata: {name: demo, namespace: default}
+spec:
+  key: ok
+`)
+	sameBadAfter := manifest(t, `
+apiVersion: example.com/v1
+kind: Gadget
+metadata: {name: demo, namespace: default}
+spec:
+  key: null
+`)
+	worseAfter := manifest(t, `
+apiVersion: example.com/v1
+kind: Gadget
+metadata: {name: demo, namespace: default}
+spec:
+  key: null
+  count: "not-an-int"
+`)
+
+	// 1. Old chart had an invalid field that the new chart fixes -> 0 blockers.
+	res, err := srv.Prove(ctx, []Manifest{crd, badBefore}, []Manifest{crd, fixedAfter}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasBlocker(res, "k8s.apply.invalid") {
+		t.Fatalf("fixing an old invalid object must not block: %+v", res.Findings)
+	}
+
+	// 2. Both charts fail on the exact same pre-existing invalid field -> warning, not blocker.
+	res2, err := srv.Prove(ctx, []Manifest{crd, badBefore}, []Manifest{crd, sameBadAfter}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if hasBlocker(res2, "k8s.apply.invalid") {
+		t.Fatalf("pre-existing invalid field in both charts must not block: %+v", res2.Findings)
+	}
+	if !hasRule(res2, "k8s.apply.invalid") {
+		t.Fatalf("expected warning for pre-existing invalid field, got %+v", res2.Findings)
+	}
+
+	// 3. New chart introduces a new invalid field -> must block.
+	res3, err := srv.Prove(ctx, []Manifest{crd, badBefore}, []Manifest{crd, worseAfter}, nil, nil, ProofOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !hasBlocker(res3, "k8s.apply.invalid") {
+		t.Fatalf("new invalid field introduced in upgrade must block: %+v", res3.Findings)
+	}
+}
