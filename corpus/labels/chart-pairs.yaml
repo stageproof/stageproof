@@ -1,503 +1,1581 @@
 labels:
-- case: prometheus-community-kube-prometheus-stack-minor
+- case: emissary-ingress-emissary-ingress-8.9.1-8.12.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-kube-prometheus-stack-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/kube-prometheus-stack
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argo-cd-minor
+  evidence: rendered 24 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.9.0-8.9.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/argo/argo-cd
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argo-cd-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/argo/argo-cd
-  by: version-boundary
-  date: '2026-11-20'
-- case: ingress-nginx-ingress-nginx-minor
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.8.2-8.9.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
-  by: version-boundary
-  date: '2026-11-20'
-- case: ingress-nginx-ingress-nginx-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/ingress-nginx/ingress-nginx
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-prometheus-minor
+  evidence: rendered 22 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kube-ovn-kube-ovn-v1.17.0-v1.17.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/prometheus
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-prometheus-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/prometheus
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-redis-minor
+  evidence: rendered 67 objects to 67; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kube-ovn-kube-ovn-v1.16.20-v1.17.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/redis
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-redis-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/redis
-  by: version-boundary
-  date: '2026-11-20'
-- case: traefik-traefik-minor
+  evidence: rendered 60 objects to 67; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: meshery-meshery-v1.0.81-v1.0.83
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/traefik/traefik
-  by: version-boundary
-  date: '2026-11-20'
-- case: traefik-traefik-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/traefik/traefik
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-loki-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: meshery-meshery-v1.0.80-v1.0.81
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/grafana/loki
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-loki-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/grafana/loki
-  by: version-boundary
-  date: '2026-11-20'
-- case: gitlab-gitlab-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: meshery-meshery-v1.0.79-v1.0.80
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/gitlab/gitlab
-  by: version-boundary
-  date: '2026-11-20'
-- case: gitlab-gitlab-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/gitlab/gitlab
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-keycloak-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: higress-higress-2.2.5-2.2.6
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/keycloak
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-keycloak-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/keycloak
-  by: version-boundary
-  date: '2026-11-20'
-- case: jenkinsci-jenkins-minor
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: higress-higress-2.2.4-2.2.5
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/jenkinsci/jenkins
-  by: version-boundary
-  date: '2026-11-20'
-- case: jenkinsci-jenkins-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/jenkinsci/jenkins
-  by: version-boundary
-  date: '2026-11-20'
-- case: external-secrets-operator-external-secrets-minor
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: higress-higress-2.2.3-2.2.4
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets
-  by: version-boundary
-  date: '2026-11-20'
-- case: external-secrets-operator-external-secrets-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/external-secrets-operator/external-secrets
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-kafka-minor
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: logging-operator-logging-operator-4.2.2-4.2.3
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/kafka
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-kafka-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/kafka
-  by: version-boundary
-  date: '2026-11-20'
-- case: vmware-tanzu-velero-minor
-  truth: breaks
-  evidence: "templates/backupstoragelocation.yaml prints `provider: {{ .provider }}` and values.yaml sets provider to an empty string, so the key is empty. crds/backupstoragelocations.yaml types provider as a string and credential as an object, and neither is nullable. The same empty key is in 12.1.0."
-  by: chart-template
-  date: '2026-11-20'
-- case: vmware-tanzu-velero-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/vmware-tanzu/velero
-  by: version-boundary
-  date: '2026-11-20'
-- case: nextcloud-nextcloud-minor
-  truth: breaks
-  evidence: charts/collabora-online/templates/reverse-proxy/configmap.yaml in 9.4.5 calls required on reverseProxy.controller.upstream.
-    9.3.0 does not.
-  by: chart-template
-  date: '2026-11-20'
-- case: nextcloud-nextcloud-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/nextcloud/nextcloud
-  by: version-boundary
-  date: '2026-11-20'
-- case: kyverno-kyverno-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: logging-operator-logging-operator-4.2.1-4.2.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/kyverno/kyverno
-  by: version-boundary
-  date: '2026-11-20'
-- case: kyverno-kyverno-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/kyverno/kyverno
-  by: version-boundary
-  date: '2026-11-20'
-- case: sonarqube-sonarqube-minor
-  truth: breaks
-  evidence: templates/_helpers.tpl in 2026.5.1007 calls required on caCerts.configMap.key. 2026.4.1 only reads the value.
-  by: chart-template
-  date: '2026-11-20'
-- case: sonarqube-sonarqube-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/sonarqube/sonarqube
-  by: version-boundary
-  date: '2026-11-20'
-- case: gitea-gitea-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: logging-operator-logging-operator-4.2.0-4.2.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/gitea/gitea
-  by: version-boundary
-  date: '2026-11-20'
-- case: gitea-gitea-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/gitea/gitea
-  by: version-boundary
-  date: '2026-11-20'
-- case: datadog-datadog-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: hami-hami-2.10.0-2.11.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/datadog/datadog
-  by: version-boundary
-  date: '2026-11-20'
-- case: datadog-datadog-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/datadog/datadog
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-nginx-minor
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: hami-hami-2.9.0-2.10.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/nginx
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-nginx-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/nginx
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-thanos-minor
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: hami-hami-2.8.3-2.9.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/thanos
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-thanos-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/thanos
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-wordpress-minor
+  evidence: rendered 26 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: hwameistor-hwameistor-v1.0.2-v1.1.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/wordpress
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-wordpress-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/wordpress
-  by: version-boundary
-  date: '2026-11-20'
-- case: nginx-nginx-ingress-minor
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: hwameistor-hwameistor-v1.0.1-v1.0.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/nginx/nginx-ingress
-  by: version-boundary
-  date: '2026-11-20'
-- case: nginx-nginx-ingress-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/nginx/nginx-ingress
-  by: version-boundary
-  date: '2026-11-20'
-- case: kedacore-keda-minor
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8up-k8up-4.10.0-4.10.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/kedacore/keda
-  by: version-boundary
-  date: '2026-11-20'
-- case: kedacore-keda-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/kedacore/keda
-  by: version-boundary
-  date: '2026-11-20'
-- case: artifact-hub-artifact-hub-minor
-  truth: breaks
-  evidence: templates/tracker_cronjob.yaml and scanner_cronjob.yaml in 1.24.0 still use batch/v1beta1, removed in Kubernetes
-    1.25.
-  by: chart-template
-  date: '2026-11-20'
-- case: artifact-hub-artifact-hub-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/artifact-hub/artifact-hub
-  by: version-boundary
-  date: '2026-11-20'
-- case: community-charts-n8n-minor
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8up-k8up-4.9.0-4.10.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/community-charts/n8n
-  by: version-boundary
-  date: '2026-11-20'
-- case: community-charts-n8n-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/community-charts/n8n
-  by: version-boundary
-  date: '2026-11-20'
-- case: mojo2600-pihole-minor
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8up-k8up-4.8.7-4.9.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/mojo2600/pihole
-  by: version-boundary
-  date: '2026-11-20'
-- case: mojo2600-pihole-major
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kaito-workspace-0.7.1-0.7.2
   truth: breaks
-  evidence: https://artifacthub.io/packages/helm/mojo2600/pihole
-  by: version-boundary
-  date: '2026-11-20'
-- case: hashicorp-consul-minor
-  truth: breaks
-  evidence: templates/connect-injector-disruptionbudget.yaml in 2.1.0 still uses policy/v1beta1, removed in Kubernetes 1.25.
-  by: chart-template
-  date: '2026-11-20'
-- case: hashicorp-consul-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/hashicorp/consul
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-alloy-minor
+  evidence: selector changed on DaemonSet/csi-local-node
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kaito-workspace-0.7.0-0.7.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/grafana/alloy
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-alloy-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/grafana/alloy
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-mariadb-minor
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kaito-workspace-0.6.2-0.7.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/mariadb
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-mariadb-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/mariadb
-  by: version-boundary
-  date: '2026-11-20'
-- case: stakater-reloader-minor
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: metallb-metallb-0.16.1-0.16.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/stakater/reloader
-  by: version-boundary
-  date: '2026-11-20'
-- case: stakater-reloader-major
+  evidence: rendered 42 objects to 42; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: metallb-metallb-0.15.3-0.16.0
   truth: breaks
-  evidence: https://artifacthub.io/packages/helm/stakater/reloader
-  by: version-boundary
-  date: '2026-11-20'
-- case: elastic-eck-operator-minor
+  evidence: 'helm template of new chart failed: Error: template: metallb/charts/frr-k8s/templates/service-monitor.yaml:1:14: executing "metallb/charts/frr-k8s/templates/service-monitor.yaml" at <.Values.prometheus.serviceMonitor.enabled>: nil pointer evaluating interface {}.serviceMonitor  Use --debug flag to render out invalid YAML'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openebs-openebs-3.9.0-3.10.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD zfsnodes.zfs.openebs.io (v1) schema break: pools[] required added [''used'']'
+  by: chart-file
+  date: '2026-11-22'
+- case: openebs-openebs-3.8.0-3.9.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/elastic/eck-operator
-  by: version-boundary
-  date: '2026-11-20'
-- case: elastic-eck-operator-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/elastic/eck-operator
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-prometheus-blackbox-exporter-minor
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openebs-openebs-3.7.0-3.8.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/prometheus-blackbox-exporter
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-prometheus-blackbox-exporter-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/prometheus-blackbox-exporter
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-cd-oci-argo-cd-minor
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pixie-pixie-operator-chart-0.1.6-0.1.7
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-cd-oci-argo-cd-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/argo-cd-oci/argo-cd
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argo-rollouts-minor
+  evidence: rendered 20 objects to 21; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pixie-pixie-operator-chart-0.1.5-0.1.6
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/argo/argo-rollouts
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argo-rollouts-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/argo/argo-rollouts
-  by: version-boundary
-  date: '2026-11-20'
-- case: jaegertracing-jaeger-minor
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pixie-pixie-operator-chart-0.1.4-0.1.5
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/jaegertracing/jaeger
-  by: version-boundary
-  date: '2026-11-20'
-- case: jaegertracing-jaeger-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/jaegertracing/jaeger
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-elasticsearch-minor
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kepler-kepler-0.6.1-0.6.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/elasticsearch
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-elasticsearch-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/elasticsearch
-  by: version-boundary
-  date: '2026-11-20'
-- case: jupyterhub-jupyterhub-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kepler-kepler-0.6.0-0.6.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/jupyterhub/jupyterhub
-  by: version-boundary
-  date: '2026-11-20'
-- case: jupyterhub-jupyterhub-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/jupyterhub/jupyterhub
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-mimir-distributed-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kepler-kepler-0.5.19-0.6.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/grafana/mimir-distributed
-  by: version-boundary
-  date: '2026-11-20'
-- case: grafana-mimir-distributed-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/grafana/mimir-distributed
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-metrics-server-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: headlamp-headlamp-0.45.0-0.46.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/metrics-server
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-metrics-server-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/metrics-server
-  by: version-boundary
-  date: '2026-11-20'
-- case: pmint93-metabase-minor
-  truth: breaks
-  evidence: templates/ssl-secret.yaml in 2.27.8 calls required on ssl.keyStore and ssl.keyStorePassword. 2.26.0 does not.
-  by: chart-template
-  date: '2026-11-20'
-- case: pmint93-metabase-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/pmint93/metabase
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argocd-image-updater-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: headlamp-headlamp-0.44.0-0.45.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/argo/argocd-image-updater
-  by: version-boundary
-  date: '2026-11-20'
-- case: argo-argocd-image-updater-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/argo/argocd-image-updater
-  by: version-boundary
-  date: '2026-11-20'
-- case: nats-nats-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: headlamp-headlamp-0.43.0-0.44.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/nats/nats
-  by: version-boundary
-  date: '2026-11-20'
-- case: nats-nats-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/nats/nats
-  by: version-boundary
-  date: '2026-11-20'
-- case: uptime-kuma-uptime-kuma-minor
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: crossplane-crossplane-2.4.2-2.4.3
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/uptime-kuma/uptime-kuma
-  by: version-boundary
-  date: '2026-11-20'
-- case: uptime-kuma-uptime-kuma-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/uptime-kuma/uptime-kuma
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-alertmanager-minor
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: crossplane-crossplane-2.4.1-2.4.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/alertmanager
-  by: version-boundary
-  date: '2026-11-20'
-- case: prometheus-community-alertmanager-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/prometheus-community/alertmanager
-  by: version-boundary
-  date: '2026-11-20'
-- case: airflow-helm-airflow-minor
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: crossplane-crossplane-2.4.0-2.4.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/airflow-helm/airflow
-  by: version-boundary
-  date: '2026-11-20'
-- case: airflow-helm-airflow-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/airflow-helm/airflow
-  by: version-boundary
-  date: '2026-11-20'
-- case: falcosecurity-falco-minor
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: rook-rook-ceph-1.21.1-v1.21.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/falcosecurity/falco
-  by: version-boundary
-  date: '2026-11-20'
-- case: falcosecurity-falco-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/falcosecurity/falco
-  by: version-boundary
-  date: '2026-11-20'
-- case: ollama-helm-ollama-minor
+  evidence: rendered 88 objects to 88; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: rook-rook-ceph-1.21.0-1.21.1
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/ollama-helm/ollama
-  by: version-boundary
-  date: '2026-11-20'
-- case: ollama-helm-ollama-major
+  evidence: rendered 88 objects to 88; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: rook-rook-ceph-v1.20.10-1.21.0
   truth: breaks
-  evidence: https://artifacthub.io/packages/helm/ollama-helm/ollama
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-postgresql-ha-minor
+  evidence: 'CRD cephobjectstores.ceph.rook.io (v1) schema break: spec.gateway.service.trafficDistribution removed; CRD objectbuckets.objectbucket.io (v1alpha1) schema break: spec required added [''storageClassName'']; CRD objectbucketclaims.objectbucket.io (v1alpha1) schema break: spec required added [''storageClassName'']; CRD cephnvmeofgateways.ceph.rook.io (v1) schema break: spec.pool removed; CRD cephclusters.ceph.rook.io (v1) schema break: spec.monitoring.s'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: antrea-antrea-2.6.3-2.7.0
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/bitnami/postgresql-ha
-  by: version-boundary
-  date: '2026-11-20'
-- case: bitnami-postgresql-ha-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/bitnami/postgresql-ha
-  by: version-boundary
-  date: '2026-11-20'
-- case: kong-kong-minor
+  evidence: rendered 27 objects to 27; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: antrea-antrea-2.6.2-2.6.3
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/kong/kong
-  by: version-boundary
-  date: '2026-11-20'
-- case: kong-kong-major
-  truth: breaks
-  evidence: https://artifacthub.io/packages/helm/kong/kong
-  by: version-boundary
-  date: '2026-11-20'
-- case: chartmuseum-chartmuseum-minor
+  evidence: rendered 27 objects to 27; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: antrea-antrea-2.6.1-2.6.2
   truth: clean
-  evidence: https://artifacthub.io/packages/helm/chartmuseum/chartmuseum
-  by: version-boundary
-  date: '2026-11-20'
-- case: chartmuseum-chartmuseum-major
+  evidence: rendered 27 objects to 27; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: coredns-coredns-1.50.7-1.50.8
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: coredns-coredns-1.50.6-1.50.7
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: coredns-coredns-1.50.5-1.50.6
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: knative-knative-operator-v1.23.1-v1.24.0
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: knative-knative-operator-v1.23.0-v1.23.1
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: knative-knative-operator-v1.22.3-v1.23.0
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: open-cluster-management-cluster-manager-1.3.1-1.4.0
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: open-cluster-management-cluster-manager-1.3.0-1.3.1
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: open-cluster-management-cluster-manager-1.2.1-1.3.0
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuma-kuma-3.0.0-3.0.1
+  truth: clean
+  evidence: rendered 27 objects to 27; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuma-kuma-2.14.7-3.0.0
   truth: breaks
-  evidence: https://artifacthub.io/packages/helm/chartmuseum/chartmuseum
-  by: version-boundary
-  date: '2026-11-20'
+  evidence: 'crds/ incompatible: CRD meshaccesslogs.kuma.io (v1alpha1) schema break: spec.from removed; CRD meshcircuitbreakers.kuma.io (v1alpha1) schema break: spec.from removed'
+  by: chart-file
+  date: '2026-11-22'
+- case: kuma-kuma-2.14.6-2.14.7
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: spire-spire-0.12.0-0.13.0
+  truth: clean
+  evidence: rendered 38 objects to 38; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: spire-spire-0.11.1-0.12.0
+  truth: breaks
+  evidence: selector changed on StatefulSet/stageproof-rel-server
+  by: rendered-diff
+  date: '2026-11-22'
+- case: spire-spire-0.11.0-0.11.1
+  truth: clean
+  evidence: rendered 38 objects to 38; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: volcano-volcano-1.15.4-1.16.0
+  truth: breaks
+  evidence: 'CRD cronjobs.batch.volcano.sh (v1alpha1) schema break: spec.jobTemplate.spec.tasks[].template.spec.workloadRef removed; CRD jobflows.flow.volcano.sh (v1alpha1) schema break: spec.flows[].patch.jobSpec.tasks[].template.spec.workloadRef removed; CRD jobs.batch.volcano.sh (v1alpha1) schema break: spec.tasks[].template.spec.workloadRef removed; CRD jobtemplates.flow.volcano.sh (v1alpha1) schema break: spec.tasks[].template.spec.workloadRef removed'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: volcano-volcano-1.15.3-1.15.4
+  truth: clean
+  evidence: rendered 43 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: volcano-volcano-1.15.2-1.15.3
+  truth: clean
+  evidence: rendered 43 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: artifact-hub-artifact-hub-1.23.0-1.24.0
+  truth: breaks
+  evidence: removed API batch/v1beta1
+  by: rendered-diff
+  date: '2026-11-22'
+- case: artifact-hub-artifact-hub-1.22.0-1.23.0
+  truth: breaks
+  evidence: removed API batch/v1beta1
+  by: rendered-diff
+  date: '2026-11-22'
+- case: artifact-hub-artifact-hub-1.21.0-1.22.0
+  truth: breaks
+  evidence: 'removed from release: StatefulSet/stageproof-rel-postgresql; removed API batch/v1beta1'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: in-toto-archivista-0.8.4-0.8.5
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: in-toto-archivista-0.8.3-0.8.4
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: in-toto-archivista-0.8.2-0.8.3
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dragonfly-dragonfly-1.10.1-1.10.2
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dragonfly-dragonfly-1.10.0-1.10.1
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dragonfly-dragonfly-1.8.8-1.10.0
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dex-dex-0.25.2-0.26.0
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dex-dex-0.25.1-0.25.2
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dex-dex-0.25.0-0.25.1
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: easegress-easegress-1.0.2-1.0.3
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: easegress-easegress-1.0.1-1.0.2
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: easegress-easegress-1.0.0-1.0.1
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluid-fluid-1.0.7-1.0.8
+  truth: clean
+  evidence: rendered 72 objects to 72; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluid-fluid-1.0.6-1.0.7
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD juicefsruntimes.data.fluid.io (v1alpha1) schema break: spec.cleanCachePolicy removed'
+  by: chart-file
+  date: '2026-11-22'
+- case: fluid-fluid-1.0.5-1.0.6
+  truth: clean
+  evidence: rendered 72 objects to 72; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: inspektor-gadget-gadget-0.57.0-0.58.0
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: inspektor-gadget-gadget-0.56.1-0.57.0
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: inspektor-gadget-gadget-0.56.0-0.56.1
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: chaosblade-chaosblade-operator-1.7.2-1.7.3
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: chaosblade-chaosblade-operator-1.7.1-1.7.2
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: chaosblade-chaosblade-operator-1.7.0-1.7.1
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: chaos-mesh-chaos-mesh-2.8.7-2.8.8
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD physicalmachinechaos.chaos-mesh.org (v1alpha1) schema break: spec.redis-restart.redisPath type boolean->string; CRD schedules.chaos-mesh.org (v1alpha1) schema break: spec.physicalmachineChaos.redis-restart.redisPath type boolean->string'
+  by: chart-file
+  date: '2026-11-22'
+- case: chaos-mesh-chaos-mesh-2.8.6-2.8.7
+  truth: clean
+  evidence: rendered 36 objects to 36; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: chaos-mesh-chaos-mesh-2.8.5-2.8.6
+  truth: clean
+  evidence: rendered 36 objects to 36; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cadence-workflow-cadence-1.6.6-1.6.7
+  truth: breaks
+  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.6 -> cadence-1.6.7)
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cadence-workflow-cadence-1.6.5-1.6.6
+  truth: breaks
+  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.5 -> cadence-1.6.6)
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cadence-workflow-cadence-1.6.4-1.6.5
+  truth: breaks
+  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.4 -> cadence-1.6.5)
+  by: rendered-diff
+  date: '2026-11-22'
+- case: clusternet-clusternet-hub-0.15.1-1.0.0
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: clusternet-clusternet-hub-0.15.0-0.15.1
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: clusternet-clusternet-hub-0.14.1-0.15.0
+  truth: clean
+  evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cortex-cortex-3.6.0-3.7.0
+  truth: clean
+  evidence: rendered 53 objects to 53; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cortex-cortex-3.5.0-3.6.0
+  truth: clean
+  evidence: rendered 53 objects to 53; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cortex-cortex-3.4.0-3.5.0
+  truth: clean
+  evidence: rendered 53 objects to 53; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dapr-dapr-1.19.1-1.19.2
+  truth: clean
+  evidence: rendered 42 objects to 42; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dapr-dapr-1.19.0-1.19.1
+  truth: clean
+  evidence: rendered 42 objects to 42; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: dapr-dapr-1.18.11-1.19.0
+  truth: clean
+  evidence: rendered 40 objects to 42; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: falco-falco-9.2.1-9.2.2
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: falco-falco-9.2.0-9.2.1
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: falco-falco-9.1.0-9.2.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluentd-fluentd-0.5.3-0.6.0
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluentd-fluentd-0.5.2-0.5.3
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluentd-fluentd-0.5.1-0.5.2
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluent-bit-fluent-bit-0.58.2-0.58.3
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluent-bit-fluent-bit-0.58.1-0.58.2
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: fluent-bit-fluent-bit-0.58.0-0.58.1
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: jaeger-jaeger-4.19.0-4.20.0
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: jaeger-jaeger-4.18.0-4.19.0
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: jaeger-jaeger-4.16.1-4.18.0
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8sgpt-k8sgpt-operator-0.2.27-0.2.29
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8sgpt-k8sgpt-operator-0.2.26-0.2.27
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8sgpt-k8sgpt-operator-0.2.25-0.2.26
+  truth: breaks
+  evidence: 'removed from release: CustomResourceDefinition/k8sgpts.core.k8sgpt.ai, CustomResourceDefinition/mutations.core.k8sgpt.ai, CustomResourceDefinition/results.core.k8sgpt.ai'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kanister-kanister-operator-0.119.0-0.120.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD actionsets.cr.kanister.io (v1alpha1) schema break: spec.actions[].repositoryServer removed'
+  by: chart-file
+  date: '2026-11-22'
+- case: kanister-kanister-operator-0.118.0-0.119.0
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kanister-kanister-operator-0.117.0-0.118.0
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: koordinator-koordinator-1.7.0-1.8.0
+  truth: breaks
+  evidence: 'CRD scheduleexplanations.scheduling.koordinator.sh (v1alpha1) schema break: spec.questionObjectReference removed'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: koordinator-koordinator-1.6.0-1.7.0
+  truth: clean
+  evidence: rendered 43 objects to 47; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: koordinator-koordinator-1.5.0-1.6.0
+  truth: clean
+  evidence: rendered 43 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuadrant-kuadrant-operator-1.5.4-1.6.0
+  truth: breaks
+  evidence: 'removed from release: CustomResourceDefinition/authconfigs.authorino.kuadrant.io, CustomResourceDefinition/authorinos.operator.authorino.kuadrant.io, CustomResourceDefinition/dnshealthcheckprobes.kuadrant.io, CustomResourceDefinition/dnsrecords.kuadrant.io, CustomResourceDefinition/limitadors.limitador.kuadrant.io'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuadrant-kuadrant-operator-1.5.3-1.5.4
+  truth: clean
+  evidence: rendered 63 objects to 63; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuadrant-kuadrant-operator-1.5.2-1.5.3
+  truth: clean
+  evidence: rendered 63 objects to 63; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kube-vip-kube-vip-0.11.1-0.11.2
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kube-vip-kube-vip-0.11.0-0.11.1
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kube-vip-kube-vip-0.10.0-0.11.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubean-kubean-v0.40.0-v0.40.1
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubean-kubean-v0.39.5-v0.40.0
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubean-kubean-v0.39.4-v0.39.5
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubearmor-kubearmor-v1.7.5-v1.7.6
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubearmor-kubearmor-v1.7.4-v1.7.5
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubearmor-kubearmor-v1.7.3-v1.7.4
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuberay-kuberay-operator-1.7.1-1.7.2
+  truth: clean
+  evidence: rendered 13 objects to 13; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuberay-kuberay-operator-1.7.0-1.7.1
+  truth: clean
+  evidence: rendered 13 objects to 13; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuberay-kuberay-operator-1.6.2-1.7.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD rayclusters.ray.io (v1) schema break: spec.headGroupSpec.template.spec.workloadRef removed; CRD rayclusters.ray.io (v1alpha1) schema break: spec.headGroupSpec.template.spec.workloadRef removed'
+  by: chart-file
+  date: '2026-11-22'
+- case: kured-kured-6.0.0-6.1.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kured-kured-5.12.1-6.0.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kured-kured-5.12.0-5.12.1
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubescape-kubescape-operator-1.41.0-1.42.0
+  truth: clean
+  evidence: rendered 70 objects to 80; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubescape-kubescape-operator-1.40.5-1.41.0
+  truth: clean
+  evidence: rendered 66 objects to 70; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubescape-kubescape-operator-1.40.4-1.40.5
+  truth: clean
+  evidence: rendered 66 objects to 66; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubevela-vela-core-1.11.1-1.11.2
+  truth: clean
+  evidence: rendered 34 objects to 34; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubevela-vela-core-1.11.0-1.11.1
+  truth: clean
+  evidence: rendered 129 objects to 34; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubevela-vela-core-1.10.10-1.11.0
+  truth: clean
+  evidence: rendered 116 objects to 129; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: litmus-litmus-3.29.1-3.30.0
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: litmus-litmus-3.29.0-3.29.1
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: litmus-litmus-3.28.0-3.29.0
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfga-openfga-0.4.1-0.4.2
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfga-openfga-0.4.0-0.4.1
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfga-openfga-0.3.19-0.4.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opencost-opencost-2.5.33-2.5.34
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opencost-opencost-2.5.32-2.5.33
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opencost-opencost-2.5.31-2.5.32
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openkruise-kruise-1.9.2-1.9.3
+  truth: clean
+  evidence: rendered 47 objects to 47; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openkruise-kruise-1.9.1-1.9.2
+  truth: clean
+  evidence: rendered 47 objects to 47; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openkruise-kruise-1.9.0-1.9.1
+  truth: clean
+  evidence: rendered 47 objects to 47; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openyurt-yurt-manager-1.6.1-1.7.0
+  truth: clean
+  evidence: rendered 72 objects to 77; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openyurt-yurt-manager-1.6.0-1.6.1
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD platformadmins.iot.openyurt.io (v1alpha1) schema break: spec.additionalDeployments[].spec.template.spec.resourceClaims[].source removed; CRD poolservices.network.openyurt.io (v1alpha1) schema break: status.loadBalancer.ingress[].ports[] required added [''error'']'
+  by: chart-file
+  date: '2026-11-22'
+- case: openyurt-yurt-manager-1.5.0-1.6.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD platformadmins.iot.openyurt.io (v1alpha1) schema break: spec.additionalDeployments[].spec.template.spec.hostAliases[] required added [''ip'']'
+  by: chart-file
+  date: '2026-11-22'
+- case: oxia-oxia-cluster-0.0.8-0.0.9
+  truth: clean
+  evidence: rendered 10 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: oxia-oxia-cluster-0.0.7-0.0.8
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: oxia-oxia-cluster-0.0.6-0.0.7
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: perses-perses-0.23.3-0.24.0
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: perses-perses-0.23.2-0.23.3
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: perses-perses-0.23.1-0.23.2
+  truth: clean
+  evidence: rendered 9 objects to 9; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: piraeus-datastore-linstor-cluster-1.3.1-1.3.2
+  truth: clean
+  evidence: rendered 1 objects to 1; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: piraeus-datastore-linstor-cluster-1.3.0-1.3.1
+  truth: clean
+  evidence: rendered 1 objects to 1; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: piraeus-datastore-linstor-cluster-1.2.1-1.3.0
+  truth: clean
+  evidence: rendered 1 objects to 1; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: zot-zot-0.1.134-0.1.135
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: zot-zot-0.1.133-0.1.134
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: zot-zot-0.1.132-0.1.133
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: capsule-capsule-0.15.1-0.15.2
+  truth: clean
+  evidence: rendered 36 objects to 36; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: capsule-capsule-0.15.0-0.15.1
+  truth: clean
+  evidence: rendered 36 objects to 36; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: capsule-capsule-0.14.6-0.15.0
+  truth: clean
+  evidence: rendered 32 objects to 36; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: contour-contour-0.8.0-0.9.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: contour-contour-0.7.0-0.8.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: contour-contour-0.6.0-0.7.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: atlantis-atlantis-7.3.1-7.4.0
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: atlantis-atlantis-7.3.0-7.3.1
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: atlantis-atlantis-7.2.0-7.3.0
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kusionstack-karpor-0.7.7-0.7.8
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kusionstack-karpor-0.7.6-0.7.7
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kusionstack-karpor-0.7.5-0.7.6
+  truth: breaks
+  evidence: non-hook Job/karpor-generate-cert changes immutable spec.template image (kusionstack/karpor:v0.6.3 -> v0.6.4)
+  by: rendered-diff
+  date: '2026-11-22'
+- case: backstage-backstage-2.10.2-2.11.0
+  truth: clean
+  evidence: rendered 2 objects to 2; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: backstage-backstage-2.10.1-2.10.2
+  truth: clean
+  evidence: rendered 2 objects to 2; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: backstage-backstage-2.10.0-2.10.1
+  truth: clean
+  evidence: rendered 2 objects to 2; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cloudnativepg-cloudnative-pg-0.29.1-0.29.2
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cloudnativepg-cloudnative-pg-0.29.0-0.29.1
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cloudnativepg-cloudnative-pg-0.28.3-0.29.0
+  truth: clean
+  evidence: rendered 21 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kyverno-kyverno-3.9.2-3.10.0
+  truth: clean
+  evidence: rendered 80 objects to 84; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kyverno-kyverno-3.9.1-3.9.2
+  truth: clean
+  evidence: rendered 80 objects to 80; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kyverno-kyverno-3.9.0-3.9.1
+  truth: clean
+  evidence: rendered 80 objects to 80; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cert-manager-cert-manager-v1.21.2-v1.21.3
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cert-manager-cert-manager-v1.21.1-v1.21.2
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cert-manager-cert-manager-v1.21.0-v1.21.1
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: argo-argo-cd-10.18.1-10.18.2
+  truth: clean
+  evidence: rendered 60 objects to 60; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: argo-argo-cd-10.18.0-10.18.1
+  truth: clean
+  evidence: rendered 60 objects to 60; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: argo-argo-cd-10.17.2-10.18.0
+  truth: clean
+  evidence: rendered 60 objects to 60; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cilium-cilium-1.20.4-1.20.5
+  truth: clean
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cilium-cilium-1.20.3-1.20.4
+  truth: clean
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: cilium-cilium-1.20.2-1.20.3
+  truth: clean
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: harbor-harbor-1.19.2-1.19.4
+  truth: clean
+  evidence: rendered 31 objects to 31; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: harbor-harbor-1.19.1-1.19.2
+  truth: clean
+  evidence: rendered 31 objects to 31; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: harbor-harbor-1.19.0-1.19.1
+  truth: clean
+  evidence: rendered 31 objects to 31; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: longhorn-longhorn-1.12.2-1.13.0
+  truth: clean
+  evidence: rendered 53 objects to 64; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: longhorn-longhorn-1.12.1-1.12.2
+  truth: clean
+  evidence: rendered 53 objects to 53; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: longhorn-longhorn-1.12.0-1.12.1
+  truth: clean
+  evidence: rendered 45 objects to 53; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: external-secrets-external-secrets-2.14.0-2.15.0
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: external-secrets-external-secrets-2.13.0-2.14.0
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: external-secrets-external-secrets-2.12.0-2.13.0
+  truth: clean
+  evidence: rendered 44 objects to 44; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: keda-keda-2.21.0-2.21.1
+  truth: clean
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: keda-keda-2.20.2-2.21.0
+  truth: breaks
+  evidence: 'CRD scaledjobs.keda.sh (v1alpha1) schema break: spec.jobTargetRef.template.spec.workloadRef removed'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: keda-keda-2.20.1-2.20.2
+  truth: breaks
+  evidence: 'CRD scaledjobs.keda.sh (v1alpha1) schema break: spec.jobTargetRef.template.spec.containers[].ports[] required added [''protocol'']'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubernetes-ingress-nginx-4.15.0-4.15.1
+  truth: clean
+  evidence: rendered 18 objects to 18; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubernetes-ingress-nginx-4.14.5-4.15.0
+  truth: clean
+  evidence: rendered 18 objects to 18; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubernetes-ingress-nginx-4.14.4-4.14.5
+  truth: clean
+  evidence: rendered 18 objects to 18; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: flux-flux2-2.19.1-2.20.0
+  truth: clean
+  evidence: rendered 39 objects to 39; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: flux-flux2-2.19.0-2.19.1
+  truth: clean
+  evidence: rendered 39 objects to 39; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: flux-flux2-2.18.4-2.19.0
+  truth: clean
+  evidence: rendered 39 objects to 39; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: open-policy-agent-gatekeeper-3.23.0-3.23.1
+  truth: clean
+  evidence: rendered 21 objects to 21; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: open-policy-agent-gatekeeper-3.22.2-3.23.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD constrainttemplates.templates.gatekeeper.sh (v1alpha1) schema break: spec.targets[].operations[] enum added'
+  by: chart-file
+  date: '2026-11-22'
+- case: open-policy-agent-gatekeeper-3.22.0-3.22.2
+  truth: clean
+  evidence: rendered 21 objects to 21; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: velero-velero-12.2.4-12.2.5
+  truth: clean
+  evidence: rendered 14 objects to 14; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: velero-velero-12.2.3-12.2.4
+  truth: clean
+  evidence: rendered 14 objects to 14; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: velero-velero-12.2.2-12.2.3
+  truth: clean
+  evidence: rendered 14 objects to 14; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: nats-nats-2.15.2-2.15.3
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: nats-nats-2.15.1-2.15.2
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: nats-nats-2.15.0-2.15.1
+  truth: clean
+  evidence: rendered 8 objects to 8; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: strimzi-strimzi-kafka-operator-1.3.0-1.3.1
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: strimzi-strimzi-kafka-operator-1.2.0-1.3.0
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: strimzi-strimzi-kafka-operator-1.1.0-1.2.0
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: istio-istiod-1.30.7-1.30.8
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: istio-istiod-1.30.6-1.30.7
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: istio-istiod-1.30.5-1.30.6
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubewarden-kubewarden-controller-5.14.0-5.14.1
+  truth: clean
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubewarden-kubewarden-controller-5.13.0-5.14.0
+  truth: clean
+  evidence: rendered 21 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubewarden-kubewarden-controller-5.12.2-5.13.0
+  truth: clean
+  evidence: rendered 21 objects to 21; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: prometheus-prometheus-29.48.0-29.49.0
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: prometheus-prometheus-29.47.2-29.48.0
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: prometheus-prometheus-29.47.1-29.47.2
+  truth: clean
+  evidence: rendered 23 objects to 23; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: interlink-interlink-0.6.1-0.6.2
+  truth: clean
+  evidence: rendered 11 objects to 14; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: interlink-interlink-0.6.0-0.6.1
+  truth: clean
+  evidence: rendered 11 objects to 11; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfunction-openfunction-0.6.1-0.7.0
+  truth: breaks
+  evidence: 'CRD contourconfigurations.projectcontour.io (v1alpha1) schema break: spec.debug.kubernetesLogLevel removed; CRD contourdeployments.projectcontour.io (v1alpha1) schema break: spec.config removed; crds/ incompatible: CRD configurations.dapr.io (v1alpha1) schema break: spec.tracing.zipkin required added [''endpointAddress'']; CRD functions.core.openfunction.io (v1beta1) schema break: spec.serving.triggers[].fallback removed'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfunction-openfunction-0.6.0-0.6.1
+  truth: clean
+  evidence: rendered 196 objects to 196; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfunction-openfunction-0.5.0-0.6.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD gateways.networking.openfunction.io (v1alpha1) schema break: status.conditions[].lastTransitionTime removed'
+  by: chart-file
+  date: '2026-11-22'
+- case: tremor-tremor-0.2.0-0.2.1
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: tremor-tremor-0.1.2-0.2.0
+  truth: breaks
+  evidence: selector changed on DaemonSet/stageproof-rel-tremor
+  by: rendered-diff
+  date: '2026-11-22'
+- case: tremor-tremor-0.1.1-0.1.2
+  truth: clean
+  evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opentelemetry-opentelemetry-operator-0.129.0-0.129.1
+  truth: clean
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opentelemetry-opentelemetry-operator-0.128.0-0.129.0
+  truth: clean
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: opentelemetry-opentelemetry-operator-0.127.1-0.128.0
+  truth: clean
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.8.1-8.8.2
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.8.0-8.8.1
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.7.2-8.8.0
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.7.1-8.7.2
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.7.0-8.7.1
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.6.0-8.7.0
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.5.2-8.6.0
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.5.1-8.5.2
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: emissary-ingress-emissary-ingress-8.5.0-8.5.1
+  truth: clean
+  evidence: rendered 22 objects to 22; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: submariner-submariner-operator-0.24.3-0.25.0
+  truth: clean
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: submariner-submariner-operator-0.24.2-0.24.3
+  truth: clean
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: submariner-submariner-operator-0.24.1-0.24.2
+  truth: clean
+  evidence: rendered 29 objects to 29; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: akri-akri-0.13.8-0.14.0
+  truth: clean
+  evidence: rendered 20 objects to 20; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: akri-akri-0.12.20-0.13.8
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD instances.akri.sh (v0) schema break: root required added [''spec'']'
+  by: chart-file
+  date: '2026-11-22'
+- case: akri-akri-0.12.9-0.12.20
+  truth: clean
+  evidence: rendered 16 objects to 16; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kuberhealthy-kuberhealthy-2.1.0-2.2.0
+  truth: breaks
+  evidence: removed API batch/v1beta1, policy/v1beta1, rbac.authorization.k8s.io/v1beta1
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfeature-open-feature-operator-v0.9.3-v0.9.4
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfeature-open-feature-operator-v0.9.2-v0.9.3
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: openfeature-open-feature-operator-v0.9.1-v0.9.2
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8gb-k8gb-v1.0.0-v1.0.1
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8gb-k8gb-v0.20.0-v1.0.0
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: k8gb-k8gb-v0.19.0-v0.20.0
+  truth: clean
+  evidence: rendered 16 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: microcks-microcks-1.15.0-1.16.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: microcks-microcks-1.14.0-1.15.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: microcks-microcks-1.13.2-1.14.0
+  truth: clean
+  evidence: rendered 24 objects to 24; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: linkerd-linkerd-crds-1.6.1-1.8.0
+  truth: breaks
+  evidence: 'CRD httproutes.policy.linkerd.io (v1alpha1) schema break: spec.rules[].filters[].requestRedirect.path type string->object; CRD httproutes.policy.linkerd.io (v1beta1) schema break: spec.rules[].filters[].requestRedirect.path type string->object; CRD httproutes.policy.linkerd.io (v1beta2) schema break: spec.rules[].filters[].requestRedirect.path type string->object'
+  by: rendered-diff
+  date: '2026-11-22'
+- case: linkerd-linkerd-crds-1.6.0-1.6.1
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: linkerd-linkerd-crds-1.4.0-1.6.0
+  truth: clean
+  evidence: rendered 7 objects to 7; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: eraser-eraser-1.4.1-1.4.2
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: eraser-eraser-1.3.1-1.4.1
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: eraser-eraser-1.3.0-1.3.1
+  truth: clean
+  evidence: rendered 10 objects to 10; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubeslice-kubeslice-worker-1.4.0-1.5.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD slices.networking.kubeslice.io (v1beta1) schema break: status.sliceConfig.externalGatewayConfig.gatewayType enum added'
+  by: chart-file
+  date: '2026-11-22'
+- case: kubeslice-kubeslice-worker-1.3.1-1.4.0
+  truth: clean
+  evidence: rendered 112 objects to 115; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubeslice-kubeslice-worker-1.3.0-1.3.1
+  truth: clean
+  evidence: rendered 111 objects to 112; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: envoy-gateway-helm-v1.9.4-v1.10.0
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: envoy-gateway-helm-v1.9.3-v1.9.4
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: envoy-gateway-helm-v1.9.2-v1.9.3
+  truth: clean
+  evidence: rendered 19 objects to 19; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kserve-kserve-crd-v0.20.0-v0.21.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kserve-kserve-crd-v0.19.0-v0.20.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kserve-kserve-crd-v0.18.1-v0.19.0
+  truth: clean
+  evidence: rendered 6 objects to 6; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: wasmcloud-wasmcloud-platform-0.1.1-0.1.2
+  truth: clean
+  evidence: rendered 16 objects to 16; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: wasmcloud-wasmcloud-platform-0.1.0-0.1.1
+  truth: clean
+  evidence: rendered 16 objects to 16; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: spinkube-spin-operator-0.6.0-0.6.1
+  truth: clean
+  evidence: rendered 17 objects to 17; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: spinkube-spin-operator-0.5.0-0.6.0
+  truth: breaks
+  evidence: HEAD https://ghcr.io/v2/spinkube/spin-operator/manifests/v0.6.0 returned HTTP 404 (tag missing on ghcr.io/spinkube/spin-operator)
+  by: registry-check
+  date: '2026-11-22'
+- case: kagent-kagent-0.10.2-0.10.3
+  truth: clean
+  evidence: rendered 52 objects to 52; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kagent-kagent-0.10.1-0.10.2
+  truth: clean
+  evidence: rendered 52 objects to 52; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kagent-kagent-0.10.0-0.10.1
+  truth: clean
+  evidence: rendered 52 objects to 52; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: bank-vaults-vault-operator-1.24.0-1.24.1
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: bank-vaults-vault-operator-1.23.4-1.24.0
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: bank-vaults-vault-operator-1.23.3-1.23.4
+  truth: clean
+  evidence: rendered 5 objects to 5; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pipecd-pipecd-v0.34.0-v0.34.1
+  truth: clean
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pipecd-pipecd-v0.33.0-v0.34.0
+  truth: clean
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: pipecd-pipecd-v0.32.4-v0.33.0
+  truth: clean
+  evidence: rendered 12 objects to 12; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: radius-radius-0.61.1-0.62.0
+  truth: clean
+  evidence: rendered 43 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: radius-radius-0.61.0-0.61.1
+  truth: clean
+  evidence: rendered 43 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: radius-radius-0.60.2-0.61.0
+  truth: clean
+  evidence: rendered 46 objects to 43; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubestellar-core-chart-0.30.1-0.30.2
+  truth: clean
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubestellar-core-chart-0.30.0-0.30.1
+  truth: clean
+  evidence: rendered 25 objects to 25; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
+  by: rendered-diff
+  date: '2026-11-22'
+- case: kubestellar-core-chart-0.29.0-0.30.0
+  truth: breaks
+  evidence: 'crds/ incompatible: CRD controlplanes.tenancy.kflex.kubestellar.org (v1alpha1) schema break: spec required added [''type'']'
+  by: chart-file
+  date: '2026-11-22'

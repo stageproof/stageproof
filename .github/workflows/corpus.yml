@@ -25,18 +25,28 @@ jobs:
         with:
           path: ~/.cache/stageproof/charts
           key: pairs-${{ hashFiles('corpus/pairs/pairs.lock') }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/stageproof/envtest
+          key: envtest-1.35-${{ runner.os }}-${{ runner.arch }}
       - name: Incidents
         run: go run ./cmd/corpus run --set incidents --out incidents.json
+      - name: Pairs (files)
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: go run ./cmd/corpus run --set pairs --api-server off --out pairs-files.json
       - name: Pairs
         run: |
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            go run ./cmd/corpus run --set pairs --out pairs.json
+            go run ./cmd/corpus run --set pairs --api-server auto --out pairs.json
           else
             go run ./cmd/corpus run --set pairs --pr --out pairs.json
           fi
       - name: Compare
         run: |
           go run ./cmd/corpus compare incidents.json corpus/baseline.json
+          if [ -f pairs-files.json ]; then
+            go run ./cmd/corpus compare pairs-files.json corpus/baseline.json
+          fi
           go run ./cmd/corpus compare pairs.json corpus/baseline.json
       - name: Results
         if: always() && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
@@ -45,4 +55,5 @@ jobs:
           name: corpus-results
           path: |
             incidents.json
+            pairs-files.json
             pairs.json
