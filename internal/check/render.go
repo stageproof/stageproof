@@ -36,10 +36,8 @@ func Charts(ctx context.Context, in Input, st *State) {
 	st.noteRepair(repair)
 	if bErr != nil {
 		secrets := helm.SecretStrings(in.BaseValues)
-		secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetValues)...)
-		secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetStrings)...)
-		secrets = append(secrets, helm.SecretValuesFromSets(repair.Sets)...)
-		secrets = append(secrets, helm.SecretValuesFromSets(repair.SetStrings)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.BaseSet)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.BaseSetString)...)
 		st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{
 			Name:    "baseline helm template",
 			Status:  "fail",
@@ -52,8 +50,8 @@ func Charts(ctx context.Context, in Input, st *State) {
 		objs, pErr := k8sschema.ParseManifestStream(baseYAML)
 		if pErr != nil {
 			secrets := helm.SecretStrings(in.BaseValues)
-			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetValues)...)
-			secrets = append(secrets, helm.SecretValuesFromSets(baseOpts.SetStrings)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(in.BaseSet)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(in.BaseSetString)...)
 			st.Report.Checks = append(st.Report.Checks, verdict.CheckResult{Name: "baseline manifest parse", Status: "fail", Summary: helm.Scrub(pErr.Error(), secrets)})
 			st.stop(false, true)
 			return
@@ -69,8 +67,8 @@ func Charts(ctx context.Context, in Input, st *State) {
 	}
 	if hErr != nil {
 		secrets := helm.SecretStrings(in.HeadValues)
-		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetValues)...)
-		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetStrings)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSet)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSetString)...)
 		if detail, ok := helm.RequiredFailure(hErr, secrets); ok {
 			st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 				RuleID:   "helm.values.new_required_unset",
@@ -106,8 +104,8 @@ func Charts(ctx context.Context, in Input, st *State) {
 	headObjs, hpErr := k8sschema.ParseManifestStream(headYAML)
 	if hpErr != nil {
 		secrets := helm.SecretStrings(in.HeadValues)
-		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetValues)...)
-		secrets = append(secrets, helm.SecretValuesFromSets(headOpts.SetStrings)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSet)...)
+		secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSetString)...)
 		st.Report.Findings = append(st.Report.Findings, verdict.Finding{
 			RuleID:   "helm.template.invalid_yaml",
 			Severity: verdict.SeverityBlocker,

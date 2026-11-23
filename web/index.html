@@ -188,7 +188,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does my real cluster run?</td><td>Source on main (<code>facts export</code> / <code>--cluster-facts</code>, read-only).</td></tr>
             <tr><td>CI controls</td><td>Can I explain a rule, export SARIF 2.1.0, or set timed ignores and severity policy?</td><td>Source on main (<code>explain</code>, <code>--format sarif</code>, <code>.stageproof.yaml</code>).</td></tr>
             <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
-            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the <code>smoke</code> commands (source on main), and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
+            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the <code>smoke</code> commands, and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
           </tbody>
         </table>
         <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>): <strong>12 / 12</strong> active incidents caught, <strong>12 / 12</strong> controls passed, <strong>0 / 281</strong> wrong blocks (0.00%) across 316 hand-checked CNCF upgrade pairs covering 105 CNCF projects, p95 <strong>4.13s</strong> file check and <strong>15.41s</strong> API server proof. The released binary is v0.2.0.</p>

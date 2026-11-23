@@ -27,6 +27,14 @@ func Pull(ctx context.Context, repoURL, chart, version, destParent string) (stri
 	cmd := exec.CommandContext(ctx, "helm", args...)
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
+		if fallback, ok := pullOCIFallbackArgs(repoURL, chart, version, destParent); ok {
+			var fallbackErr bytes.Buffer
+			retry := exec.CommandContext(ctx, "helm", fallback...)
+			retry.Stderr = &fallbackErr
+			if retry.Run() == nil {
+				return unpackedChart(destParent)
+			}
+		}
 		return "", pullFailed(chart, version, stderr.String())
 	}
 	return unpackedChart(destParent)
@@ -42,6 +50,19 @@ func pullArgs(repoURL, chart, version, dest string) []string {
 		args = append(args, "--plain-http")
 	}
 	return args
+}
+
+// pullOCIFallbackArgs handles an OCI URL that already ends with /<chart>, such
+// as an Artifact Hub repository URL, after the standard <repo>/<chart> pull fails.
+func pullOCIFallbackArgs(repoURL, chart, version, dest string) ([]string, bool) {
+	if !strings.HasPrefix(repoURL, "oci://") || chart == "" {
+		return nil, false
+	}
+	trimmed := strings.TrimRight(repoURL, "/")
+	if !strings.HasSuffix(trimmed, "/"+chart) {
+		return nil, false
+	}
+	return []string{"pull", trimmed, "--version", version, "--untar", "--untardir", dest}, true
 }
 
 func unpackedChart(parent string) (string, error) {

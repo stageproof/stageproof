@@ -294,6 +294,39 @@ func containsString(items []string, want string) bool {
 	return false
 }
 
+func TestProposeRepairRejectsTraversalAndSymlinkEscape(t *testing.T) {
+	outer := t.TempDir()
+	secret := filepath.Join(outer, "outside.yaml")
+	if err := os.WriteFile(secret, []byte("password: {{ .Values.leaked.secret | b64enc }}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	chart := filepath.Join(outer, "chart")
+	if err := os.MkdirAll(filepath.Join(chart, "templates"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(secret, filepath.Join(chart, "templates", "escape.yaml")); err != nil {
+		t.Skip(err)
+	}
+
+	traversalErr := errString("Error: template: chart/../outside.yaml:1:10: executing \"outside.yaml\" at <b64enc>: invalid value; expected string")
+	if repair := ProposeRepair(chart, traversalErr, RenderOptions{}); !repair.Empty() {
+		t.Fatalf("traversal read outside chartDir: %#v", repair)
+	}
+
+	symlinkErr := errString("Error: template: chart/templates/escape.yaml:1:10: executing \"escape.yaml\" at <b64enc>: invalid value; expected string")
+	if repair := ProposeRepair(chart, symlinkErr, RenderOptions{}); !repair.Empty() {
+		t.Fatalf("symlink read outside chartDir: %#v", repair)
+	}
+}
+
+func TestProposeRepairRejectsUnsafeSetArguments(t *testing.T) {
+	err := errString("Error: values don't meet the specifications of the schema(s) in the following chart(s):\nweb:\n- at '/a,b=c': got null, want string\n- at '/mode': value must be one of 'ok,evil=1'\n")
+	repair := ProposeRepair(t.TempDir(), err, RenderOptions{})
+	if repair.changesValues() {
+		t.Fatalf("unsafe schema arguments were kept: %#v", repair)
+	}
+}
+
 func TestValuesPathsIgnoreShorterParents(t *testing.T) {
 	got := leafPaths([]string{"driver.config", "driver.config.driver"})
 	if strings.Join(got, ",") != "driver.config.driver" {
