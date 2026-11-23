@@ -58,6 +58,8 @@ func main() {
 		os.Exit(runExplain(os.Args[2:]))
 	case "comment":
 		os.Exit(runComment(ctx, os.Args[2:]))
+	case "mcp":
+		os.Exit(runMCP(ctx, os.Args[2:]))
 	case "facts":
 		os.Exit(runFacts(ctx, os.Args[2:]))
 	case "version", "--version", "-v":

@@ -12,6 +12,7 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 ### Added
 
 - `stageproof comment` posts the Markdown file from `--comment-file` on a GitHub pull request or a GitLab merge request, and a later run updates the comment that contains `<!-- stageproof-comment -->`. `--provider auto` reads `GITHUB_ACTIONS` or `GITLAB_CI`. GitHub uses `GITHUB_TOKEN` and calls `api.github.com`, or `GITHUB_API_URL` when that is set. GitLab uses `STAGEPROOF_GITLAB_TOKEN`, `GITLAB_TOKEN`, or `CI_JOB_TOKEN`, and calls `CI_API_V4_URL` or `https://gitlab.com/api/v4`. A missing file, token, or permission exits 2. `--best-effort` exits 0 on HTTP 403. The token is not printed. The v0.2.0 binary does not include this command.
+- `stageproof mcp` serves three read-only tools over stdin and stdout: `check`, `check_pr`, and `explain`. Paths must stay inside `--root`. It does not open a port, write a report file, or start a live rehearsal. `api_server` defaults to `off`. The v0.2.0 binary does not include this command.
 
 ### Security
 
