@@ -5,6 +5,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+### Security
+
+- Image checks use `github.com/google/go-containerregistry` v0.22.1. `github.com/docker/distribution` v2.8.3 is no longer in the module graph. `github.com/docker/cli` is v29.7.2.
+
 ## [0.2.0] - 2026-11-23
 
 ### Breaking
