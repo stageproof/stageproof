@@ -161,27 +161,27 @@ kind cluster on this machine
             <tr>
               <td>Brief</td>
               <td>The terminal report and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. An empty section is left out.</td>
-              <td>The lines are the finding messages and the reasons a check did not finish. It does not call a model. The result line still says <code>0 AI calls</code>. The v0.1.8 binary does not print this summary.</td>
+              <td>The lines are the finding messages and the reasons a check did not finish. It does not call a model. The result line still says <code>0 AI calls</code>.</td>
             </tr>
             <tr>
               <td>SARIF</td>
               <td><code>--format sarif</code> prints one SARIF 2.1.0 log. A pull request check puts every chart in that log. <code>--out</code> stays the JSON report, and that JSON matches <code>docs/report.schema.json</code>.</td>
-              <td>A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. The exit code is unchanged. The v0.1.8 binary does not have this format.</td>
+              <td>A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. The exit code is unchanged.</td>
             </tr>
             <tr>
               <td>Ignores and policy</td>
               <td><code>.stageproof.yaml</code> can ignore a rule until a date, or map a rule id or a prefix to block, warn, or info. <code>check-pr</code> reads that file from the base ref.</td>
-              <td>An ignored finding stays in the report with the reason and the date. It does not make the result <code>BLOCKED</code>. An expired entry does not match. A change to the file in the pull request is <code>config.changed_in_pr</code> and does not change the check. The v0.1.8 binary does not read these settings.</td>
+              <td>An ignored finding stays in the report with the reason and the date. It does not make the result <code>BLOCKED</code>. An expired entry does not match. A change to the file in the pull request is <code>config.changed_in_pr</code> and does not change the check.</td>
             </tr>
             <tr>
               <td>Cluster facts</td>
               <td><code>stageproof facts export</code> reads a kubeconfig you pass. The calls are <code>get</code> and <code>list</code>. <code>--cluster-facts</code> sets the Kubernetes version when <code>--current-k8s</code> is absent, preloads those custom resource definitions on the local API server, and passes stored versions and node architectures into the check.</td>
-              <td>Values and Secret contents are not written. Helm release Secrets are read only with <code>--helm-releases</code>, and only the chart name, version, appVersion, release, and namespace are kept. The file is not read from git. The v0.1.8 binary does not have this command.</td>
+              <td>Values and Secret contents are not written. Helm release Secrets are read only with <code>--helm-releases</code>, and only the chart name, version, appVersion, release, and namespace are kept. The file is not read from git.</td>
             </tr>
             <tr>
               <td>Explain</td>
               <td><code>stageproof explain</code> prints the level, the meaning, and what to do for one rule id. The findings page is the same text.</td>
-              <td>It does not run a check and it does not use the network. An unknown id exits 2. The v0.1.8 binary does not have this command.</td>
+              <td>It does not run a check and it does not use the network. An unknown id exits 2.</td>
             </tr>
             <tr>
               <td>Live rehearsal</td>
@@ -199,7 +199,7 @@ kind cluster on this machine
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. <a href="index.html" style="color:var(--accent);">Overview</a> · <a href="docs.html" style="color:var(--accent);">Docs</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.1.8.</span>
+        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.2.0.</span>
       </div>
     </div>
   </footer>

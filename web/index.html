@@ -58,7 +58,7 @@
           <div class="hero-copy">
             <div class="eyebrow-row">
               <span class="pill pill-accent">Helm, Argo CD, Flux, Manifests</span>
-              <span class="pill">CLI v0.1.8 · Phase 1 on main</span>
+              <span class="pill">CLI v0.2.0</span>
             </div>
             <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">before you merge it.</span></h1>
             <p class="hero-lede">
@@ -170,7 +170,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">02</span> What ships</p>
           <h2>One command. Four input types. A result you can gate on.</h2>
-          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, a Flux HelmRelease, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts, Applications, and HelmReleases a git diff touched and checks each one. A deleted file inside a chart still counts. Flux HelmReleases and rendered manifest trees are in the source on main, not in the v0.1.8 binary.</p>
+          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, a Flux HelmRelease, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts, Applications, and HelmReleases a git diff touched and checks each one. A deleted file inside a chart still counts. Flux HelmReleases and rendered manifest trees are included.</p>
         </div>
         <table class="spec-table">
           <thead>
@@ -181,7 +181,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>Values proof</td><td>Does every key in your values file still have an effect?</td><td>When you pass a values file (render proof on main)</td></tr>
             <tr><td>Kubernetes APIs</td><td>Does the upgrade use an API your version has removed?</td><td>Every run</td></tr>
             <tr><td>Local API server</td><td>Does this Kubernetes minor accept the upgrade on top of current objects?</td><td>Source on main (default <code>--api-server auto</code>)</td></tr>
-            <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>Source on main. Not in the v0.1.8 binary.</td></tr>
+            <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>Included.</td></tr>
             <tr><td>Image tags</td><td>Does a new or changed tag exist for <code>linux/amd64</code> or your cluster node architectures?</td><td>Source on main. Skip with <code>--offline</code>.</td></tr>
             <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart <code>apiVersion: v3</code>?</td><td>Source on main (<code>--helm-compare</code>).</td></tr>
             <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main (<code>--before</code> / <code>--after</code>).</td></tr>
@@ -191,7 +191,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the <code>smoke</code> commands (source on main), and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>): <strong>12 / 12</strong> active incidents caught, <strong>12 / 12</strong> controls passed, <strong>0 / 281</strong> wrong blocks (0.00%) across 316 hand-checked CNCF upgrade pairs covering 105 CNCF projects, p95 <strong>4.13s</strong> file check and <strong>15.41s</strong> API server proof. The released binary is v0.1.8; these Phase 1 checks ship in source on main.</p>
+        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>): <strong>12 / 12</strong> active incidents caught, <strong>12 / 12</strong> controls passed, <strong>0 / 281</strong> wrong blocks (0.00%) across 316 hand-checked CNCF upgrade pairs covering 105 CNCF projects, p95 <strong>4.13s</strong> file check and <strong>15.41s</strong> API server proof. The released binary is v0.2.0.</p>
       </div>
     </section>
 
@@ -232,11 +232,11 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
         <div class="doc-grid">
           <article class="doc-card">
             <h3>Supported</h3>
-            <p>A Helm chart in a directory. An Argo CD Application, including several sources and a chart path in this repository, and a Terraform <code>.yaml.tmpl</code> with placeholders. A Flux HelmRelease, in the source on main. Two rendered manifest trees, in the source on main. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed. The released binary is v0.1.8 and reads one remote chart.</p>
+            <p>A Helm chart in a directory. An Argo CD Application, including several sources and a chart path in this repository, and a Terraform <code>.yaml.tmpl</code> with placeholders. A Flux HelmRelease. Two rendered manifest trees. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed.</p>
           </article>
           <article class="doc-card">
             <h3>Not supported</h3>
-            <p>Terraform providers and modules. Container image contents. Kustomize and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages. The v0.1.8 binary does not read a Flux HelmRelease.</p>
+            <p>Terraform providers and modules. Container image contents. Kustomize and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages.</p>
           </article>
           <article class="doc-card">
             <h3>What <code>--live</code> does</h3>
@@ -281,7 +281,7 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
       </div>
       <div class="footer-bottom">
         <span>© 2026 Stageproof. Apache-2.0.</span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.1.8.</span>
+        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.2.0.</span>
       </div>
     </div>
   </footer>

@@ -5,7 +5,7 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
-The next release is 0.2.0.
+## [0.2.0] - 2026-11-23
 
 ### Breaking
 
