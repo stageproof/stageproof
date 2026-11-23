@@ -19,6 +19,7 @@ Usage:
   stageproof fetch-apiserver --k8s <minor> --out <dir>
   stageproof explain <rule-id>
   stageproof comment --file <comment.md> [--provider auto|github|gitlab]
+  stageproof mcp     [--root <dir>]
   stageproof facts export --kubeconfig <file> --context <name> --out <file>
 
 Results:
@@ -81,6 +82,12 @@ Comment:
   --repo <owner/name>      GitHub repository, or a GitLab project id or group/project path.
   --marker <text>          Default is <!-- stageproof-comment -->. A later run updates that comment.
   --best-effort            Exit 0 when the server returns HTTP 403. The default exit is 2.
+
+MCP:
+  stageproof mcp speaks MCP on stdin and stdout. It does not open a port. Logs go to stderr.
+  --root <dir>             Files the tools may read. Default is the current directory.
+                           Absolute paths and paths outside this directory are rejected.
+                           Live rehearsal and report files are off.
 
 Examples:
   # 1. Compare current chart vs new chart with your prod values + check K8s 1.33 & 1.34

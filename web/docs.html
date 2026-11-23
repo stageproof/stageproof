@@ -1746,6 +1746,7 @@ workflow:
     <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory.</td></tr>
     <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
     <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file from <code>--comment-file</code>, or updates the comment that already contains the marker. It is not in the v0.2.0 binary.</td></tr>
+    <tr><td><code>stageproof mcp</code></td><td>Serves <code>check</code>, <code>check_pr</code>, and <code>explain</code> on stdin and stdout. Paths stay inside <code>--root</code>. It does not open a port. It is not in the v0.2.0 binary.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1901,6 +1902,17 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
   </tbody>
 </table></div>
 <p>GitHub calls <code>api.github.com</code>, or the host in <code>GITHUB_API_URL</code>. The token is <code>GITHUB_TOKEN</code>. GitLab calls the host in <code>CI_API_V4_URL</code>, or <code>https://gitlab.com/api/v4</code>. The token is <code>STAGEPROOF_GITLAB_TOKEN</code>, then <code>GITLAB_TOKEN</code>, then <code>CI_JOB_TOKEN</code>. A job token is sent as <code>JOB-TOKEN</code>. The others are sent as <code>PRIVATE-TOKEN</code>. The token is not printed. The command does not follow a redirect to another host.</p>
+
+<h2><code>stageproof mcp</code></h2>
+<p>Speaks the Model Context Protocol on stdin and stdout. Logs go to stderr. The process does not open a port. The v0.2.0 binary does not include this command.</p>
+<p>The tools are <code>check</code>, <code>check_pr</code>, and <code>explain</code>. <code>check</code> returns the same JSON report as <code>--format json</code>. <code>check_pr</code> returns the combined JSON that <code>check-pr --format json</code> writes. <code>explain</code> returns the rule id, level, title, meaning, and fix. Every path is relative to <code>--root</code>. An absolute path, a path that leaves that directory, or a symlink that points outside it is rejected. <code>live</code>, <code>out</code>, and <code>comment_file</code> are rejected. <code>api_server</code> defaults to <code>off</code>, so a tool call does not download an API server unless the caller sets <code>auto</code> or <code>require</code>. A check uses the same chart, registry, and API server hosts as <code>stageproof check</code>.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--root &lt;dir&gt;</code></td><td><code>.</code></td><td>The only directory the tools may read. A missing directory exits 2.</td></tr>
+  </tbody>
+</table></div>
+<p>The process exits 0 when the client closes stdin. It exits 2 when <code>--root</code> cannot be read.</p>
 
 <h2>Environment variables</h2>
 <div class="doc-table-wrap"><table class="doc-table">
