@@ -88,7 +88,7 @@ stageproof check \
 
 | Question | How |
 |---|---|
-| Does the new chart render with your values? | `helm template` on Helm 3 or Helm 4. `--helm-compare` renders with a second helm binary and reports differences. |
+| Does the new chart render with your values? | `helm template` on Helm 3 or Helm 4. `--helm-compare` renders with a second helm binary and reports differences. When the current chart does not render because a default is empty, a schema field is null, the schema document is invalid, or a template names a missing API, the same placeholder is used on both charts and the report names the keys. |
 | Does a values key you set still have an effect? | Reads templates and proves uncertain keys by rendering (`--values-proof default` or `full`). A key the old chart uses and the new chart ignores is `BLOCKED`. |
 | Does a new or changed image tag exist for your node architecture? | HTTP HEAD to the image registry named in the render (skip with `--offline`). Checks `linux/amd64` or every node architecture in `--cluster-facts`. |
 | Does the chart use an API your Kubernetes version removed? | A local Kubernetes API server of `--current-k8s` (`--api-server auto`). Otherwise a built-in table (`--api-server off`). |

@@ -10,10 +10,17 @@ import (
 
 // State is what the stages pass along. The report is the only part that is printed.
 type State struct {
-	Report           *verdict.Report
-	BaseObjs         []k8sschema.ManifestObject
-	HeadObjs         []k8sschema.ManifestObject
-	Placeholders     []string
+	Report       *verdict.Report
+	BaseObjs     []k8sschema.ManifestObject
+	HeadObjs     []k8sschema.ManifestObject
+	Placeholders []string
+	// RepairSets, RepairAPIs, and RepairSkipSchema are discovered while
+	// rendering. Later stages must use them or they render a different chart
+	// than the one the findings describe.
+	RepairSets       []string
+	RepairJSON       []string
+	RepairAPIs       []string
+	RepairSkipSchema bool
 	Started          time.Time
 	Require          bool
 	Stopped          bool

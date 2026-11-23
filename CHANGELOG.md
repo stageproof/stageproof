@@ -5,6 +5,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+### Breaking
+
+- A chart that does not render because a default is empty, a schema field is null, the schema document is invalid, or a template names a missing API is rendered again with a placeholder. The same placeholder is used on the current chart and the new chart. A value you set is not replaced. The report names the keys. A failure that appears only on the new chart stays a blocker. This changes the exit code for charts whose defaults do not render: the check can finish instead of returning `NOT CHECKED`.
+
 ### Security
 
 - Image checks use `github.com/google/go-containerregistry` v0.22.1. `github.com/docker/distribution` v2.8.3 is no longer in the module graph. `github.com/docker/cli` is v29.7.2.

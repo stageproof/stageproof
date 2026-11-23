@@ -64,8 +64,8 @@ func Diff(ctx context.Context, in Input, st *State) {
 	// same assignments as --set puts a dropped key back, because --set wins over -f.
 	dropMaterializedSets(&base)
 	dropMaterializedSets(&head)
-	base.SetStrings = append(base.SetStrings, st.Placeholders...)
-	head.SetStrings = append(head.SetStrings, st.Placeholders...)
+	base = st.applyRepair(base)
+	head = st.applyRepair(head)
 	findings, sum, err := helm.ProveValues(ctx, helm.ProofRequest{
 		BaseDir:     in.BaseDir,
 		HeadDir:     in.HeadDir,
