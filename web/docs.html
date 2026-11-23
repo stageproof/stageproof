@@ -1539,18 +1539,17 @@ stageproof:
       RESULT=$?
       set -e
 
-      # Post the report. This adds a new comment on every run.
+      # Post or update one comment. A comment failure must not hide the check result.
+      POST=0
       if [ -f stageproof-comment.md ] &amp;&amp; [ -n "${STAGEPROOF_GITLAB_TOKEN:-}" ]; then
-        curl --fail-with-body --silent --show-error \
-          --header "PRIVATE-TOKEN: ${STAGEPROOF_GITLAB_TOKEN}" \
-          --data-urlencode "body@stageproof-comment.md" \
-          "${CI_API_V4_URL}/projects/${CI_PROJECT_ID}/merge_requests/${CI_MERGE_REQUEST_IID}/notes"
+        stageproof comment --file stageproof-comment.md || POST=$?
       fi
 
       # 0 is PASSED or PROVEN. 1 is BLOCKED. 2 is NOT CHECKED.
       if [ "$RESULT" -ne 0 ]; then
         exit "$RESULT"
       fi
+      exit "$POST"
   artifacts:
     when: always
     paths:
@@ -1578,13 +1577,14 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
     <tr><td><code>rules</code></td><td>The job runs only in merge request pipelines, and only when a chart or Application file changed.</td></tr>
     <tr><td><code>GIT_DEPTH</code> and <code>git fetch</code></td><td>Stageproof reads the chart from the target branch, so that commit must be in the clone. A clone with depth 1 does not contain it.</td></tr>
     <tr><td><code>set +e</code> around the command</td><td>The job must keep running after a non-zero exit code, so that it can post the comment before it fails.</td></tr>
-    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code> and the job stays green. Exit code <code>1</code> (<code>BLOCKED</code>) and <code>2</code> (<code>NOT CHECKED</code>) fail the job. The comment is posted before that exit.</td></tr>
+    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file, or updates the note that already contains <code>&lt;!-- stageproof-comment --&gt;</code>. The v0.2.0 image does not include this command.</td></tr>
+    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code> and the job stays green. Exit code <code>1</code> (<code>BLOCKED</code>) and <code>2</code> (<code>NOT CHECKED</code>) fail the job. That exit is kept even when the comment command fails. If the check passed and the comment did not, the job fails with the comment command's exit code.</td></tr>
   </tbody>
 </table></div>
 
 <h2>The comment on the merge request</h2>
-<p>The <code>curl</code> call posts the Markdown report as a new comment. A later run adds another comment. It does not edit the previous one. A merge request that changes several charts gets one comment that covers all of them.</p>
-<p>It needs a CI/CD variable named <code>STAGEPROOF_GITLAB_TOKEN</code> that holds a GitLab access token with the <code>api</code> scope. Mark the variable as masked. Without the variable, the job still checks the merge request and skips the comment.</p>
+<p><code>stageproof comment</code> posts the Markdown report, or updates the existing note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. A later run does not add a second note. A merge request that changes several charts gets one comment that covers all of them. The command is not in the v0.2.0 image. Use a release that includes it.</p>
+<p>It reads <code>CI_API_V4_URL</code>, <code>CI_PROJECT_ID</code>, and <code>CI_MERGE_REQUEST_IID</code>. The token is <code>STAGEPROOF_GITLAB_TOKEN</code>, <code>GITLAB_TOKEN</code>, or <code>CI_JOB_TOKEN</code>, in that order. A personal or project token uses the <code>PRIVATE-TOKEN</code> header and needs the <code>api</code> scope. A job token uses the <code>JOB-TOKEN</code> header. Mark the variable as masked. Without a token, the job still checks the merge request and skips the comment. The request goes to the host in <code>CI_API_V4_URL</code>, or to <code>https://gitlab.com/api/v4</code> when that variable is empty.</p>
 
 <h2>Stop a blocked merge request from merging</h2>
 <p>A failed job does not stop a merge by default. In the project, open <strong>Settings</strong>, then <strong>Merge requests</strong>, and turn on <strong>Pipelines must succeed</strong>.</p>
@@ -1616,6 +1616,7 @@ on:
 
 permissions:
   contents: read
+  pull-requests: write
 
 jobs:
   check:
@@ -1657,10 +1658,17 @@ jobs:
             cat stageproof-comment.md &gt;&gt; "$GITHUB_STEP_SUMMARY"
           fi
 
+          # Post or update one pull request comment. A fork token is often read-only.
+          post=0
+          if [ -f stageproof-comment.md ]; then
+            stageproof comment --file stageproof-comment.md --best-effort || post=$?
+          fi
+
           # 0 is PASSED or PROVEN. 1 is BLOCKED. 2 is NOT CHECKED.
           if [ "$result" -ne 0 ]; then
             exit "$result"
-          fi</pre>
+          fi
+          exit "$post"</pre>
 
 <h2>How each part works</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1670,7 +1678,8 @@ jobs:
     <tr><td><code>fetch-depth: 0</code></td><td>Stageproof reads the chart from the base branch, so that branch must be in the clone. The default checkout does not contain it.</td></tr>
     <tr><td><code>origin/${{ github.base_ref }}</code></td><td>The branch the pull request will merge into.</td></tr>
     <tr><td><code>GITHUB_STEP_SUMMARY</code></td><td>The Markdown report is added to the summary page of the workflow run.</td></tr>
-    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code>. Exit code <code>1</code> and <code>2</code> fail the workflow. The summary is written before that exit.</td></tr>
+    <tr><td><code>pull-requests: write</code></td><td><code>stageproof comment</code> uses <code>GITHUB_TOKEN</code> to post or update one comment on <code>api.github.com</code>. A fork pull request often has a read-only token. <code>--best-effort</code> leaves the job green in that case. The v0.2.0 release archive does not include this command.</td></tr>
+    <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code>. Exit code <code>1</code> and <code>2</code> fail the workflow. The summary is written first. The check exit code is kept when the comment command also fails.</td></tr>
   </tbody>
 </table></div>
 <p>Set <code>--current-k8s</code> to the Kubernetes version of the cluster you deploy to.</p>
@@ -1736,6 +1745,7 @@ workflow:
     <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>.</td></tr>
     <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory.</td></tr>
     <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
+    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file from <code>--comment-file</code>, or updates the comment that already contains the marker. It is not in the v0.2.0 binary.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1876,12 +1886,31 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 </table></div>
 <p>See <a href="#config">Configuration file</a> for what the file contains.</p>
 
+<h2><code>stageproof comment</code></h2>
+<p>Reads the Markdown file written by <code>--comment-file</code> and posts it on the pull request or merge request. A later run updates the comment that contains the marker. The default marker is <code>&lt;!-- stageproof-comment --&gt;</code>. The command exits 0 when the comment is written. It exits 2 when the file, the token, or the permission is missing. That exit code is not an upgrade verdict. Keep the exit code from <code>check</code> or <code>check-pr</code> and run this command after it. <code>--best-effort</code> exits 0 on HTTP 403. The v0.2.0 binary does not include this command.</p>
+<div class="doc-table-wrap"><table class="doc-table">
+  <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
+  <tbody>
+    <tr><td><code>--file &lt;file&gt;</code></td><td>Required</td><td>The Markdown file from <code>--comment-file</code>.</td></tr>
+    <tr><td><code>--provider auto|github|gitlab</code></td><td><code>auto</code></td><td><code>auto</code> uses GitHub when <code>GITHUB_ACTIONS</code> is <code>true</code>, and GitLab when <code>GITLAB_CI</code> is <code>true</code>.</td></tr>
+    <tr><td><code>--pr &lt;number&gt;</code></td><td>The Actions event</td><td>GitHub pull request number. Otherwise <code>GITHUB_EVENT_PATH</code> or <code>refs/pull/&lt;number&gt;/merge</code> in <code>GITHUB_REF</code>.</td></tr>
+    <tr><td><code>--mr &lt;iid&gt;</code></td><td><code>CI_MERGE_REQUEST_IID</code></td><td>GitLab merge request iid.</td></tr>
+    <tr><td><code>--repo &lt;owner/name&gt;</code></td><td><code>GITHUB_REPOSITORY</code> or <code>CI_PROJECT_ID</code></td><td>GitHub <code>owner/name</code>, or a GitLab project id or <code>group/project</code> path.</td></tr>
+    <tr><td><code>--marker &lt;text&gt;</code></td><td><code>&lt;!-- stageproof-comment --&gt;</code></td><td>The text that identifies the comment this command updates. One line, at most 200 characters.</td></tr>
+    <tr><td><code>--best-effort</code></td><td>Off</td><td>Exit 0 when the server returns HTTP 403. The default exit is 2, and the message names the missing permission.</td></tr>
+  </tbody>
+</table></div>
+<p>GitHub calls <code>api.github.com</code>, or the host in <code>GITHUB_API_URL</code>. The token is <code>GITHUB_TOKEN</code>. GitLab calls the host in <code>CI_API_V4_URL</code>, or <code>https://gitlab.com/api/v4</code>. The token is <code>STAGEPROOF_GITLAB_TOKEN</code>, then <code>GITLAB_TOKEN</code>, then <code>CI_JOB_TOKEN</code>. A job token is sent as <code>JOB-TOKEN</code>. The others are sent as <code>PRIVATE-TOKEN</code>. The token is not printed. The command does not follow a redirect to another host.</p>
+
 <h2>Environment variables</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Variable</th><th>Effect</th></tr></thead>
   <tbody>
     <tr><td><code>STAGEPROOF_COLOR</code></td><td><code>always</code> turns colored output on. <code>never</code> turns it off.</td></tr>
     <tr><td><code>NO_COLOR</code></td><td>Any value turns colored output off.</td></tr>
+    <tr><td><code>GITHUB_TOKEN</code></td><td>Token for <code>stageproof comment</code> on GitHub. Sent only to <code>api.github.com</code> or <code>GITHUB_API_URL</code>.</td></tr>
+    <tr><td><code>GITHUB_API_URL</code></td><td>GitHub Enterprise API. The default host is <code>https://api.github.com</code>.</td></tr>
+    <tr><td><code>STAGEPROOF_GITLAB_TOKEN</code>, <code>GITLAB_TOKEN</code>, <code>CI_JOB_TOKEN</code></td><td>Token for <code>stageproof comment</code> on GitLab, in that order. Sent only to the host in <code>CI_API_V4_URL</code>, or to <code>https://gitlab.com/api/v4</code> when that variable is empty.</td></tr>
   </tbody>
 </table></div>
 <p>Without these variables, output is colored in a terminal and when <code>CI</code> or <code>GITLAB_CI</code> is <code>true</code>.</p>

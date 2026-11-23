@@ -9,6 +9,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 - A chart that does not render because a default is empty, a schema field is null, the schema document is invalid, or a template names a missing API is rendered again with a placeholder. The same placeholder is used on the current chart and the new chart. A value you set is not replaced. The report names the keys. A failure that appears only on the new chart stays a blocker. This changes the exit code for charts whose defaults do not render: the check can finish instead of returning `NOT CHECKED`.
 
+### Added
+
+- `stageproof comment` posts the Markdown file from `--comment-file` on a GitHub pull request or a GitLab merge request, and a later run updates the comment that contains `<!-- stageproof-comment -->`. `--provider auto` reads `GITHUB_ACTIONS` or `GITLAB_CI`. GitHub uses `GITHUB_TOKEN` and calls `api.github.com`, or `GITHUB_API_URL` when that is set. GitLab uses `STAGEPROOF_GITLAB_TOKEN`, `GITLAB_TOKEN`, or `CI_JOB_TOKEN`, and calls `CI_API_V4_URL` or `https://gitlab.com/api/v4`. A missing file, token, or permission exits 2. `--best-effort` exits 0 on HTTP 403. The token is not printed. The v0.2.0 binary does not include this command.
+
 ### Security
 
 - Chart-default render retries confine all template, schema, and values reads inside the chart directory, refuse symlinks escaping that directory, cap read size, and reject unsafe characters in generated `--set` arguments.

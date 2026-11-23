@@ -18,6 +18,7 @@ Usage:
   stageproof check-pr --current-git <base-sha> [--new-git HEAD] [flags]
   stageproof fetch-apiserver --k8s <minor> --out <dir>
   stageproof explain <rule-id>
+  stageproof comment --file <comment.md> [--provider auto|github|gitlab]
   stageproof facts export --kubeconfig <file> --context <name> --out <file>
 
 Results:
@@ -70,6 +71,16 @@ Output:
   --format <fmt>           text | markdown | json | sarif (default "text")
   --out <file>             Save JSON evidence report to file
   --comment-file <file>    Also write the Markdown merge-request comment (job log stays colored text)
+
+Comment:
+  stageproof comment reads that Markdown file and posts it, or updates the comment that already contains the marker.
+  --file <file>            Markdown from --comment-file
+  --provider <name>        auto (default), github, or gitlab. auto uses GITHUB_ACTIONS or GITLAB_CI.
+  --pr <number>            GitHub pull request. Default is the current Actions event.
+  --mr <iid>               GitLab merge request. Default is CI_MERGE_REQUEST_IID.
+  --repo <owner/name>      GitHub repository, or a GitLab project id or group/project path.
+  --marker <text>          Default is <!-- stageproof-comment -->. A later run updates that comment.
+  --best-effort            Exit 0 when the server returns HTTP 403. The default exit is 2.
 
 Examples:
   # 1. Compare current chart vs new chart with your prod values + check K8s 1.33 & 1.34
