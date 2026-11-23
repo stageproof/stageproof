@@ -4,7 +4,7 @@ Stageproof checks a Kubernetes upgrade before you merge it: Helm charts, Argo CD
 
 You give it what you run today and what the pull request wants. It uses your values and the Kubernetes version your cluster already runs. It prints one word and an exit code. The pull request is only read. The cluster you deploy to is never contacted.
 
-The released binary is `v0.2.0`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
+The released binary is `v0.3.0`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
 
 ## Check a pull request
 
@@ -96,39 +96,39 @@ stageproof check \
 | Can the upgrade be applied on top of the old release? | The local API server applies the current objects and dry-runs the new ones. Immutable selectors, immutable Job pod templates, StatefulSet `volumeClaimTemplates`, and invalid CRD updates are `BLOCKED`. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED` unless `helm.sh/resource-policy: keep` is set. Restarts, privilege changes, and exposure changes are named without blocking. |
 | Does a rendered manifest tree change safely? | `stageproof check --before <path> --after <path>` skips Helm and runs the API server, impact, and API compatibility checks directly. |
 | What does my real cluster already run? | `stageproof facts export` reads server version, CRDs, admission policies, StorageClasses, and optional Helm release metadata (`get` and `list` only, no values). `--cluster-facts` feeds that file into `check` and `check-pr`. |
-| Can I control noise and output in CI? | `stageproof explain <rule-id>`, structured summary sections, `--format sarif`, and `.stageproof.yaml` `ignores`, `policy`, and live `smoke` commands read from the base ref. `stageproof comment` posts or updates one pull request comment from `--comment-file`. `stageproof mcp` serves `check`, `check_pr`, and `explain` on stdin and stdout. Neither command is in the v0.2.0 binary. |
+| Can I control noise and output in CI? | `stageproof explain <rule-id>`, structured summary sections, `--format sarif`, and `.stageproof.yaml` `ignores`, `policy`, and live `smoke` commands read from the base ref. `stageproof comment` posts or updates one pull request comment from `--comment-file`. `stageproof mcp` serves `check`, `check_pr`, and `explain` on stdin and stdout. |
 | Does the new release start, and can it roll back? | `--live`, on the temporary kind cluster above, including `smoke` commands from `.stageproof.yaml`. |
 
 `check-pr` finds every changed chart, every changed Argo CD Application, and every changed Flux HelmRelease, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. A source object or a `valuesFrom` file that a HelmRelease names is part of that check too. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`. One HelmRelease on its own is `stageproof check --flux-file`. `stageproof explain <rule-id>` prints what one rule means. `stageproof facts export` writes the server version, custom resource definitions, and installed chart versions from a kubeconfig you pass. `get` and `list` only. `--cluster-facts` reads that file. When a report has a delete, a CRD change, a privilege change, an exposure change, a values finding, a restart, or a check that did not finish, those sections are printed after the Kubernetes line. An empty section is left out. `--format sarif` prints a SARIF 2.1.0 log. `check-pr` reads `.stageproof.yaml` from the base ref. An ignore there keeps the finding and does not block.
 
 ## Install
 
-Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The `v0.2.0-live` image includes kind, kubectl, and the Docker client. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
+Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The `v0.3.0-live` image includes kind, kubectl, and the Docker client. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
 
 ### Container image
 
-`v0.2.0` publishes two images. `ghcr.io/stageproof/stageproof:v0.2.0` contains Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.2.0-live` adds kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client. A file check from a checkout:
+`v0.3.0` publishes two images. `ghcr.io/stageproof/stageproof:v0.3.0` contains Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.3.0-live` adds kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client. A file check from a checkout:
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.2.0 \
+  ghcr.io/stageproof/stageproof:v0.3.0 \
   check-pr --current-git "$BASE" --current-k8s 1.35
 ```
 
 To print the version:
 
 ```bash
-docker run --rm ghcr.io/stageproof/stageproof:v0.2.0 version
+docker run --rm ghcr.io/stageproof/stageproof:v0.3.0 version
 ```
 
-`--live` uses the `v0.2.0-live` image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
+`--live` uses the `v0.3.0-live` image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
 
 ```bash
 docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.2.0-live \
+  ghcr.io/stageproof/stageproof:v0.3.0-live \
   check-pr --current-git "$BASE" --current-k8s 1.35 --live
 ```
 
@@ -151,7 +151,7 @@ Download the archive for your OS from the [releases](https://github.com/stagepro
 ### From source
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.2.0
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.3.0
 ```
 
 ## What it leaves alone

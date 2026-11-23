@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.2.0.</span>
+        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.3.0.</span>
       </div>
     </div>
   </footer>
@@ -170,7 +170,7 @@
   </template>
 
   <template data-topic="install" data-group="Start here" data-title="Install">
-<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.2.0</code> binary from Homebrew, GitHub Releases, or the container image, or build the source on <code>main</code>.</p>
+<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.3.0</code> binary from Homebrew, GitHub Releases, or the container image, or build the source on <code>main</code>.</p>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -183,11 +183,11 @@
   </tbody>
 </table></div>
 
-<h2>Install the released binary (v0.2.0)</h2>
+<h2>Install the released binary (v0.3.0)</h2>
 <pre data-kind="cmd" data-label="Homebrew">
 brew install stageproof/stageproof/stageproof</pre>
 <pre data-kind="cmd" data-label="Container image">
-docker run --rm ghcr.io/stageproof/stageproof:v0.2.0 version</pre>
+docker run --rm ghcr.io/stageproof/stageproof:v0.3.0 version</pre>
 <p>Signed archives and SBOMs are published on <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>.</p>
 
 <h2>Build from source (main)</h2>
@@ -203,7 +203,7 @@ sudo mv stageproof /usr/local/bin/</pre>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.2.0 (Apache-2.0)</pre>
+stageproof v0.3.0 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
@@ -464,7 +464,7 @@ verdict  PASSED (exit 0)  · 90ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="manifests" data-group="Guides" data-title="Compare rendered manifests">
-<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.2.0.</p>
+<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.3.0.</p>
 
 <h2>The example</h2>
 <p>The directory <code>before</code> has a Deployment and a PersistentVolumeClaim. The directory <code>after</code> has the same Deployment and drops the claim. The sample below is the output of this command on that input.</p>
@@ -512,7 +512,7 @@ verdict  BLOCKED (exit 1)  · 3426ms · 0 AI calls
   </template>
 
   <template data-topic="argocd" data-group="Guides" data-title="Check an Argo CD Application">
-<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. The released binary is v0.2.0. It reads several sources and a chart path in this checkout.</p>
+<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. The released binary is v0.3.0. It reads several sources and a chart path in this checkout.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>An Application pins a Helm chart, in a chart repository or in this Git repository, and the pull request changes the chart or its values.</dd></div>
@@ -608,7 +608,7 @@ verdict  PASSED (exit 0)  · 1490ms · 0 AI calls
   </template>
 
   <template data-topic="flux" data-group="Guides" data-title="Check a Flux HelmRelease">
-<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. The released binary is v0.2.0.</p>
+<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. The released binary is v0.3.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>A HelmRelease pins a chart, in a Helm repository, an OCI registry, or this Git repository, and the pull request changes the chart, the source, or its values.</dd></div>
@@ -939,7 +939,7 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="cluster-facts" data-group="Guides" data-title="Read a cluster">
-<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.2.0.</p>
+<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.3.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want the Kubernetes version, the stored custom resource versions, and the node architectures to come from the cluster, instead of being typed on the command.</dd></div>
@@ -1452,7 +1452,7 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="helm4" data-group="Guides" data-title="Moving to Helm 4">
-<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.2.0.</p>
+<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.3.0.</p>
 
 <h2>What the check can decide</h2>
 <p><code>Chart.yaml</code> <code>apiVersion: v3</code> is <code>helm4.chart_v3</code>, a warning. Charts v3 are experimental. v2 charts work on Helm 3 and Helm 4. <a href="https://helm.sh/docs/overview/#charts-v3">Charts v3</a>.</p>
@@ -1514,7 +1514,7 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
 stageproof:
   stage: test
   image:
-    name: ghcr.io/stageproof/stageproof:v0.2.0
+    name: ghcr.io/stageproof/stageproof:v0.3.0
     entrypoint: [""]
   variables:
     GIT_DEPTH: "50"
@@ -1577,13 +1577,13 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
     <tr><td><code>rules</code></td><td>The job runs only in merge request pipelines, and only when a chart or Application file changed.</td></tr>
     <tr><td><code>GIT_DEPTH</code> and <code>git fetch</code></td><td>Stageproof reads the chart from the target branch, so that commit must be in the clone. A clone with depth 1 does not contain it.</td></tr>
     <tr><td><code>set +e</code> around the command</td><td>The job must keep running after a non-zero exit code, so that it can post the comment before it fails.</td></tr>
-    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file, or updates the note that already contains <code>&lt;!-- stageproof-comment --&gt;</code>. The v0.2.0 image does not include this command.</td></tr>
+    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file, or updates the note that already contains <code>&lt;!-- stageproof-comment --&gt;</code>.</td></tr>
     <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code> and the job stays green. Exit code <code>1</code> (<code>BLOCKED</code>) and <code>2</code> (<code>NOT CHECKED</code>) fail the job. That exit is kept even when the comment command fails. If the check passed and the comment did not, the job fails with the comment command's exit code.</td></tr>
   </tbody>
 </table></div>
 
 <h2>The comment on the merge request</h2>
-<p><code>stageproof comment</code> posts the Markdown report, or updates the existing note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. A later run does not add a second note. A merge request that changes several charts gets one comment that covers all of them. The command is not in the v0.2.0 image. Use a release that includes it.</p>
+<p><code>stageproof comment</code> posts the Markdown report, or updates the existing note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. A later run does not add a second note. A merge request that changes several charts gets one comment that covers all of them.</p>
 <p>It reads <code>CI_API_V4_URL</code>, <code>CI_PROJECT_ID</code>, and <code>CI_MERGE_REQUEST_IID</code>. The token is <code>STAGEPROOF_GITLAB_TOKEN</code>, <code>GITLAB_TOKEN</code>, or <code>CI_JOB_TOKEN</code>, in that order. A personal or project token uses the <code>PRIVATE-TOKEN</code> header and needs the <code>api</code> scope. A job token uses the <code>JOB-TOKEN</code> header. Mark the variable as masked. Without a token, the job still checks the merge request and skips the comment. The request goes to the host in <code>CI_API_V4_URL</code>, or to <code>https://gitlab.com/api/v4</code> when that variable is empty.</p>
 
 <h2>Stop a blocked merge request from merging</h2>
@@ -1634,11 +1634,11 @@ jobs:
           tar -xzf /tmp/helm.tgz -C /tmp
           sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
 
-      - name: Install Stageproof v0.2.0
+      - name: Install Stageproof v0.3.0
         run: |
           set -euo pipefail
-          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.2.0/checksums.txt
-          curl -fsSL -o stageproof_0.2.0_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.2.0/stageproof_0.2.0_linux_amd64.tar.gz
+          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.3.0/checksums.txt
+          curl -fsSL -o stageproof_0.2.0_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.3.0/stageproof_0.2.0_linux_amd64.tar.gz
           sha256sum -c checksums.txt --ignore-missing
           tar -xzf stageproof_0.2.0_linux_amd64.tar.gz
           sudo mv stageproof /usr/local/bin/stageproof
@@ -1678,7 +1678,7 @@ jobs:
     <tr><td><code>fetch-depth: 0</code></td><td>Stageproof reads the chart from the base branch, so that branch must be in the clone. The default checkout does not contain it.</td></tr>
     <tr><td><code>origin/${{ github.base_ref }}</code></td><td>The branch the pull request will merge into.</td></tr>
     <tr><td><code>GITHUB_STEP_SUMMARY</code></td><td>The Markdown report is added to the summary page of the workflow run.</td></tr>
-    <tr><td><code>pull-requests: write</code></td><td><code>stageproof comment</code> uses <code>GITHUB_TOKEN</code> to post or update one comment on <code>api.github.com</code>. A fork pull request often has a read-only token. <code>--best-effort</code> leaves the job green in that case. The v0.2.0 release archive does not include this command.</td></tr>
+    <tr><td><code>pull-requests: write</code></td><td><code>stageproof comment</code> uses <code>GITHUB_TOKEN</code> to post or update one comment on <code>api.github.com</code>. A fork pull request often has a read-only token. <code>--best-effort</code> leaves the job green in that case.</td></tr>
     <tr><td>The last <code>if</code></td><td>Exit code <code>0</code> is <code>PASSED</code> or <code>PROVEN</code>. Exit code <code>1</code> and <code>2</code> fail the workflow. The summary is written first. The check exit code is kept when the comment command also fails.</td></tr>
   </tbody>
 </table></div>
@@ -1733,7 +1733,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.2.0.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.3.0.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1745,8 +1745,8 @@ workflow:
     <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>.</td></tr>
     <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory.</td></tr>
     <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
-    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file from <code>--comment-file</code>, or updates the comment that already contains the marker. It is not in the v0.2.0 binary.</td></tr>
-    <tr><td><code>stageproof mcp</code></td><td>Serves <code>check</code>, <code>check_pr</code>, and <code>explain</code> on stdin and stdout. Paths stay inside <code>--root</code>. It does not open a port. It is not in the v0.2.0 binary.</td></tr>
+    <tr><td><code>stageproof comment</code></td><td>Posts the Markdown file from <code>--comment-file</code>, or updates the comment that already contains the marker.</td></tr>
+    <tr><td><code>stageproof mcp</code></td><td>Serves <code>check</code>, <code>check_pr</code>, and <code>explain</code> on stdin and stdout. Paths stay inside <code>--root</code>. It does not open a port.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1888,7 +1888,7 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 <p>See <a href="#config">Configuration file</a> for what the file contains.</p>
 
 <h2><code>stageproof comment</code></h2>
-<p>Reads the Markdown file written by <code>--comment-file</code> and posts it on the pull request or merge request. A later run updates the comment that contains the marker. The default marker is <code>&lt;!-- stageproof-comment --&gt;</code>. The command exits 0 when the comment is written. It exits 2 when the file, the token, or the permission is missing. That exit code is not an upgrade verdict. Keep the exit code from <code>check</code> or <code>check-pr</code> and run this command after it. <code>--best-effort</code> exits 0 on HTTP 403. The v0.2.0 binary does not include this command.</p>
+<p>Reads the Markdown file written by <code>--comment-file</code> and posts it on the pull request or merge request. A later run updates the comment that contains the marker. The default marker is <code>&lt;!-- stageproof-comment --&gt;</code>. The command exits 0 when the comment is written. It exits 2 when the file, the token, or the permission is missing. That exit code is not an upgrade verdict. Keep the exit code from <code>check</code> or <code>check-pr</code> and run this command after it. <code>--best-effort</code> exits 0 on HTTP 403.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
@@ -1904,7 +1904,7 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 <p>GitHub calls <code>api.github.com</code>, or the host in <code>GITHUB_API_URL</code>. The token is <code>GITHUB_TOKEN</code>. GitLab calls the host in <code>CI_API_V4_URL</code>, or <code>https://gitlab.com/api/v4</code>. The token is <code>STAGEPROOF_GITLAB_TOKEN</code>, then <code>GITLAB_TOKEN</code>, then <code>CI_JOB_TOKEN</code>. A job token is sent as <code>JOB-TOKEN</code>. The others are sent as <code>PRIVATE-TOKEN</code>. The token is not printed. The command does not follow a redirect to another host.</p>
 
 <h2><code>stageproof mcp</code></h2>
-<p>Speaks the Model Context Protocol on stdin and stdout. Logs go to stderr. The process does not open a port. The v0.2.0 binary does not include this command.</p>
+<p>Speaks the Model Context Protocol on stdin and stdout. Logs go to stderr. The process does not open a port.</p>
 <p>The tools are <code>check</code>, <code>check_pr</code>, and <code>explain</code>. <code>check</code> returns the same JSON report as <code>--format json</code>. <code>check_pr</code> returns the combined JSON that <code>check-pr --format json</code> writes. <code>explain</code> returns the rule id, level, title, meaning, and fix. Every path is relative to <code>--root</code>. An absolute path, a path that leaves that directory, or a symlink that points outside it is rejected. <code>live</code>, <code>out</code>, and <code>comment_file</code> are rejected. <code>api_server</code> defaults to <code>off</code>, so a tool call does not download an API server unless the caller sets <code>auto</code> or <code>require</code>. A check uses the same chart, registry, and API server hosts as <code>stageproof check</code>.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
@@ -2313,7 +2313,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.2.0.</p>
+<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.3.0.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">
