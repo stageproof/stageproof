@@ -24,6 +24,8 @@ A new or changed container image is asked of the registry named in that image re
 
 The node is a container that sets up its own networking and starts more containers. An unprivileged container is blocked from doing that, so a normal CI job cannot run `--live`.
 
+`stageproof comment` is the only command that posts to a forge. On GitHub it calls `https://api.github.com`, or the URL in `GITHUB_API_URL`, with `GITHUB_TOKEN`. On GitLab it calls the URL in `CI_API_V4_URL`, or `https://gitlab.com/api/v4` when that variable is empty, with `STAGEPROOF_GITLAB_TOKEN`, `GITLAB_TOKEN`, or `CI_JOB_TOKEN`. The token is not printed. A redirect to another host is refused. The command does not send the chart, the values, or the JSON report. It sends the Markdown file you pass to `--file`.
+
 ## Supported versions
 
 Security fixes apply to the latest released tag only.
