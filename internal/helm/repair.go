@@ -3,6 +3,7 @@ package helm
 import (
 	"context"
 	"encoding/json"
+	"io"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,8 +15,9 @@ import (
 )
 
 const (
-	repairPlaceholder = "stageproof-placeholder"
-	repairMaxAttempts = 24
+	repairPlaceholder  = "stageproof-placeholder"
+	repairMaxAttempts  = 24
+	repairMaxFileBytes = 4 << 20
 )
 
 // Repair is a render retry. SetStrings and Sets fill values the chart's own
@@ -310,6 +312,7 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 	repair.addHelmType(text, protected)
 	repair.addRenderSite(chartDir, text, opts, protected)
 	if repair.changesValues() || strings.Contains(text, "type mismatch on ") || (strings.Contains(text, "can't evaluate field") && len(repair.Remove) > 0) {
+		repair.sanitize()
 		return repair
 	}
 	paths := valuesPaths(text)
@@ -329,6 +332,7 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 	}
 	repair.addValuePaths(chartDir, text, paths, literals, protected)
 	repair.addEnabledChoice(chartDir, text, protected)
+	repair.sanitize()
 	return repair
 }
 
@@ -400,15 +404,15 @@ func schemaBlockName(line string) (string, bool) {
 		return "", false
 	}
 	name := strings.TrimSuffix(line, ":")
-	if name == "" || strings.ContainsAny(name, " /") {
+	if !safeRepairSegment(name) {
 		return "", false
 	}
 	return name, true
 }
 
 func chartName(dir string) string {
-	raw, err := os.ReadFile(filepath.Join(dir, "Chart.yaml"))
-	if err != nil {
+	raw, ok := readChartFile(dir, filepath.Join(dir, "Chart.yaml"))
+	if !ok {
 		return ""
 	}
 	var meta struct {
@@ -740,8 +744,8 @@ func findNeedles(chartDir, needle string) []needleHit {
 		if ext != ".yaml" && ext != ".yml" && ext != ".tpl" && ext != ".txt" {
 			return nil
 		}
-		buf, readErr := os.ReadFile(path)
-		if readErr != nil {
+		buf, ok := readChartFile(chartDir, path)
+		if !ok {
 			return nil
 		}
 		body := string(buf)
@@ -773,8 +777,8 @@ func (r *Repair) addRenderSite(chartDir, text string, opts RenderOptions, protec
 	if !ok {
 		return
 	}
-	body, err := os.ReadFile(file)
-	if err != nil {
+	body, ok := readChartFile(chartDir, file)
+	if !ok {
 		return
 	}
 	lines := strings.Split(string(body), "\n")
@@ -831,7 +835,7 @@ func (r *Repair) addEnabledChoice(chartDir, text string, protected map[string]bo
 	if match == nil {
 		return
 	}
-	node := yamlAt(filepath.Join(chartDir, "values.yaml"), []string{match[1]})
+	node := yamlAt(chartDir, filepath.Join(chartDir, "values.yaml"), []string{match[1]})
 	if node == nil || node.Kind != yaml.MappingNode {
 		return
 	}
@@ -859,25 +863,60 @@ func executedTemplate(chartDir, text string) (string, int, bool) {
 		return "", 0, false
 	}
 	quoted := match[1]
-	if file := filepath.Join(chartDir, quoted); fileExists(file) {
+	if file, ok := safeChartPath(chartDir, filepath.Join(chartDir, quoted)); ok {
 		return file, line, true
 	}
 	if i := strings.Index(quoted, "/"); i >= 0 {
-		if file := filepath.Join(chartDir, quoted[i+1:]); fileExists(file) {
+		if file, ok := safeChartPath(chartDir, filepath.Join(chartDir, quoted[i+1:])); ok {
 			return file, line, true
 		}
 	}
 	return "", 0, false
 }
 
-func fileExists(path string) bool {
-	info, err := os.Stat(path)
-	return err == nil && !info.IsDir()
+func safeChartPath(chartDir, candidate string) (string, bool) {
+	if chartDir == "" || candidate == "" {
+		return "", false
+	}
+	root, err := filepath.EvalSymlinks(chartDir)
+	if err != nil {
+		return "", false
+	}
+	resolved, err := filepath.EvalSymlinks(candidate)
+	if err != nil {
+		return "", false
+	}
+	rel, err := filepath.Rel(root, resolved)
+	if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(os.PathSeparator)) || filepath.IsAbs(rel) {
+		return "", false
+	}
+	info, err := os.Stat(resolved)
+	if err != nil || info.IsDir() {
+		return "", false
+	}
+	return resolved, true
+}
+
+func readChartFile(chartDir, candidate string) ([]byte, bool) {
+	resolved, ok := safeChartPath(chartDir, candidate)
+	if !ok {
+		return nil, false
+	}
+	f, err := os.Open(resolved)
+	if err != nil {
+		return nil, false
+	}
+	defer func() { _ = f.Close() }()
+	buf, err := io.ReadAll(io.LimitReader(f, repairMaxFileBytes+1))
+	if err != nil || len(buf) > repairMaxFileBytes {
+		return nil, false
+	}
+	return buf, true
 }
 
 func schemaAt(chartDir, pointer string) map[string]any {
-	raw, err := os.ReadFile(filepath.Join(chartDir, "values.schema.json"))
-	if err != nil {
+	raw, ok := readChartFile(chartDir, filepath.Join(chartDir, "values.schema.json"))
+	if !ok {
 		return nil
 	}
 	var doc any
@@ -1138,8 +1177,8 @@ func valuesPrefix(chartDir, file string) string {
 }
 
 func chartAlias(parent, dirName string) string {
-	raw, err := os.ReadFile(filepath.Join(parent, "Chart.yaml"))
-	if err != nil {
+	raw, ok := readChartFile(parent, filepath.Join(parent, "Chart.yaml"))
+	if !ok {
 		return dirName
 	}
 	var meta struct {
@@ -1227,33 +1266,37 @@ func alreadySet(path string, groups ...[]string) bool {
 }
 
 func mappingAt(chartDir, path string) bool {
-	if chartDir == "" || path == "" {
+	if chartDir == "" || !safeRepairKey(path) {
 		return false
 	}
 	segs := splitDot(path)
 	file := filepath.Join(chartDir, "values.yaml")
 	// A subchart value lives in the subchart file under the remaining path.
-	if len(segs) == 1 {
-		info, err := os.Stat(filepath.Join(chartDir, "charts", segs[0]))
-		if err == nil && info.IsDir() {
-			return true
-		}
-	}
-	if len(segs) > 1 {
-		sub := filepath.Join(chartDir, "charts", segs[0], "values.yaml")
-		if _, err := os.Stat(sub); err == nil {
-			if node := yamlAt(sub, segs[1:]); node != nil && node.Kind == yaml.MappingNode {
-				return true
+	if len(segs) == 1 && safeRepairSegment(segs[0]) {
+		subDir := filepath.Join(chartDir, "charts", segs[0])
+		if root, err := filepath.EvalSymlinks(chartDir); err == nil {
+			if resolved, err := filepath.EvalSymlinks(subDir); err == nil {
+				if rel, err := filepath.Rel(root, resolved); err == nil && rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)) {
+					if info, err := os.Stat(resolved); err == nil && info.IsDir() {
+						return true
+					}
+				}
 			}
 		}
 	}
-	node := yamlAt(file, segs)
+	if len(segs) > 1 && safeRepairSegment(segs[0]) {
+		sub := filepath.Join(chartDir, "charts", segs[0], "values.yaml")
+		if node := yamlAt(chartDir, sub, segs[1:]); node != nil && node.Kind == yaml.MappingNode {
+			return true
+		}
+	}
+	node := yamlAt(chartDir, file, segs)
 	return node != nil && node.Kind == yaml.MappingNode
 }
 
-func yamlAt(path string, segs []string) *yaml.Node {
-	raw, err := os.ReadFile(path)
-	if err != nil {
+func yamlAt(chartDir, path string, segs []string) *yaml.Node {
+	raw, ok := readChartFile(chartDir, path)
+	if !ok {
 		return nil
 	}
 	var doc yaml.Node
@@ -1290,4 +1333,81 @@ func splitDot(path string) []string {
 		return nil
 	}
 	return strings.Split(path, ".")
+}
+
+// sanitize drops any key or value that could split Helm --set* arguments on
+// commas, inject extra assignments, or traverse outside the chart tree.
+func (r *Repair) sanitize() {
+	r.SetStrings = filterSafeAssignments(r.SetStrings, false)
+	r.Sets = filterSafeAssignments(r.Sets, false)
+	r.SetJSON = filterSafeAssignments(r.SetJSON, true)
+	var cleanRemove []string
+	for _, key := range r.Remove {
+		if safeRepairKey(key) {
+			cleanRemove = append(cleanRemove, key)
+		}
+	}
+	r.Remove = cleanRemove
+}
+
+func filterSafeAssignments(assignments []string, isJSON bool) []string {
+	var out []string
+	for _, item := range assignments {
+		key, val, ok := strings.Cut(item, "=")
+		if !ok || !safeRepairKey(key) {
+			continue
+		}
+		if isJSON {
+			if !safeRepairJSON(val) {
+				continue
+			}
+		} else if !safeRepairValue(val) {
+			continue
+		}
+		out = append(out, key+"="+val)
+	}
+	return out
+}
+
+func safeRepairKey(path string) bool {
+	if path == "" || len(path) > 256 {
+		return false
+	}
+	for _, seg := range strings.Split(path, ".") {
+		if !safeRepairSegment(seg) {
+			return false
+		}
+	}
+	return true
+}
+
+func safeRepairSegment(seg string) bool {
+	if seg == "" || seg == "." || seg == ".." {
+		return false
+	}
+	for _, r := range seg {
+		ok := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-'
+		if !ok {
+			return false
+		}
+	}
+	return true
+}
+
+func safeRepairValue(val string) bool {
+	if val == "" || len(val) > 256 {
+		return false
+	}
+	if strings.ContainsAny(val, ",=\n\r\x00\"'\\{}[]") {
+		return false
+	}
+	return true
+}
+
+func safeRepairJSON(val string) bool {
+	if !strings.HasPrefix(val, `["`) || !strings.HasSuffix(val, `"]`) {
+		return false
+	}
+	inner := val[2 : len(val)-2]
+	return safeRepairValue(inner)
 }

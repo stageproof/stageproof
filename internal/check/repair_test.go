@@ -119,6 +119,37 @@ func TestUserValueIsNotReplaced(t *testing.T) {
 	}
 }
 
+func TestRenderErrorScrubsCallerSecretNotRepairValues(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm is not installed")
+	}
+	tmpl := "{{- fail (printf \"bad token=%s ready=true\" .Values.secretToken) -}}\n"
+	base := chartWithValues(t, "secretToken: \"\"\n", tmpl)
+	head := chartWithValues(t, "secretToken: \"\"\n", tmpl)
+	rep := Run(context.Background(), Input{
+		BaseDir:       base,
+		HeadDir:       head,
+		BaseSetString: []string{"secretToken=super-secret-value"},
+		HeadSetString: []string{"secretToken=super-secret-value"},
+		Started:       time.Now(),
+	})
+	if rep.Verdict != verdict.NotChecked {
+		t.Fatalf("verdict %s", rep.Verdict)
+	}
+	for _, ch := range rep.Checks {
+		if ch.Name == "baseline helm template" {
+			if strings.Contains(ch.Summary, "super-secret-value") {
+				t.Fatalf("caller secret leaked: %s", ch.Summary)
+			}
+			if !strings.Contains(ch.Summary, "ready=true") {
+				t.Fatalf("literal true was over-redacted: %s", ch.Summary)
+			}
+			return
+		}
+	}
+	t.Fatalf("baseline check missing: %+v", rep.Checks)
+}
+
 func configMapUsingName() string {
 	return "apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: demo\ndata:\n  name: {{ if .Values.enabled }}{{ required \"name is required in chart values\" .Values.name | quote }}{{ else }}\"none\"{{ end }}\n"
 }

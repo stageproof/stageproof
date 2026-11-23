@@ -11,6 +11,22 @@ import (
 	"testing"
 )
 
+func TestPullOCIFallbackArgs(t *testing.T) {
+	got, ok := pullOCIFallbackArgs("oci://registry-1.docker.io/cloudpirates/rabbitmq", "rabbitmq", "0.21.33", "/tmp/out")
+	if !ok {
+		t.Fatal("expected fallback for oci URL ending with chart name")
+	}
+	if len(got) < 2 || got[1] != "oci://registry-1.docker.io/cloudpirates/rabbitmq" {
+		t.Fatalf("fallback args = %#v", got)
+	}
+	if _, ok := pullOCIFallbackArgs("oci://registry-1.docker.io/cloudpirates", "rabbitmq", "0.21.33", "/tmp/out"); ok {
+		t.Fatal("unexpected fallback when oci URL does not end with chart name")
+	}
+	if _, ok := pullOCIFallbackArgs("https://charts.example/rabbitmq", "rabbitmq", "0.21.33", "/tmp/out"); ok {
+		t.Fatal("unexpected fallback for https repo")
+	}
+}
+
 func TestScrubUserinfo(t *testing.T) {
 	got := scrubUserinfo("get https://user:s3cret@charts.example/index.yaml failed")
 	if strings.Contains(got, "s3cret") || strings.Contains(got, "user:") {

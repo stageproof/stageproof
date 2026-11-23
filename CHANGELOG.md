@@ -11,7 +11,13 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ### Security
 
+- Chart-default render retries confine all template, schema, and values reads inside the chart directory, refuse symlinks escaping that directory, cap read size, and reject unsafe characters in generated `--set` arguments.
 - Image checks use `github.com/google/go-containerregistry` v0.22.1. `github.com/docker/distribution` v2.8.3 is no longer in the module graph. `github.com/docker/cli` is v29.7.2.
+
+### Fixed
+
+- `stageproof check --repo` retries an `oci://` URL directly when it already ends with `/<chart>` and `<repo>/<chart>` fails.
+- Render error scrubbing only redacts values passed by the caller, not boolean or placeholder values invented while retrying chart defaults.
 
 ## [0.2.0] - 2026-11-23
 

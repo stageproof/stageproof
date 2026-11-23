@@ -70,7 +70,7 @@
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
               <td>Pull request check</td>
-              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed Helm chart, Argo CD Application (multi-source, local paths, <code>.yaml.tmpl</code>), and Flux HelmRelease, and writes one comment and one JSON or SARIF report. Flux HelmReleases and multi-source Applications are in source on <code>main</code>.</td>
+              <td><code>stageproof check-pr</code> reads <code>git diff</code>, checks every changed Helm chart, Argo CD Application (multi-source, local paths, <code>.yaml.tmpl</code>), and Flux HelmRelease, and writes one comment and one JSON or SARIF report.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
@@ -95,7 +95,7 @@
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
               <td>Live rehearsal</td>
-              <td><code>--live</code> installs, upgrades, runs base-ref <code>smoke</code> commands (source on <code>main</code>), and rolls back in a temporary kind cluster on the machine that runs the command. Result <code>PROVEN</code> when that succeeds. <code>--require-rehearsal</code> makes a missing rehearsal <code>NOT CHECKED</code>.</td>
+              <td><code>--live</code> installs, upgrades, runs base-ref <code>smoke</code> commands, and rolls back in a temporary kind cluster on the machine that runs the command. Result <code>PROVEN</code> when that succeeds. <code>--require-rehearsal</code> makes a missing rehearsal <code>NOT CHECKED</code>.</td>
             </tr>
             <tr>
               <td><span class="verdict-badge ok">Ships</span></td>
