@@ -115,14 +115,12 @@ func HelmCompare(ctx context.Context, in Input, st *State) {
 
 func headOptions(in Input, st *State) helm.RenderOptions {
 	opts := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
-	opts.SetStrings = append(opts.SetStrings, st.Placeholders...)
-	return opts
+	return st.applyRepair(opts)
 }
 
 func baseOptions(in Input, st *State) helm.RenderOptions {
 	opts := in.renderOptions(in.BaseDir, in.BaseValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs)
-	opts.SetStrings = append(opts.SetStrings, st.Placeholders...)
-	return opts
+	return st.applyRepair(opts)
 }
 
 func findingsFor(label string, diff helm.RenderDiff) []verdict.Finding {

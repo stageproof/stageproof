@@ -41,10 +41,15 @@ type KindOptions struct {
 	HeadValues        []string
 	SetValues         []string
 	SetStrings        []string
-	ExternalCRDs      []string
-	ExtraCRDFiles     []string
-	Timeout           time.Duration
-	RunHelmTest       bool
+	SetJSON           []string
+	// APIVersions and SkipSchemaValidation are the same render repairs the
+	// file check used, so a live install can render the chart too.
+	APIVersions          []string
+	SkipSchemaValidation bool
+	ExternalCRDs         []string
+	ExtraCRDFiles        []string
+	Timeout              time.Duration
+	RunHelmTest          bool
 	// Smoke runs after the upgrade and before rollback. Empty skips the step.
 	Smoke []config.SmokeTest
 	// Secrets are user values. Smoke output is scrubbed with them.
@@ -187,6 +192,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 		for _, ss := range opts.SetStrings {
 			installArgs = append(installArgs, "--set-string", ss)
 		}
+		installArgs = append(installArgs, repairHelmArgs(opts)...)
 
 		bErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, installArgs)
 		if bErr != nil {
@@ -221,6 +227,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 				} else {
 					_, _ = runCmd(ctx, kubeconfig, "helm", "uninstall", relName, "--namespace", ns, "--wait", "--timeout", "2m", "--ignore-not-found")
 					headArgs := helmInstallArgs(relName, opts.HeadChartDir, ns, waitTimeout, opts.HeadValues, opts.SetValues, opts.SetStrings)
+					headArgs = append(headArgs, repairHelmArgs(opts)...)
 					cErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, headArgs)
 					if cErr != nil {
 						cdiag, _, _ := diagnoseNamespaceFailure(ctx, kubeconfig, ns, scrubRehearsal(cErr.Error(), opts.Secrets))
@@ -314,6 +321,7 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 	for _, ss := range opts.SetStrings {
 		upgArgs = append(upgArgs, "--set-string", ss)
 	}
+	upgArgs = append(upgArgs, repairHelmArgs(opts)...)
 
 	uErr := runHelmWaitWithFastFail(ctx, kubeconfig, ns, upgArgs)
 	if uErr != nil {
@@ -465,6 +473,20 @@ func RunKindRehearsal(ctx context.Context, opts KindOptions) (*Outcome, error) {
 
 	out.RuntimeSucceeded = true
 	return out, nil
+}
+
+func repairHelmArgs(opts KindOptions) []string {
+	var args []string
+	for _, av := range opts.APIVersions {
+		args = append(args, "--api-versions", av)
+	}
+	if opts.SkipSchemaValidation {
+		args = append(args, "--skip-schema-validation")
+	}
+	for _, item := range opts.SetJSON {
+		args = append(args, "--set-json", item)
+	}
+	return args
 }
 
 func helmInstallArgs(rel, chart, ns, timeout string, values, sets, setStrings []string) []string {

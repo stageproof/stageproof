@@ -17,8 +17,14 @@ type RenderOptions struct {
 	ValuesFiles []string
 	SetValues   []string
 	SetStrings  []string
+	// SetJSON is Helm --set-json. Arrays and objects need it because --set
+	// parses brackets in a way that rejects some charts.
+	SetJSON     []string
 	KubeVersion string
 	APIVersions []string
+	// SkipSchemaValidation disables values.schema.json. It is used when the
+	// schema document itself does not validate, so the templates can still render.
+	SkipSchemaValidation bool
 	// SkipCRDs omits CRDs from the rendered output. Argo CD sets this from
 	// spec.source.helm.skipCrds, which is Helm's --skip-crds.
 	// https://argo-cd.readthedocs.io/en/stable/user-guide/helm/
@@ -63,6 +69,9 @@ func RenderChartBinary(ctx context.Context, bin string, opts RenderOptions) (str
 	for _, av := range opts.APIVersions {
 		args = append(args, "--api-versions", av)
 	}
+	if opts.SkipSchemaValidation {
+		args = append(args, "--skip-schema-validation")
+	}
 	for _, vf := range opts.ValuesFiles {
 		args = append(args, "-f", vf)
 	}
@@ -71,6 +80,9 @@ func RenderChartBinary(ctx context.Context, bin string, opts RenderOptions) (str
 	}
 	for _, ss := range opts.SetStrings {
 		args = append(args, "--set-string", ss)
+	}
+	for _, sj := range opts.SetJSON {
+		args = append(args, "--set-json", sj)
 	}
 	for _, sf := range opts.SetFiles {
 		args = append(args, "--set-file", sf)
