@@ -6,7 +6,7 @@ This page is the scope of the command line tool.
 
 ## The job, in one paragraph
 
-Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, an Argo CD Application might name the chart and the version, or a Flux HelmRelease might. It can also compare two sets of rendered manifests, and two versions of a chart in a Helm repository or an OCI registry. The released binary is v0.2.0. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. `stageproof explain <rule-id>` prints the level, the meaning, and what to do for one rule, and exits 2 when the id is not a rule. The job log and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list, and leave out an empty section. `--format sarif` prints one SARIF 2.1.0 log. `--format json` and `--out` match `docs/report.schema.json`. `check-pr` reads `.stageproof.yaml` from the base ref. An ignore on that file keeps the finding in the report and stops it from blocking. An ignore added only in the pull request does not. `check` and `check-pr` do not edit the pull request. `stageproof comment` posts or updates one comment from the Markdown file you pass, and it does not merge the pull request. Nothing in the tool changes a cluster you already have. `stageproof comment` is not in the v0.2.0 binary. `stageproof mcp` serves `check`, `check_pr`, and `explain` on stdin and stdout for a directory you name with `--root`. It does not open a port, write a file, or start a live rehearsal. It is not in the v0.2.0 binary.
+Stageproof looks at a pull request that changes a Helm chart and says whether that upgrade is safe to merge. The chart might live in the repository, an Argo CD Application might name the chart and the version, or a Flux HelmRelease might. It can also compare two sets of rendered manifests, and two versions of a chart in a Helm repository or an OCI registry. The released binary is v0.3.0. The tool compares the version you run now with the version the pull request wants, using the values you actually set and the Kubernetes version you say the cluster runs. It prints one result and exits 0, 1, or 2. `stageproof explain <rule-id>` prints the level, the meaning, and what to do for one rule, and exits 2 when the id is not a rule. The job log and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list, and leave out an empty section. `--format sarif` prints one SARIF 2.1.0 log. `--format json` and `--out` match `docs/report.schema.json`. `check-pr` reads `.stageproof.yaml` from the base ref. An ignore on that file keeps the finding in the report and stops it from blocking. An ignore added only in the pull request does not. `check` and `check-pr` do not edit the pull request. `stageproof comment` posts or updates one comment from the Markdown file you pass, and it does not merge the pull request. Nothing in the tool changes a cluster you already have. `stageproof mcp` serves `check`, `check_pr`, and `explain` on stdin and stdout for a directory you name with `--root`. It does not open a port, write a file, or start a live rehearsal.
 
 ## Two different upgrades
 
@@ -25,7 +25,7 @@ People say "Kubernetes update" for two different jobs. Stageproof only does the 
 
 ## Argo CD and Flux
 
-Argo CD and Flux are both in the released binary, v0.2.0.
+Argo CD and Flux are both in the released binary, v0.3.0.
 
 Both tools are ways to write down "this Helm chart, this version, these values." The check behind them is the same chart upgrade. A Flux file is not a second product.
 
@@ -64,6 +64,6 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 | `BLOCKED` | 1 | The upgrade has a problem the report names. CI should fail. |
 | `NOT CHECKED` | 2 | Stageproof did not finish, or `--require-rehearsal` was set and no upgrade rehearsal passed. CI should fail. This does not mean the upgrade is unsafe. A file check that did not rehearse stays `PASSED` and says it was not tested live. |
 
-A live rehearsal is `--live` on the runner that runs the command. `v0.2.0` does not read a saved rehearsal report. The previous release, v0.1.8, still accepts `--saved-live`.
+A live rehearsal is `--live` on the runner that runs the command. `v0.3.0` does not read a saved rehearsal report. The previous release, v0.1.8, still accepts `--saved-live`.
 
 Measured accuracy across 12 active incidents and 316 CNCF upgrade pairs (105 CNCF projects) is in [docs/accuracy.md](accuracy.md).
