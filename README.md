@@ -4,7 +4,7 @@ Stageproof checks a Kubernetes upgrade before you merge it: Helm charts, Argo CD
 
 You give it what you run today and what the pull request wants. It uses your values and the Kubernetes version your cluster already runs. It prints one word and an exit code. The pull request is only read. The cluster you deploy to is never contacted.
 
-The released binary is `v0.1.8` (Helm charts and single-source remote Argo CD Applications). Flux HelmReleases, rendered manifests, local API server proof, render-based values proof, impact and CRD safety checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands are in source on `main`.
+The released binary is `v0.2.0`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
 
 ## Check a pull request
 
@@ -73,7 +73,7 @@ stageproof check \
   --live
 ```
 
-Two versions in a Helm repository or an OCI registry (`main`). The charts are downloaded and removed. The released binary is v0.1.8 and does not have `--repo`. Without `--repo`, `--chart`, `--from`, and `--to` are still names for local chart directories.
+Two versions in a Helm repository or an OCI registry. The charts are downloaded and removed. Without `--repo`, `--chart`, `--from`, and `--to` are still names for local chart directories.
 
 ```bash
 stageproof check \
@@ -88,47 +88,47 @@ stageproof check \
 
 | Question | How |
 |---|---|
-| Does the new chart render with your values? | `helm template` on Helm 3 or Helm 4. `--helm-compare` renders with a second helm binary and reports differences (`main`). |
-| Does a values key you set still have an effect? | Reads templates and, on `main`, proves uncertain keys by rendering (`--values-proof default` or `full`). A key the old chart uses and the new chart ignores is `BLOCKED`. |
-| Does a new or changed image tag exist for your node architecture? | HTTP HEAD to the image registry named in the render (`main`, skip with `--offline`). Checks `linux/amd64` or every node architecture in `--cluster-facts`. |
-| Does the chart use an API your Kubernetes version removed? | A local Kubernetes API server of `--current-k8s` (`--api-server auto` on `main`). Otherwise a built-in table (`--api-server off`). |
+| Does the new chart render with your values? | `helm template` on Helm 3 or Helm 4. `--helm-compare` renders with a second helm binary and reports differences. |
+| Does a values key you set still have an effect? | Reads templates and proves uncertain keys by rendering (`--values-proof default` or `full`). A key the old chart uses and the new chart ignores is `BLOCKED`. |
+| Does a new or changed image tag exist for your node architecture? | HTTP HEAD to the image registry named in the render (skip with `--offline`). Checks `linux/amd64` or every node architecture in `--cluster-facts`. |
+| Does the chart use an API your Kubernetes version removed? | A local Kubernetes API server of `--current-k8s` (`--api-server auto`). Otherwise a built-in table (`--api-server off`). |
 | Will the next Kubernetes version remove an API the chart still uses? | `--next-k8s` prints a warning. The pull request can still merge. The cluster is not upgraded. |
-| Can the upgrade be applied on top of the old release? | The local API server applies the current objects and dry-runs the new ones (`main`). Immutable selectors, immutable Job pod templates, StatefulSet `volumeClaimTemplates`, and invalid CRD updates are `BLOCKED`. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED` unless `helm.sh/resource-policy: keep` is set. Restarts, privilege changes, and exposure changes are named without blocking. |
-| Does a rendered manifest tree change safely? | `stageproof check --before <path> --after <path>` skips Helm and runs the API server, impact, and API compatibility checks directly (`main`). |
-| What does my real cluster already run? | `stageproof facts export` reads server version, CRDs, admission policies, StorageClasses, and optional Helm release metadata (`get` and `list` only, no values). `--cluster-facts` feeds that file into `check` and `check-pr` (`main`). |
-| Can I control noise and output in CI? | `stageproof explain <rule-id>`, structured summary sections, `--format sarif`, and `.stageproof.yaml` `ignores`, `policy`, and live `smoke` commands read from the base ref (`main`). |
-| Does the new release start, and can it roll back? | `--live`, on the temporary kind cluster above, including `smoke` commands from `.stageproof.yaml` (`main`). |
+| Can the upgrade be applied on top of the old release? | The local API server applies the current objects and dry-runs the new ones. Immutable selectors, immutable Job pod templates, StatefulSet `volumeClaimTemplates`, and invalid CRD updates are `BLOCKED`. A deleted PersistentVolumeClaim, Namespace, or templated CRD is `BLOCKED` unless `helm.sh/resource-policy: keep` is set. Restarts, privilege changes, and exposure changes are named without blocking. |
+| Does a rendered manifest tree change safely? | `stageproof check --before <path> --after <path>` skips Helm and runs the API server, impact, and API compatibility checks directly. |
+| What does my real cluster already run? | `stageproof facts export` reads server version, CRDs, admission policies, StorageClasses, and optional Helm release metadata (`get` and `list` only, no values). `--cluster-facts` feeds that file into `check` and `check-pr`. |
+| Can I control noise and output in CI? | `stageproof explain <rule-id>`, structured summary sections, `--format sarif`, and `.stageproof.yaml` `ignores`, `policy`, and live `smoke` commands read from the base ref. |
+| Does the new release start, and can it roll back? | `--live`, on the temporary kind cluster above, including `smoke` commands from `.stageproof.yaml`. |
 
-`check-pr` finds every changed chart, every changed Argo CD Application, and every changed Flux HelmRelease, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. A source object or a `valuesFrom` file that a HelmRelease names is part of that check too. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`. One HelmRelease on its own is `stageproof check --flux-file`. The released binary is v0.1.8 and does not read a HelmRelease. `stageproof explain <rule-id>` prints what one rule means. The v0.1.8 release does not have that command. `stageproof facts export` writes the server version, custom resource definitions, and installed chart versions from a kubeconfig you pass. `get` and `list` only. `--cluster-facts` reads that file. The v0.1.8 release does not. When a report has a delete, a CRD change, a privilege change, an exposure change, a values finding, a restart, or a check that did not finish, those sections are printed after the Kubernetes line. An empty section is left out. The v0.1.8 release does not print them. `--format sarif` prints a SARIF 2.1.0 log. The v0.1.8 release does not have that format. `check-pr` reads `.stageproof.yaml` from the base ref. An ignore there keeps the finding and does not block. The v0.1.8 release does not read ignores or policy.
+`check-pr` finds every changed chart, every changed Argo CD Application, and every changed Flux HelmRelease, by reading `git diff`. A values file that an Application names is part of that check, including a file outside the chart directory. A source object or a `valuesFrom` file that a HelmRelease names is part of that check too. It does not ask Renovate, GitHub, or GitLab what changed. One Application on its own is `stageproof check --argocd-file`. One HelmRelease on its own is `stageproof check --flux-file`. `stageproof explain <rule-id>` prints what one rule means. `stageproof facts export` writes the server version, custom resource definitions, and installed chart versions from a kubeconfig you pass. `get` and `list` only. `--cluster-facts` reads that file. When a report has a delete, a CRD change, a privilege change, an exposure change, a values finding, a restart, or a check that did not finish, those sections are printed after the Kubernetes line. An empty section is left out. `--format sarif` prints a SARIF 2.1.0 log. `check-pr` reads `.stageproof.yaml` from the base ref. An ignore there keeps the finding and does not block.
 
 ## Install
 
-Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The container image includes the first three. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
+Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The `v0.2.0-live` image includes kind, kubectl, and the Docker client. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
 
 ### Container image
 
-The `v0.1.8` image contains Stageproof, Helm 3.17.1, Git, kind 0.27.0, kubectl 1.35.0, and the Docker 29.9.2 client. Source on `main` builds two targets from `Dockerfile`: `stageproof` (Helm 3.22.1 and Git) and `live` (adding kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client). A file check from a checkout:
+`v0.2.0` publishes two images. `ghcr.io/stageproof/stageproof:v0.2.0` contains Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.2.0-live` adds kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client. A file check from a checkout:
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.1.8 \
+  ghcr.io/stageproof/stageproof:v0.2.0 \
   check-pr --current-git "$BASE" --current-k8s 1.35
 ```
 
 To print the version:
 
 ```bash
-docker run --rm ghcr.io/stageproof/stageproof:v0.1.8 version
+docker run --rm ghcr.io/stageproof/stageproof:v0.2.0 version
 ```
 
-`--live` uses that same image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
+`--live` uses the `v0.2.0-live` image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
 
 ```bash
 docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.1.8 \
+  ghcr.io/stageproof/stageproof:v0.2.0-live \
   check-pr --current-git "$BASE" --current-k8s 1.35 --live
 ```
 
@@ -151,16 +151,16 @@ Download the archive for your OS from the [releases](https://github.com/stagepro
 ### From source
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.1.8
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.2.0
 ```
 
 ## What it leaves alone
 
 Your cluster stays as it is. You pass the Kubernetes version it runs.
 
-Kustomize and Helmfile are skipped. Source on main reads a Flux HelmRelease and compares two rendered manifest trees with `--before` and `--after`. The v0.1.8 release cannot. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. A new or changed image tag is asked of the registry named in that reference. `--offline` skips that ask and does not change `--api-server`. The v0.1.8 release does not ask. `--helm-compare` renders with a second helm binary. The v0.1.8 release does not have that flag. Charts stay on the machine that runs the command.
+Kustomize and Helmfile are skipped. A Flux HelmRelease is read, and two rendered manifest trees are compared with `--before` and `--after`. `check-pr` still ignores a loose manifest that is not inside a chart. Terraform providers, the inside of a container image, and language packages are skipped. A new or changed image tag is asked of the registry named in that reference. `--offline` skips that ask and does not change `--api-server`. `--helm-compare` renders with a second helm binary. Charts stay on the machine that runs the command.
 
-In `v0.1.8`, the values check reads templates only, so a key mentioned and ignored can look used. Source on `main` proves uncertain keys by rendering (`--values-proof default`, or `full` for every key). The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
+Uncertain values keys are proven by rendering (`--values-proof default`, or `full` for every key). The API server proof is a local process of the minor you name, not your cluster. Deprecations still come from a table. Both limits are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
 ## Check a download
 

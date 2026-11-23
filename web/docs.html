@@ -76,7 +76,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.1.8.</span>
+        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.2.0.</span>
       </div>
     </div>
   </footer>
@@ -110,20 +110,20 @@
   <thead><tr><th>Check</th><th>Question it answers</th><th>When it runs</th></tr></thead>
   <tbody>
     <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart, Argo CD, and Flux runs (skipped for <code>--before</code> / <code>--after</code>)</td></tr>
-    <tr><td>Values proof</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file (render-proven on <code>main</code>, templates-only in <code>v0.1.8</code>)</td></tr>
-    <tr><td>Image tags</td><td>Does a new or changed container image tag exist for your node architecture?</td><td>Source on <code>main</code> (skip with <code>--offline</code>)</td></tr>
-    <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is <code>apiVersion: v3</code> set?</td><td>Source on <code>main</code> (<code>--helm-compare</code>)</td></tr>
-    <tr><td>Local API server and API versions</td><td>Does a local Kubernetes API server of <code>--current-k8s</code> accept the upgrade, and are any APIs removed or deprecated?</td><td>Every run (local API server default on <code>main</code>; table-only with <code>--api-server off</code> or in <code>v0.1.8</code>)</td></tr>
-    <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>When comparing before and after (source on <code>main</code>)</td></tr>
-    <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does your real cluster run?</td><td>With <code>stageproof facts export</code> and <code>--cluster-facts</code> (source on <code>main</code>, read-only)</td></tr>
+    <tr><td>Values proof</td><td>Does every key in your values file still have an effect in the new chart?</td><td>When you pass a values file. Uncertain keys are render-proven. <code>--values-proof full</code> render-tests every key.</td></tr>
+    <tr><td>Image tags</td><td>Does a new or changed container image tag exist for your node architecture?</td><td>When an image tag is new or changed (skip with <code>--offline</code>)</td></tr>
+    <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is <code>apiVersion: v3</code> set?</td><td>With <code>--helm-compare</code></td></tr>
+    <tr><td>Local API server and API versions</td><td>Does a local Kubernetes API server of <code>--current-k8s</code> accept the upgrade, and are any APIs removed or deprecated?</td><td>Every run. The local API server is the default. <code>--api-server off</code> uses the built-in table.</td></tr>
+    <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>When comparing the old and new objects</td></tr>
+    <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does your real cluster run?</td><td>With <code>stageproof facts export</code> and <code>--cluster-facts</code>. The calls are read-only.</td></tr>
     <tr><td>CRD size</td><td>Is a CRD too large to apply without server-side apply?</td><td>Every run</td></tr>
-    <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, run base-ref <code>smoke</code> commands (source on <code>main</code>), and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
+    <tr><td>Live rehearsal</td><td>Does the upgrade install, upgrade, run base-ref <code>smoke</code> commands, and roll back in a real cluster?</td><td>Only with <code>--live</code></td></tr>
   </tbody>
 </table></div>
 
 <h2>What you get back</h2>
 <p>Every run ends with one of four results. The exit code of the command carries the same information, so a CI job can act on it.</p>
-<p>The job log and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. A section with nothing in it is left out. Those lines are the finding messages. The report does not call a model. The v0.1.8 binary does not print this summary.</p>
+<p>The job log and the Markdown comment list Deletes, CRDs, Privilege, Exposure, Values, Restarts, and Not checked before the check list. A section with nothing in it is left out. Those lines are the finding messages. The report does not call a model.</p>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Result</th><th>Exit code</th><th>Meaning</th></tr></thead>
   <tbody>
@@ -150,10 +150,10 @@
   <thead><tr><th>Input</th><th>Status</th></tr></thead>
   <tbody>
     <tr><td>A Helm chart in a directory</td><td>Supported</td></tr>
-    <tr><td>Two versions of one chart in a Helm repository or an OCI registry (<code>--repo</code>, <code>--chart</code>, <code>--from</code>, <code>--to</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#cli">Commands and flags</a>.</td></tr>
-    <tr><td>An Argo CD <code>Application</code> (HTTPS chart repository, <code>oci://</code> registry, local Git chart path, multi-source, and <code>.yaml.tmpl</code>)</td><td>Supported (multi-source and local paths in source on <code>main</code>; <code>v0.1.8</code> reads one remote chart)</td></tr>
-    <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
-    <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported in source on <code>main</code>. Not in the <code>v0.1.8</code> binary. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
+    <tr><td>Two versions of one chart in a Helm repository or an OCI registry (<code>--repo</code>, <code>--chart</code>, <code>--from</code>, <code>--to</code>)</td><td>Supported. See <a href="#cli">Commands and flags</a>.</td></tr>
+    <tr><td>An Argo CD <code>Application</code> (HTTPS chart repository, <code>oci://</code> registry, local Git chart path, multi-source, and <code>.yaml.tmpl</code>)</td><td>Supported, including several sources and a chart path in this checkout</td></tr>
+    <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
+    <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
     <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are supported on <code>main</code>)</td></tr>
     <tr><td>Kustomize and Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
@@ -170,7 +170,7 @@
   </template>
 
   <template data-topic="install" data-group="Start here" data-title="Install">
-<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.1.8</code> binary from Homebrew, GitHub Releases, or the container image, or build source on <code>main</code> for the Phase 1 features ahead of <code>v0.2.0</code>.</p>
+<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.2.0</code> binary from Homebrew, GitHub Releases, or the container image, or build the source on <code>main</code>.</p>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -183,11 +183,11 @@
   </tbody>
 </table></div>
 
-<h2>Install the released binary (v0.1.8)</h2>
+<h2>Install the released binary (v0.2.0)</h2>
 <pre data-kind="cmd" data-label="Homebrew">
 brew install stageproof/stageproof/stageproof</pre>
 <pre data-kind="cmd" data-label="Container image">
-docker run --rm ghcr.io/stageproof/stageproof:v0.1.8 version</pre>
+docker run --rm ghcr.io/stageproof/stageproof:v0.2.0 version</pre>
 <p>Signed archives and SBOMs are published on <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>.</p>
 
 <h2>Build from source (main)</h2>
@@ -203,7 +203,7 @@ sudo mv stageproof /usr/local/bin/</pre>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.1.8 (Apache-2.0)</pre>
+stageproof v0.2.0 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
@@ -297,7 +297,7 @@ stageproof check --current-chart ./webapp-1.4.0 --new-chart ./webapp-1.5.0</pre>
   <tbody>
     <tr><td><code>--format markdown</code></td><td>The report as Markdown on standard output.</td></tr>
     <tr><td><code>--format json</code></td><td>The report as JSON on standard output. The first field is <code>schema_version</code>, and it is <code>1</code>. The shape is <code>docs/report.schema.json</code>.</td></tr>
-    <tr><td><code>--format sarif</code></td><td>One SARIF 2.1.0 log on standard output. A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. <code>--out</code> stays JSON. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>--format sarif</code></td><td>One SARIF 2.1.0 log on standard output. A blocker is <code>error</code>, a warning is <code>warning</code>, and info is <code>note</code>. The message is the finding message. <code>--out</code> stays JSON.</td></tr>
     <tr><td><code>--out report.json</code></td><td>The JSON report in a file, in addition to the normal output.</td></tr>
     <tr><td><code>--comment-file comment.md</code></td><td>The Markdown report in a file, in addition to the normal output. Use it for a pull request comment.</td></tr>
   </tbody>
@@ -464,7 +464,7 @@ verdict  PASSED (exit 0)  · 90ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="manifests" data-group="Guides" data-title="Compare rendered manifests">
-<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.1.8 and does not have these flags. This page describes the source on main.</p>
+<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.2.0.</p>
 
 <h2>The example</h2>
 <p>The directory <code>before</code> has a Deployment and a PersistentVolumeClaim. The directory <code>after</code> has the same Deployment and drops the claim. The sample below is the output of this command on that input.</p>
@@ -512,7 +512,7 @@ verdict  BLOCKED (exit 1)  · 3426ms · 0 AI calls
   </template>
 
   <template data-topic="argocd" data-group="Guides" data-title="Check an Argo CD Application">
-<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. This is the source on main. The released binary is v0.1.8 and reads one remote chart with inline <code>helm.values</code>.</p>
+<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. The released binary is v0.2.0. It reads several sources and a chart path in this checkout.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>An Application pins a Helm chart, in a chart repository or in this Git repository, and the pull request changes the chart or its values.</dd></div>
@@ -608,7 +608,7 @@ verdict  PASSED (exit 0)  · 1490ms · 0 AI calls
   </template>
 
   <template data-topic="flux" data-group="Guides" data-title="Check a Flux HelmRelease">
-<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. This is the source on main. The released binary is v0.1.8 and does not read a HelmRelease.</p>
+<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. The released binary is v0.2.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>A HelmRelease pins a chart, in a Helm repository, an OCI registry, or this Git repository, and the pull request changes the chart, the source, or its values.</dd></div>
@@ -939,7 +939,7 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="cluster-facts" data-group="Guides" data-title="Read a cluster">
-<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.1.8 and does not have this command.</p>
+<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.2.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want the Kubernetes version, the stored custom resource versions, and the node architectures to come from the cluster, instead of being typed on the command.</dd></div>
@@ -1452,7 +1452,7 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="helm4" data-group="Guides" data-title="Moving to Helm 4">
-<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.1.8. It does not have <code>--helm-compare</code>.</p>
+<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.2.0.</p>
 
 <h2>What the check can decide</h2>
 <p><code>Chart.yaml</code> <code>apiVersion: v3</code> is <code>helm4.chart_v3</code>, a warning. Charts v3 are experimental. v2 charts work on Helm 3 and Helm 4. <a href="https://helm.sh/docs/overview/#charts-v3">Charts v3</a>.</p>
@@ -1514,7 +1514,7 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
 stageproof:
   stage: test
   image:
-    name: ghcr.io/stageproof/stageproof:v0.1.8
+    name: ghcr.io/stageproof/stageproof:v0.2.0
     entrypoint: [""]
   variables:
     GIT_DEPTH: "50"
@@ -1633,13 +1633,13 @@ jobs:
           tar -xzf /tmp/helm.tgz -C /tmp
           sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
 
-      - name: Install Stageproof v0.1.8
+      - name: Install Stageproof v0.2.0
         run: |
           set -euo pipefail
-          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.1.8/checksums.txt
-          curl -fsSL -o stageproof_0.1.8_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.1.8/stageproof_0.1.8_linux_amd64.tar.gz
+          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.2.0/checksums.txt
+          curl -fsSL -o stageproof_0.2.0_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.2.0/stageproof_0.2.0_linux_amd64.tar.gz
           sha256sum -c checksums.txt --ignore-missing
-          tar -xzf stageproof_0.1.8_linux_amd64.tar.gz
+          tar -xzf stageproof_0.2.0_linux_amd64.tar.gz
           sudo mv stageproof /usr/local/bin/stageproof
 
       - name: Check the pull request
@@ -1724,7 +1724,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.1.8. It does not have <code>--before</code>, <code>--after</code>, <code>--repo</code>, <code>--api-server</code>, <code>--offline</code>, <code>--helm-compare</code>, <code>--format sarif</code>, <code>--cluster-facts</code>, <code>explain</code>, <code>fetch-apiserver</code>, or <code>facts export</code>.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.2.0.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -1733,9 +1733,9 @@ workflow:
     <tr><td><code>stageproof check</code></td><td>Checks one chart, two versions from a Helm repository or an OCI registry, one Argo CD Application, one Flux HelmRelease, or two sets of rendered manifests.</td></tr>
     <tr><td><code>stageproof check-pr</code></td><td>Finds the charts, Applications, and Flux HelmReleases that a branch changed, and checks each one.</td></tr>
     <tr><td><code>stageproof init</code></td><td>Writes a starter configuration file.</td></tr>
-    <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>. Not in the v0.1.8 binary.</td></tr>
-    <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory. Not in the v0.1.8 binary.</td></tr>
-    <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. Not in the v0.1.8 binary. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
+    <tr><td><code>stageproof explain &lt;rule-id&gt;</code></td><td>Prints the level, the meaning, and what to do for one rule. An unknown id exits 2. See <a href="#findings">Findings</a>.</td></tr>
+    <tr><td><code>stageproof fetch-apiserver</code></td><td>Downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for one Kubernetes minor into a directory.</td></tr>
+    <tr><td><code>stageproof facts export</code></td><td>Writes cluster facts as JSON. <code>get</code> and <code>list</code> only. See <a href="#cluster-facts">Read a cluster</a>.</td></tr>
     <tr><td><code>stageproof version</code></td><td>Prints the version.</td></tr>
     <tr><td><code>stageproof help</code></td><td>Prints the list of commands and flags.</td></tr>
   </tbody>
@@ -1748,7 +1748,7 @@ workflow:
   <tbody>
     <tr><td><code>--new-chart &lt;dir&gt;</code></td><td>The chart you want to deploy.</td></tr>
     <tr><td><code>--current-chart &lt;dir&gt;</code></td><td>The chart you run today. Leave it out to check the new chart on its own.</td></tr>
-    <tr><td><code>--repo &lt;url&gt;</code></td><td>An <code>http://</code> or <code>https://</code> Helm repository, or an <code>oci://</code> registry. Requires <code>--chart</code>, <code>--from</code>, and <code>--to</code>. Stageproof downloads both versions, checks the upgrade, and deletes the temporary directories. A failed download is exit 2. <code>--offline</code> does not skip the download. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>--repo &lt;url&gt;</code></td><td>An <code>http://</code> or <code>https://</code> Helm repository, or an <code>oci://</code> registry. Requires <code>--chart</code>, <code>--from</code>, and <code>--to</code>. Stageproof downloads both versions, checks the upgrade, and deletes the temporary directories. A failed download is exit 2. <code>--offline</code> does not skip the download.</td></tr>
     <tr><td><code>--chart &lt;name&gt;</code></td><td>With <code>--repo</code>, the chart name in that repository. Without <code>--repo</code>, an older name for <code>--new-chart</code> (a directory).</td></tr>
     <tr><td><code>--from &lt;version&gt;</code></td><td>With <code>--repo</code>, the version you run today. Without <code>--repo</code>, an older name for <code>--current-chart</code> (a directory).</td></tr>
     <tr><td><code>--to &lt;version&gt;</code></td><td>With <code>--repo</code>, the version you want to deploy. Without <code>--repo</code>, an older name for <code>--new-chart</code> (a directory).</td></tr>
@@ -1820,7 +1820,7 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
     <tr><td><code>--current-k8s &lt;version&gt;</code></td><td>The flag, else <code>--cluster-facts</code>, else <code>currentKubernetes</code>, else <code>1.33</code></td><td>The Kubernetes version your cluster runs. See <a href="#cluster-version">Check against your Kubernetes version</a>.</td></tr>
-    <tr><td><code>--cluster-facts &lt;file&gt;</code></td><td>Not set</td><td>JSON from <code>stageproof facts export</code>. Sets the version when the flag above is absent, preloads those custom resource definitions, and passes stored versions and node architectures into the check. Not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>--cluster-facts &lt;file&gt;</code></td><td>Not set</td><td>JSON from <code>stageproof facts export</code>. Sets the version when the flag above is absent, preloads those custom resource definitions, and passes stored versions and node architectures into the check.</td></tr>
     <tr><td><code>--next-k8s &lt;version&gt;</code></td><td>Not set</td><td>The Kubernetes version you plan to upgrade the cluster to. See <a href="#cluster-upgrade">Prepare for a Kubernetes cluster upgrade</a>.</td></tr>
     <tr><td><code>--api-server auto|off|require</code></td><td><code>auto</code></td><td>Ask a local API server of <code>--current-k8s</code> whether the upgrade is accepted. <code>auto</code> uses the built-in table when the binaries cannot be downloaded, and the report says so. <code>require</code> is <code>NOT CHECKED</code> in that case. <code>off</code> uses only the table.</td></tr>
     <tr><td><code>--api-server-dir &lt;dir&gt;</code></td><td>The user cache</td><td>A directory that already contains <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code>. Nothing is downloaded. Fill it with <code>stageproof fetch-apiserver --k8s 1.35 --out &lt;dir&gt;</code>.</td></tr>
@@ -1845,7 +1845,7 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Flag</th><th>Default</th><th>Meaning</th></tr></thead>
   <tbody>
-    <tr><td><code>--format &lt;name&gt;</code></td><td><code>text</code></td><td>What is printed: <code>text</code>, <code>markdown</code>, <code>json</code>, or <code>sarif</code>. <code>sarif</code> is not in the v0.1.8 binary.</td></tr>
+    <tr><td><code>--format &lt;name&gt;</code></td><td><code>text</code></td><td>What is printed: <code>text</code>, <code>markdown</code>, <code>json</code>, or <code>sarif</code>.</td></tr>
     <tr><td><code>--out &lt;file&gt;</code></td><td>None</td><td>Also write the JSON report to this file.</td></tr>
     <tr><td><code>--comment-file &lt;file&gt;</code></td><td>None</td><td>Also write the Markdown report to this file.</td></tr>
   </tbody>
@@ -1920,7 +1920,7 @@ verdict  PASSED (exit 0)  · 4165ms · 0 AI calls</pre>
 <p class="docs-lede">Settings that should apply to every check can go in a file named <code>.stageproof.yaml</code>. The file is optional.</p>
 
 <h2>Where the file goes</h2>
-<p><code>stageproof check</code> reads <code>.stageproof.yaml</code> from the directory in which you run the command. In a repository, put it in the top directory and run Stageproof from there. <code>stageproof check-pr</code> reads that file from <code>--current-git</code>, the branch the pull request merges into. It does not read the copy in the pull request. If the pull request changes the file, the report includes <code>config.changed_in_pr</code>. An ignore added only on the branch does not hide a finding. The v0.1.8 release reads the working copy for both commands and does not read <code>ignores</code> or <code>policy</code>.</p>
+<p><code>stageproof check</code> reads <code>.stageproof.yaml</code> from the directory in which you run the command. In a repository, put it in the top directory and run Stageproof from there. <code>stageproof check-pr</code> reads that file from <code>--current-git</code>, the branch the pull request merges into. It does not read the copy in the pull request. If the pull request changes the file, the report includes <code>config.changed_in_pr</code>. An ignore added only on the branch does not hide a finding.</p>
 
 <h2>The settings</h2>
 <pre data-kind="file" data-label=".stageproof.yaml">
@@ -2059,7 +2059,7 @@ charts:
   </template>
 
   <template data-topic="findings" data-group="Reference" data-title="Findings">
-<p class="docs-lede">Every rule that can appear in a report, what it means, and what to do about it. An <code>ERROR</code> makes the result <code>BLOCKED</code>. A <code>WARN</code> does not change the result. <code>stageproof explain</code> prints the same text for one rule. The v0.1.8 release does not have that command.</p>
+<p class="docs-lede">Every rule that can appear in a report, what it means, and what to do about it. An <code>ERROR</code> makes the result <code>BLOCKED</code>. A <code>WARN</code> does not change the result. <code>stageproof explain</code> prints the same text for one rule.</p>
 <pre data-kind="cmd">
 stageproof explain helm.values.silently_dropped</pre>
 <pre data-kind="out">
@@ -2176,7 +2176,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
 <p>Argo CD <code>helm.parameters</code> and <code>--set</code> are written into a values file named <code>helm.parameters</code> before the values check. A parameter key the new chart no longer reads is <code>helm.values.silently_dropped</code>.</p>
 
 <h2>Helm 4</h2>
-<p>These compare the chart with Helm 4. <code>--helm-compare</code> is not in the v0.1.8 release.</p>
+<p>These compare the chart with Helm 4.</p>
 <!-- rules:helm4 -->
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Rule</th><th>Level</th><th>Meaning</th><th>What to do</th></tr></thead>
@@ -2272,7 +2272,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.1.8.</p>
+<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.2.0.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -2294,7 +2294,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
   <li><strong>The temporary cluster may run another Kubernetes version than yours.</strong> That happens when kind has no image for your version. The report then says which version the rehearsal ran on.</li>
   <li><strong>The API check uses a local API server when the binaries are available.</strong> Deprecations still come from the table in <a href="#cluster-version">Check against your Kubernetes version</a>. <code>--api-server off</code> uses only that table. APIs added by CRDs are not judged by the removal table.</li>
   <li><strong>A restart is not a failure.</strong> The report names the field that changed. The result stays <code>PASSED</code> when nothing else is blocked.</li>
-  <li><strong>The values check proves whether a key changes the render.</strong> On <code>main</code>, keys the template reader cannot decide are render-tested (<code>--values-proof full</code> render-tests every key), and <code>v0.1.8</code> reads templates only. It does not know whether the application uses the rendered value correctly at runtime.</li>
+  <li><strong>The values check proves whether a key changes the render.</strong> Keys the template reader cannot decide are render-tested. <code>--values-proof full</code> render-tests every key. It does not know whether the application uses the rendered value correctly at runtime.</li>
   <li><strong>A pull request check covers the values files it knows about.</strong> Without a <code>charts</code> list in the configuration file, a chart in your repository is checked with its own <code>values.yaml</code> only. See <a href="#values-files">Check each values file of a chart</a>.</li>
 </ul>
 <p>Measured accuracy on 12 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects is published in <a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>.</p>
