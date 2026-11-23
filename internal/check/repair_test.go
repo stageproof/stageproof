@@ -61,6 +61,14 @@ func TestSchemaNullIsFilledOnBothCharts(t *testing.T) {
 	if rep.Verdict != verdict.Passed {
 		t.Fatalf("verdict %s findings %+v checks %+v", rep.Verdict, rep.Findings, rep.Checks)
 	}
+	// Helm 3 rejects a null string in values.schema.json. Helm 4 renders it.
+	// The warning exists only when Helm itself refused the default.
+	if helmRenders(t, base) {
+		if checkMentions(rep, "chart defaults", "policy") {
+			t.Fatalf("filled a value Helm already accepted: %+v", rep.Checks)
+		}
+		return
+	}
 	if !checkMentions(rep, "chart defaults", "policy") {
 		t.Fatalf("missing schema warning: %+v", rep.Checks)
 	}
@@ -133,6 +141,17 @@ func schemaChart(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return dir
+}
+
+func helmRenders(t *testing.T, dir string) bool {
+	t.Helper()
+	cmd := exec.Command("helm", "template", "rel", dir, "--namespace", "stageproof-check")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Logf("helm template refused the chart: %s", out)
+		return false
+	}
+	return true
 }
 
 func checkMentions(rep *verdict.Report, name, text string) bool {
