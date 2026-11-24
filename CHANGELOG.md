@@ -5,6 +5,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+### Fixed
+
+- A custom resource definition written as `apiextensions.k8s.io/v1beta1` keeps the schema from `spec.validation` when a version does not set its own. A version with no schema no longer crashes the check. A version that already has a schema is compared as before.
+
 ## [0.3.0] - 2026-11-23
 
 ### Breaking
