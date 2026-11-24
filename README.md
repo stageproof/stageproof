@@ -159,6 +159,34 @@ brew install stageproof/stageproof/stageproof
 
 `--live` with this binary uses kind, kubectl, and Docker installed on the machine.
 
+### Helm plugin
+
+Helm 3 and Helm 4 can run the same checks. The plugin downloads the `v0.3.1` archive and checks `checksums.txt` before it runs the binary. `helm stageproof` takes the same arguments as `stageproof` and returns the same exit code.
+
+```bash
+helm plugin install https://github.com/stageproof/stageproof
+```
+
+Helm 4 will not install a git plugin unless signature verification is turned off. A git checkout has no `.prov` file.
+
+```bash
+helm plugin install https://github.com/stageproof/stageproof --verify=false
+```
+
+```bash
+helm stageproof version
+```
+
+```text
+stageproof v0.3.1 (Apache-2.0)
+```
+
+```bash
+helm stageproof check --current-chart current/metrics-server --new-chart new/metrics-server
+```
+
+Set `STAGEPROOF_VERSION` to another `vX.Y.Z` release before `helm plugin install` or `helm plugin update stageproof` when you want a different binary. The default is `v0.3.1`.
+
 ### GitHub release
 
 Download the archive for your OS from the [releases](https://github.com/stageproof/stageproof/releases), then check the signature. The commands are in [Check a download](#check-a-download).
