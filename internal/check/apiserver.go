@@ -120,6 +120,7 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 	}
 	if !in.ManifestMode {
 		res.Findings = downgradeGuardedRemovedAPIs(in.HeadDir, st.HeadObjs, res.Findings)
+		res.Findings = downgradeRevisionNamedImmutable(in.HeadDir, st.HeadObjs, res.Findings)
 	}
 	st.APIServerRan = true
 	st.APIServerVersion = srv.Version()

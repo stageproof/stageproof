@@ -15,10 +15,38 @@ const maxTarEntries = 2048
 var (
 	includeCallPattern = regexp.MustCompile(`(?:\binclude|\btemplate)\s+["` + "`" + `]([^"` + "`" + `\s]+)["` + "`" + `]`)
 	defineHeadPattern  = regexp.MustCompile(`^\s*define\s+["` + "`" + `]([^"` + "`" + `\s]+)["` + "`" + `]\s*$`)
-	blockOpenPattern   = regexp.MustCompile(`^\s*(?:if|range|with|block|define)\b`)
-	blockEndPattern    = regexp.MustCompile(`^\s*end\b`)
-	negatedPrefixRe    = regexp.MustCompile(`\bnot\s*\(?\s*$`)
+	blockOpenPattern       = regexp.MustCompile(`^\s*(?:if|range|with|block|define)\b`)
+	blockEndPattern        = regexp.MustCompile(`^\s*end\b`)
+	negatedPrefixRe        = regexp.MustCompile(`\bnot\s*\(?\s*$`)
+	templateCommentPattern = regexp.MustCompile(`(?s)\{\{-?\s*/\*.*?\*/\s*-?\}\}`)
+	releaseRevisionPattern = regexp.MustCompile(`\$?\.Release\.Revision\b`)
+	templatedNamePattern   = regexp.MustCompile(`(?m)^\s*name:\s*(?:[^\n]*\{\{|[|>][-+]?\s*\n[ \t]*[^\n]*\{\{)`)
 )
+
+// TemplateUsesReleaseRevision reports whether the template file that emitted a
+// rendered object has a templated name and references .Release.Revision (either
+// directly or in an invoked .tpl helper). helm template always renders revision
+// 1, whereas helm upgrade increments the revision and creates a new object name.
+func TemplateUsesReleaseRevision(chartDir, source string) bool {
+	if chartDir == "" || source == "" {
+		return false
+	}
+	texts := templateAndHelpers(chartDir, source)
+	if len(texts) == 0 {
+		return false
+	}
+	mainBody := templateCommentPattern.ReplaceAllString(texts[0], "")
+	if !templatedNamePattern.MatchString(mainBody) {
+		return false
+	}
+	for _, body := range texts {
+		clean := templateCommentPattern.ReplaceAllString(body, "")
+		if releaseRevisionPattern.MatchString(clean) {
+			return true
+		}
+	}
+	return false
+}
 
 // TemplateGuardsRemovedAPI reports whether the template file that emitted a
 // rendered object tests .Capabilities.APIVersions for apiVersion (or

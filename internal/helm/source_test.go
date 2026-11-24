@@ -144,3 +144,70 @@ func TestTemplateGuardsRemovedAPIPackagedSubchart(t *testing.T) {
 		t.Fatal("expected packaged subchart capability guard to be detected")
 	}
 }
+
+func TestTemplateUsesReleaseRevision(t *testing.T) {
+	dir := t.TempDir()
+	write := func(rel, content string) {
+		t.Helper()
+		full := filepath.Join(dir, rel)
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(full, []byte(content), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	write("templates/seed-direct.yaml", `apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-seed-{{ .Release.Revision }}
+`)
+	write("templates/_helpers.tpl", `{{- define "demo.seedName" -}}
+{{ .Release.Name }}-seed-{{ .Release.Revision }}
+{{- end -}}
+`)
+	write("templates/seed-helper.yaml", `apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "demo.seedName" . }}
+`)
+	write("templates/static-with-comment.yaml", `{{/* .Release.Revision is mentioned only in a comment */}}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: fixed-job
+`)
+	write("templates/static-with-annotation.yaml", `apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web
+  annotations:
+    rev: "{{ .Release.Revision }}"
+`)
+	write("templates/dynamic-no-revision.yaml", `apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ .Release.Name }}-init
+`)
+
+	cases := []struct {
+		name   string
+		source string
+		want   bool
+	}{
+		{"direct revision in name", "demo/templates/seed-direct.yaml", true},
+		{"helper revision in name", "demo/templates/seed-helper.yaml", true},
+		{"comment only with static name", "demo/templates/static-with-comment.yaml", false},
+		{"annotation only with static name", "demo/templates/static-with-annotation.yaml", false},
+		{"dynamic name without revision", "demo/templates/dynamic-no-revision.yaml", false},
+		{"path traversal rejected", "demo/../../etc/passwd", false},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := TemplateUsesReleaseRevision(dir, tc.source); got != tc.want {
+				t.Fatalf("TemplateUsesReleaseRevision(%q) = %v, want %v", tc.source, got, tc.want)
+			}
+		})
+	}
+}

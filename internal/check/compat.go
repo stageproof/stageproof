@@ -102,3 +102,39 @@ func downgradeGuardedRemovedAPIs(chartDir string, objs []k8sschema.ManifestObjec
 	}
 	return findings
 }
+
+// downgradeRevisionNamedImmutable turns a k8s.apply.immutable_field blocker
+// into a warning when the object's template uses .Release.Revision in a dynamic
+// name. helm template always renders revision 1, so both charts appear to share
+// one object name even though helm upgrade creates a new revision-suffixed name.
+func downgradeRevisionNamedImmutable(chartDir string, objs []k8sschema.ManifestObject, findings []verdict.Finding) []verdict.Finding {
+	if chartDir == "" || len(objs) == 0 || len(findings) == 0 {
+		return findings
+	}
+	byID := make(map[string][]k8sschema.ManifestObject, len(objs))
+	for _, obj := range objs {
+		if obj.Source == "" {
+			continue
+		}
+		byID[obj.ID()] = append(byID[obj.ID()], obj)
+	}
+	for i := range findings {
+		f := &findings[i]
+		if f.RuleID != "k8s.apply.immutable_field" || f.Severity != verdict.SeverityBlocker {
+			continue
+		}
+		for _, obj := range byID[f.Resource] {
+			if helm.TemplateUsesReleaseRevision(chartDir, obj.Source) {
+				f.Severity = verdict.SeverityWarning
+				note := "The template uses .Release.Revision in a dynamic object name. `helm template` renders revision 1 for both charts, so a real upgrade creates a new object name instead of updating in place."
+				if f.Detail == "" {
+					f.Detail = note
+				} else {
+					f.Detail = f.Detail + " " + note
+				}
+				break
+			}
+		}
+	}
+	return findings
+}
