@@ -1603,8 +1603,19 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
   <div><dt>Needs</dt><dd>A GitHub-hosted Ubuntu runner. The job downloads the released binary and Helm. No cluster.</dd></div>
 </dl>
 
-<h2>The workflow</h2>
-<p>Change <code>paths</code> to where your charts and Application files are. The version in the download URL is a released tag.</p>
+<h2>Use the action</h2>
+<p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. Pin the commit. A floating <code>v1</code> tag is not published yet.</p>
+<pre data-kind="file" data-label=".github/workflows/stageproof.yml">
+      - uses: stageproof/action@db6a432ddaec807a9356e05c33ad302ade24803b
+        with:
+          current-k8s: "1.35"
+          api-server: auto
+          comment: "true"
+          live: "false"</pre>
+<p>The workflow still needs <code>on: pull_request</code> and <code>permissions: pull-requests: write</code>. Set <code>current-k8s</code> to the Kubernetes version of the cluster you deploy to. <code>live: "true"</code> rehearses the upgrade on a runner that can start containers. Do not run this action from <code>pull_request_target</code>.</p>
+
+<h2>Install it yourself</h2>
+<p>The workflow below downloads Helm and the released binary without the action. Change <code>paths</code> to where your charts and Application files are. The version in the download URL is a released tag.</p>
 <pre data-kind="file" data-label=".github/workflows/stageproof.yml">
 name: stageproof
 
