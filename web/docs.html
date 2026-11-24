@@ -5,7 +5,7 @@
   <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Documentation - Stageproof</title>
-  <meta name="description" content="Stageproof documentation: check a Helm chart upgrade before you merge it. Guides for chart directories, git branches, Argo CD Applications, Flux HelmReleases, pull requests, Kubernetes versions, and the live rehearsal." />
+  <meta name="description" content="Stageproof documentation: check a Helm chart upgrade before you merge it. Guides for chart directories, git branches, Argo CD Applications, Flux HelmReleases, Kargo Stages, pull requests, Kubernetes versions, and the live rehearsal." />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -256,6 +256,7 @@ verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
   <li>You deploy with Flux: <a href="#flux">Check a Flux HelmRelease</a>.</li>
   <li>You already rendered the manifests: <a href="#manifests">Compare rendered manifests</a>.</li>
   <li>You want this on every pull request: <a href="#pull-request">Check a pull request</a>.</li>
+  <li>You promote with Kargo: <a href="#kargo">Gate a Kargo Stage</a>.</li>
 </ul>
   </template>
 
@@ -620,6 +621,52 @@ verdict  PASSED (exit 0)  · 1490ms · 0 AI calls
 
 <h2>Applications written as templates</h2>
 <p>Some teams generate Application files from a template, for example a Terraform <code>.yaml.tmpl</code> file with <code>${...}</code> placeholders. Stageproof accepts these files. Before reading the file it replaces each placeholder with a fixed sample value, so that the file is valid YAML: <code>10Gi</code> when the placeholder name contains <code>size</code>, <code>2</code> when it contains <code>replica</code>, <code>count</code>, <code>port</code>, or <code>concurrent</code>, and a fixed text for everything else.</p>
+
+<h2>Gate the pull request</h2>
+<p>Argo CD applies the Application after the pull request merges. Run the check on the pull request. <code>stageproof check-pr</code> checks an Application when that file changes, when a values file it names changes, or when a file under the chart path changes. This run used a multi-source Application. <code>helm.skipCrds: true</code> was set. The chart had no <code>crds/</code> change, so the report has no CRD line. The field is still read. The same check is <a href="#ci-github"><code>stageproof/action@v1</code></a> on <code>pull_request</code>. Do not run that action from <code>pull_request_target</code>.</p>
+<pre data-kind="file" data-label="apps/web.yaml">
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: web
+spec:
+  sources:
+    - repoURL: https://example.test/stageproof.git
+      path: charts/web
+      helm:
+        skipCrds: true
+        valueFiles:
+          - $values/values/prod.yaml
+    - repoURL: https://example.test/stageproof
+      ref: values</pre>
+<pre data-kind="cmd" data-label="Check the branch before you merge">
+stageproof check-pr --current-git main --current-k8s 1.35 --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  charts/web (main) -> charts/web (apps/web.yaml)
+values  $values/values/prod.yaml
+k8s  1.35  ·  checked: files
+
+Restarts
+  INFO  The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          1 keys: 0 proven by rendering, 1 read in templates
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  INFO  impact.restart
+         Deployment/default/web
+         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
+
+verdict  PASSED (exit 0)  · 1896ms · 0 AI calls</pre>
+<p>Exit 0 kept the job green. Exit 1 stops the merge. The values file moved <code>tag</code> from <code>1.27</code> to <code>1.28</code>. The action runs <code>check-pr</code> with the Kubernetes version you set.</p>
   </template>
 
   <template data-topic="flux" data-group="Guides" data-title="Check a Flux HelmRelease">
@@ -712,6 +759,143 @@ verdict  PASSED (exit 0)  · 1495ms · 0 AI calls
   <li>A chart <code>valuesFiles</code> entry that is missing when <code>ignoreMissingValuesFiles</code> is false.</li>
 </ul>
 <p><code>${...}</code> in the chart name, the version, the repository URL, or a source name is <code>NOT CHECKED</code> unless <code>templatePlaceholders</code> sets that token. The same token in values, a name, or <code>targetPath</code> becomes <code>stageproof-placeholder</code> and the report says <code>helm.config.placeholder_used</code>.</p>
+
+<h2>Check before Flux reconciles</h2>
+<p>Flux reconciles the HelmRelease after the pull request merges. Run the check on the pull request, before that reconcile. This run named a ConfigMap in <code>valuesFrom</code> and set <code>spec.upgrade.crds</code> to <code>CreateReplace</code>. The chart had no <code>crds/</code> change, so the report has no CRD line. The values line is the ConfigMap. <code>stageproof check-pr</code> also follows the GitRepository, a <code>valuesFrom</code> file, and a file under the chart path. The same check is <a href="#ci-github"><code>stageproof/action@v1</code></a>.</p>
+<pre data-kind="file" data-label="apps/web.yaml">
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: web
+spec:
+  upgrade:
+    crds: CreateReplace
+  chart:
+    spec:
+      chart: charts/web
+      sourceRef:
+        kind: GitRepository
+        name: charts
+  valuesFrom:
+    - kind: ConfigMap
+      name: prod-values</pre>
+<pre data-kind="cmd" data-label="Check the branch before Flux reconciles">
+stageproof check-pr --current-git main --current-k8s 1.35 --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  charts/web (main) -> charts/web (apps/web.yaml)
+values  HelmRelease values (ConfigMap/prod-values)
+k8s  1.35  ·  checked: files
+
+Restarts
+  INFO  The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+
+  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
+  ✓ PASS  values.yaml AST          1 keys: 0 proven by rendering, 1 read in templates
+  ! WARN  upgrade signals          1 named change
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  INFO  impact.restart
+         Deployment/default/web
+         The pod template of Deployment/default/web changed at spec.template.spec.containers[name=app].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/default/web.template.spec.containers[0] app container moves from nginx:1.27 to nginx:1.28.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
+
+verdict  PASSED (exit 0)  · 1436ms · 0 AI calls</pre>
+<p>Exit 0 kept the job green. Exit 1 stops the merge, so Flux does not reconcile that commit. The ConfigMap moved <code>tag</code> from <code>1.27</code> to <code>1.28</code>.</p>
+  </template>
+
+  <template data-topic="kargo" data-group="Guides" data-title="Gate a Kargo Stage">
+<p class="docs-lede">Stageproof does not read a Kargo Stage file. The gate is a command. Run it on the pull request, and run it again as a Stage verification so Freight that fails the check cannot move to the next Stage.</p>
+
+<dl class="doc-facts">
+  <div><dt>Use it when</dt><dd>Kargo promotes a chart, an Argo CD Application, or a Flux HelmRelease, and you want a failed check to stop the next Stage.</dd></div>
+  <div><dt>Finds</dt><dd>The same result as <a href="#compare-charts">Compare two chart versions</a>. The Job exits with that code.</dd></div>
+  <div><dt>Needs</dt><dd>The <code>v0.3.1</code> image, which includes Helm. This job sets <code>--api-server off</code> because that image does not start an API server.</dd></div>
+</dl>
+
+<h2>Check the pull request first</h2>
+<p>Kargo sees a commit after it merges. Check that commit on the pull request, before the Warehouse picks it up. An Application change is the <a href="#argocd">Argo CD gate</a>. A HelmRelease change is the <a href="#flux">Flux gate</a>. Either one is <a href="#ci-github"><code>stageproof/action@v1</code></a>.</p>
+
+<h2>Verify the Stage before the next one</h2>
+<p>After a Promotion succeeds, Kargo runs the AnalysisTemplates named on the Stage. A Job that exits 0 is a successful measurement. Any other exit code fails that measurement. Freight that is not verified in this Stage is not eligible for the next Stage. The Stage below names one template. The template runs the released image. The image starts <code>stageproof</code>, so the arguments are the check.</p>
+<pre data-kind="file" data-label="Stage">
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: guestbook
+spec:
+  verification:
+    analysisTemplates:
+      - name: stageproof</pre>
+<pre data-kind="file" data-label="AnalysisTemplate">
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: stageproof
+  namespace: guestbook
+spec:
+  metrics:
+    - name: stageproof
+      provider:
+        job:
+          spec:
+            backoffLimit: 1
+            template:
+              spec:
+                restartPolicy: Never
+                containers:
+                  - name: stageproof
+                    image: ghcr.io/stageproof/stageproof:v0.3.1
+                    args:
+                      - check
+                      - --repo
+                      - https://kubernetes-sigs.github.io/metrics-server/
+                      - --chart
+                      - metrics-server
+                      - --from
+                      - "3.12.2"
+                      - --to
+                      - "3.13.0"
+                      - --current-k8s
+                      - "1.35"
+                      - --api-server
+                      - "off"</pre>
+<pre data-kind="cmd" data-label="The same check, on the released binary">
+stageproof check --repo https://kubernetes-sigs.github.io/metrics-server/ --chart metrics-server --from 3.12.2 --to 3.13.0 --current-k8s 1.35 --api-server off</pre>
+<pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
+stageproof  PASSED  exit 0
+compare  metrics-server@3.12.2 -> metrics-server@3.13.0
+k8s  1.35  ·  checked: files
+
+Restarts
+  INFO  The pod template of Deployment/stageproof-check/stageproof-rel-metrics-server changed at spec.template.spec.containers[name=metrics-server].image. The pods will restart. A restart is normal for an upgrade.
+
+  ✓ PASS  helm template            rendered 9 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ! WARN  upgrade signals          2 named changes
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✓ PASS  impact                   Compared rendered objects. The API server did not run, so a default the server adds is not in this comparison.
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
+
+  INFO  impact.restart
+         Deployment/stageproof-check/stageproof-rel-metrics-server
+         The pod template of Deployment/stageproof-check/stageproof-rel-metrics-server changed at spec.template.spec.containers[name=metrics-server].image. The pods will restart. A restart is normal for an upgrade.
+  WARN  helm.release.app_version_changed
+         appVersion moves from 0.7.2 to 0.8.0. The image that the chart runs may change with it.
+         This is the chart's declared application version. It is not a test that the registry tag exists.
+  WARN  helm.image.changed
+         1 container image changed. Deployment/stageproof-check/stageproof-rel-metrics-server.template.spec.containers[0] metrics-server container moves from registry.k8s.io/metrics-server/metrics-server:v0.7.2 to registry.k8s.io/metrics-server/metrics-server:v0.8.0.
+         The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.
+
+verdict  PASSED (exit 0)  · 2521ms · 0 AI calls</pre>
+<p>This run exited 0, so the Job would succeed and the Freight could move on. Exit 1 fails the Job, the AnalysisRun, and the verification. The report says <code>NOT TESTED LIVE</code>. Verification here is the file check. It is not a rehearsal in the Stage's cluster. Put the chart and versions your Stage promotes in <code>--repo</code>, <code>--chart</code>, <code>--from</code>, and <code>--to</code>. An Application or a HelmRelease in the Freight commit uses <code>--argocd-file</code> or <code>--flux-file</code> with <code>--current-git</code> instead.</p>
   </template>
 
   <template data-topic="pull-request" data-group="Guides" data-title="Check a pull request">
