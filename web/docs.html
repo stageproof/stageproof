@@ -1508,8 +1508,17 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
   <div><dt>Needs</dt><dd>A runner that can pull the Stageproof image. The image already contains Stageproof, Helm, and Git. No cluster.</dd></div>
 </dl>
 
+<h2>Use the component</h2>
+<p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.3.1</code> digest. <code>1</code> is the major version in the CI/CD catalog.</p>
+<pre data-kind="file" data-label=".gitlab-ci.yml">
+include:
+  - component: gitlab.com/zarovvvv/stageproof/stageproof@1
+    inputs:
+      current_k8s: "1.35"</pre>
+<p>Set <code>current_k8s</code> to the Kubernetes version of the cluster you deploy to. Set <code>STAGEPROOF_GITLAB_TOKEN</code> to a token that can write merge request notes. <code>CI_JOB_TOKEN</code> cannot write notes. Without that token the job still checks the merge request, and the report is a job artifact. A later run updates the note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. <code>live: true</code> rehearses the upgrade on a runner that can start containers.</p>
+
 <h2>The job</h2>
-<p>Change the paths under <code>changes</code> to where your charts and Application files are. The image tag is a released version.</p>
+<p>The job below does the same check without the component. Change the paths under <code>changes</code> to where your charts and Application files are. The image tag is a released version.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
 stageproof:
   stage: test
