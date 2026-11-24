@@ -721,3 +721,162 @@ func TestCRDEnumRelaxationAndRedundantAllOfDoNotBlock(t *testing.T) {
 		t.Fatal("narrowing effective allOf enum was ignored")
 	}
 }
+
+func TestV1Beta1SchemaIsComparedAndMissingSchemaDoesNotPanic(t *testing.T) {
+	oldBeta := parseDocs(t, betaCRD(true))
+	newBeta := parseDocs(t, betaCRD(false))
+	changes, err := (crdifySchema{}).Compare(oldBeta[0].Object, newBeta[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removedProperty(changes, "size") {
+		t.Fatalf("schema on spec.validation was not compared: %+v", changes)
+	}
+
+	// A version schema wins over spec.validation. The validation document still
+	// lists size, and the version schema drops it.
+	oldVersion := parseDocs(t, betaWithVersionSchema(true))
+	newVersion := parseDocs(t, betaWithVersionSchema(false))
+	changes, err = (crdifySchema{}).Compare(oldVersion[0].Object, newVersion[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removedProperty(changes, "size") {
+		t.Fatalf("per-version schema was replaced by spec.validation: %+v", changes)
+	}
+
+	bare := parseDocs(t, `
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  version: v1
+  versions:
+    - name: v1
+      served: true
+      storage: true
+`)
+	changes, err = (crdifySchema{}).Compare(bare[0].Object, bare[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if removedProperty(changes, "spec") {
+		t.Fatalf("two definitions with no schema reported a field removal: %+v", changes)
+	}
+
+	// A second version that has a schema still reports a real removal.
+	withDrop := parseDocs(t, betaSibling(false))
+	withSize := parseDocs(t, betaSibling(true))
+	changes, err = (crdifySchema{}).Compare(withSize[0].Object, withDrop[0].Object, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !removedProperty(changes, "size") {
+		t.Fatalf("schemaless sibling hid a real removal: %+v", changes)
+	}
+}
+
+func removedProperty(changes []schemaChange, prop string) bool {
+	for _, c := range changes {
+		if c.Class == "removed" && strings.Contains(c.Property, prop) {
+			return true
+		}
+	}
+	return false
+}
+
+func betaCRD(withSize bool) string {
+	size := ""
+	if withSize {
+		size = "\n            size: {type: string}"
+	}
+	return `
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  version: v1
+  versions:
+    - name: v1
+      served: true
+      storage: true
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:` + size + `
+`
+}
+
+func betaWithVersionSchema(withSize bool) string {
+	size := ""
+	if withSize {
+		size = "\n                size: {type: string}"
+	}
+	return `
+apiVersion: apiextensions.k8s.io/v1beta1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  versions:
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:` + size + `
+  validation:
+    openAPIV3Schema:
+      type: object
+      properties:
+        spec:
+          type: object
+          properties:
+            size: {type: string}
+`
+}
+
+func betaSibling(withSize bool) string {
+	size := ""
+	if withSize {
+		size = "\n                size: {type: string}"
+	}
+	return `
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata: {name: widgets.example.com}
+spec:
+  group: example.com
+  scope: Namespaced
+  names: {kind: Widget, plural: widgets}
+  versions:
+    - name: v1beta1
+      served: true
+      storage: false
+    - name: v1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              type: object
+              properties:` + size + `
+`
+}

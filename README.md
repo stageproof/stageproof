@@ -6,6 +6,8 @@ You give it what you run today and what the pull request wants. It uses your val
 
 The released binary is `v0.3.0`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
 
+Chart-default upgrade reports for 300 public Helm charts are at the [Stageproof index](https://stageproof.github.io/index/). The index has more than 20,000 upgrade pairs. Each report uses that chart's default values, not the values a cluster runs.
+
 ## Check a pull request
 
 ```bash

@@ -43,8 +43,24 @@ func (crdifySchema) Compare(old, new map[string]any, stored []string) ([]schemaC
 	if err != nil {
 		return nil, err
 	}
-	res := crdifyRun.Run(oldCRD, newCRD)
+	res, err := runCRDify(crdifyRun, oldCRD, newCRD)
+	if err != nil {
+		return nil, err
+	}
 	return crdifyChanges(res, oldCRD, newCRD), nil
+}
+
+// runCRDify calls crdify and turns a panic into an error. crdify v0.6.0 is the
+// newest release and still dereferences a nil schema. decodeCRD fills that in
+// first. This recover is the backstop so one malformed definition cannot crash
+// the process. compareCRD reports the error as a warning.
+func runCRDify(r *runner.Runner, oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition) (res *runner.Results, err error) {
+	defer func() {
+		if rec := recover(); rec != nil {
+			err = fmt.Errorf("custom resource schema comparison failed: %v", rec)
+		}
+	}()
+	return r.Run(oldCRD, newCRD), nil
 }
 
 // Charts do not carry status.storedVersions. The version marked storage is
@@ -57,6 +73,11 @@ func decodeCRD(body map[string]any, extra []string) (*apiextensionsv1.CustomReso
 	var crd apiextensionsv1.CustomResourceDefinition
 	if err := json.Unmarshal(raw, &crd); err != nil {
 		return nil, fmt.Errorf("decode custom resource definition: %w", err)
+	}
+	// apiextensions v1 drops spec.validation and spec.version. v1beta1 stores
+	// the schema there, and a version with a nil Schema makes crdify v0.6.0 panic.
+	if err := applyBetaSchema(&crd, body); err != nil {
+		return nil, err
 	}
 	if len(crd.Status.StoredVersions) == 0 {
 		for _, v := range crd.Spec.Versions {
@@ -76,6 +97,87 @@ func decodeCRD(body map[string]any, extra []string) (*apiextensionsv1.CustomReso
 		}
 	}
 	return &crd, nil
+}
+
+// applyBetaSchema copies a v1beta1 document onto the v1 struct crdify reads.
+// A version that already has an OpenAPI schema is left alone. A document with
+// only spec.version becomes one served storage version. A version that still
+// has no schema gets an empty one so the comparer walks no fields instead of
+// crashing. An empty schema does not invent a field removal when both sides
+// are empty.
+func applyBetaSchema(crd *apiextensionsv1.CustomResourceDefinition, body map[string]any) error {
+	schema, err := betaOpenAPISchema(body)
+	if err != nil {
+		return err
+	}
+	if len(crd.Spec.Versions) == 0 {
+		if name, ok := stringAt(body, "spec", "version"); ok && name != "" {
+			crd.Spec.Versions = []apiextensionsv1.CustomResourceDefinitionVersion{{
+				Name:    name,
+				Served:  true,
+				Storage: true,
+			}}
+		}
+	}
+	for i := range crd.Spec.Versions {
+		v := &crd.Spec.Versions[i]
+		if v.Schema != nil && v.Schema.OpenAPIV3Schema != nil {
+			continue
+		}
+		if schema != nil {
+			if v.Schema == nil {
+				v.Schema = &apiextensionsv1.CustomResourceValidation{}
+			}
+			v.Schema.OpenAPIV3Schema = schema.DeepCopy()
+			continue
+		}
+		if v.Schema == nil {
+			v.Schema = &apiextensionsv1.CustomResourceValidation{
+				OpenAPIV3Schema: &apiextensionsv1.JSONSchemaProps{},
+			}
+		}
+	}
+	return nil
+}
+
+func betaOpenAPISchema(body map[string]any) (*apiextensionsv1.JSONSchemaProps, error) {
+	raw, ok := nestedValue(body, "spec", "validation", "openAPIV3Schema")
+	if !ok || raw == nil {
+		return nil, nil
+	}
+	buf, err := json.Marshal(raw)
+	if err != nil {
+		return nil, fmt.Errorf("encode custom resource schema: %w", err)
+	}
+	var props apiextensionsv1.JSONSchemaProps
+	if err := json.Unmarshal(buf, &props); err != nil {
+		return nil, fmt.Errorf("decode custom resource schema: %w", err)
+	}
+	return &props, nil
+}
+
+func nestedValue(body map[string]any, keys ...string) (any, bool) {
+	var cur any = body
+	for _, k := range keys {
+		m, ok := cur.(map[string]any)
+		if !ok {
+			return nil, false
+		}
+		cur, ok = m[k]
+		if !ok {
+			return nil, false
+		}
+	}
+	return cur, true
+}
+
+func stringAt(body map[string]any, keys ...string) (string, bool) {
+	raw, ok := nestedValue(body, keys...)
+	if !ok {
+		return "", false
+	}
+	s, ok := raw.(string)
+	return s, ok
 }
 
 // Only the incompatibilities task 1.5 lists are enabled. Description edits,
@@ -154,10 +256,10 @@ func crdifyChanges(res *runner.Results, oldCRD, newCRD *apiextensionsv1.CustomRe
 }
 
 // isEnumRelaxation filters false positives from crdify's enum comparator:
-// 1. Dropping the enum constraint altogether (old had enum, new has none) widens
-//    the schema to accept any value, so no stored object can be rejected.
-// 2. Cleaning up an unreachable value from one allOf[i] branch when sibling allOf
-//    branches already forbade that value leaves the effective enum unchanged.
+//  1. Dropping the enum constraint altogether (old had enum, new has none) widens
+//     the schema to accept any value, so no stored object can be rejected.
+//  2. Cleaning up an unreachable value from one allOf[i] branch when sibling allOf
+//     branches already forbade that value leaves the effective enum unchanged.
 func isEnumRelaxation(oldCRD, newCRD *apiextensionsv1.CustomResourceDefinition, ver, propPath, detail string) bool {
 	if !strings.Contains(detail, "allowed enum values removed") {
 		return false
