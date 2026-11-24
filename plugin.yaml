@@ -1,0 +1,12 @@
+name: stageproof
+version: 0.3.1
+usage: check a Helm chart upgrade
+description: Check a Helm chart upgrade before you merge it. The install hook downloads the released binary and checks checksums.txt.
+ignoreFlags: false
+platformCommand:
+  - command: ${HELM_PLUGIN_DIR}/bin/stageproof
+platformHooks:
+  install:
+    - command: ${HELM_PLUGIN_DIR}/plugin/install.sh
+  update:
+    - command: ${HELM_PLUGIN_DIR}/plugin/install.sh

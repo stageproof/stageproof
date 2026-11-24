@@ -170,7 +170,7 @@
   </template>
 
   <template data-topic="install" data-group="Start here" data-title="Install">
-<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.3.1</code> binary from Homebrew, GitHub Releases, or the container image, or build the source on <code>main</code>.</p>
+<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.3.1</code> binary from Homebrew, GitHub Releases, or the container image, run it as a Helm plugin, or build the source on <code>main</code>.</p>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -189,6 +189,21 @@ brew install stageproof/stageproof/stageproof</pre>
 <pre data-kind="cmd" data-label="Container image">
 docker run --rm ghcr.io/stageproof/stageproof:v0.3.1 version</pre>
 <p>Signed archives and SBOMs are published on <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>.</p>
+
+<h2>Helm plugin</h2>
+<p>Helm 3 and Helm 4 install the same plugin. The install hook downloads the <code>v0.3.1</code> archive for this machine and checks the matching line in <code>checksums.txt</code> before the binary is used. <code>helm stageproof</code> takes the same arguments as <code>stageproof</code> and returns the same exit code.</p>
+<pre data-kind="cmd" data-label="Helm 3">
+helm plugin install https://github.com/stageproof/stageproof</pre>
+<pre data-kind="cmd" data-label="Helm 4">
+helm plugin install https://github.com/stageproof/stageproof --verify=false</pre>
+<p>Helm 4 checks a signature when it installs a plugin archive. A git checkout has no <code>.prov</code> file, so the install stops unless <code>--verify=false</code> is set. These commands were checked with Helm 3.22.1 and Helm 4.3.2.</p>
+<pre data-kind="cmd" data-label="Print the version">
+helm stageproof version</pre>
+<pre data-kind="out">
+stageproof v0.3.1 (Apache-2.0)</pre>
+<pre data-kind="cmd" data-label="Check two chart directories">
+helm stageproof check --current-chart current/metrics-server --new-chart new/metrics-server</pre>
+<p>Set <code>STAGEPROOF_VERSION</code> to another <code>vX.Y.Z</code> release before <code>helm plugin install</code> or <code>helm plugin update stageproof</code> when you want a different binary. The default is <code>v0.3.1</code>.</p>
 
 <h2>Build from source (main)</h2>
 <p>In the Stageproof source tree, build from the repository root.</p>

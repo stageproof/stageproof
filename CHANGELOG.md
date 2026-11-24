@@ -5,6 +5,10 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+### Added
+
+- A Helm plugin downloads the released archive, checks `checksums.txt`, and runs `helm stageproof` with the same arguments and exit codes. The default binary is `v0.3.1`. Helm 4 installs it with `--verify=false` because a git checkout has no `.prov` file.
+
 ## [0.3.1] - 2026-11-24
 
 ### Fixed
