@@ -39,6 +39,19 @@ That sample is metrics-server 3.12.2 to 3.13.0. `values.yaml AST` is the check t
 
 Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions and GitLab CI examples are in the [documentation](https://stageproof.github.io/stageproof/docs.html).
 
+### GitHub Actions
+
+```yaml
+      - uses: stageproof/action@db6a432ddaec807a9356e05c33ad302ade24803b
+        with:
+          current-k8s: "1.35"
+          api-server: auto
+          comment: "true"
+          live: "false"
+```
+
+The job needs `permissions: pull-requests: write`. The action checks out the pull request, downloads Stageproof `v0.3.1`, checks `checksums.txt`, and adds the report to the job summary. It posts one comment, or updates the comment that already contains `<!-- stageproof-comment -->`. A fork pull request often has a read-only token. The comment step treats that as success and still returns the check exit code. Do not run this action from `pull_request_target`. `live: "true"` starts a temporary kind cluster, and the runner has to be able to start containers.
+
 ### The four words
 
 | Word | Exit | What happened |
