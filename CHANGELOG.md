@@ -8,14 +8,17 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 ### Breaking
 
 - Charts are now rendered with the target Kubernetes minor's served API versions and kinds (`group/version` and `group/version/Kind`) via `--api-versions`, taken from local API server discovery when it runs or from the embedded discovery table (`1.34` to `1.37`) when it does not. A removed-API finding whose template guards on `.Capabilities.APIVersions` for that legacy API version is now a warning, because `helm template` includes legacy API versions in its default list and cannot remove them. Charts that previously returned `BLOCKED` (exit 1) for capability-gated APIs now return `PASSED` (exit 0).
+- When comparing an upgrade (`--current-chart` and `--new-chart`), the new chart is now rendered with `helm template --is-upgrade` while the current chart stays in install mode. Install-only Jobs under `.Release.IsInstall` and upgrade-only hook Jobs under `.Release.IsUpgrade` no longer trigger false `k8s.apply.immutable_field` blockers, which changes their exit code from 1 to 0. If `--is-upgrade` rendering fails and install-mode rendering succeeds, Stageproof falls back to install mode and emits a `helm.template.upgrade_fallback` warning.
 
 ### Added
 
 - A Helm plugin downloads the released archive, checks `checksums.txt`, and runs `helm stageproof` with the same arguments and exit codes. The default binary is `v0.3.1`. Helm 4 installs it with `--verify=false` because a git checkout has no `.prov` file.
+- Rule `helm.template.upgrade_fallback` (warning) records when the new chart failed `--is-upgrade` rendering and Stageproof fell back to install-mode rendering.
 
 ### Fixed
 
 - Capability-gated templates using `.Capabilities.APIVersions.Has "<group>/<version>/<Kind>"` (such as `batch/v1/CronJob` and `policy/v1/PodDisruptionBudget`) now render the current API instead of falling back to removed beta APIs. Templates that guard legacy resources on `.Capabilities.APIVersions` no longer produce false `k8s.api.removed` blockers.
+- Install-only Jobs gated by `.Release.IsInstall` and upgrade-only hook Jobs gated by `.Release.IsUpgrade` are now rendered accurately on the new chart instead of being compared as mutable non-hook Jobs.
 
 ## [0.3.1] - 2026-11-24
 

@@ -68,6 +68,9 @@ func Diff(ctx context.Context, in Input, st *State) {
 	dropMaterializedSets(&head)
 	base = st.applyRepair(base)
 	head = st.applyRepair(head)
+	if in.BaseDir != "" && !st.HeadUpgradeFallback {
+		head.IsUpgrade = true
+	}
 	findings, sum, err := helm.ProveValues(ctx, helm.ProofRequest{
 		BaseDir:     in.BaseDir,
 		HeadDir:     in.HeadDir,

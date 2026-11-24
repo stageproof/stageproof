@@ -2356,6 +2356,7 @@ Rename the key to what the new chart uses, or remove it.</pre>
   <tbody>
     <tr><td><code>helm.template.render_failed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>helm template</code> failed on the new chart with your values.</td><td>Read the Helm error in the report and fix the chart or the values.</td></tr>
     <tr><td><code>helm.template.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The new chart rendered, and the output is not valid YAML.</td><td>Fix the template that produces the invalid output.</td></tr>
+    <tr><td><code>helm.template.upgrade_fallback</code></td><td><span class="verdict-badge warn">WARN</span></td><td>Rendering the new chart with <code>--is-upgrade</code> failed (often because a template expects an existing cluster secret during upgrade), while install-mode rendering succeeded. Stageproof continued using the install-mode render.</td><td>Pass the values that upgrade-mode templates require if you want the check to exercise <code>.Release.IsUpgrade</code> branches.</td></tr>
     <tr><td><code>manifest.invalid_yaml</code></td><td><span class="verdict-badge bad">ERROR</span></td><td><code>--before</code> or <code>--after</code> could not be read. The path is missing, the file is not <code>.yaml</code> or <code>.yml</code>, the directory has none of those files, or the YAML does not parse.</td><td>Point both flags at rendered manifests and fix the file named in the report.</td></tr>
   </tbody>
 </table></div>

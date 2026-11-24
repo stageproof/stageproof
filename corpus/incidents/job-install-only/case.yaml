@@ -1,0 +1,7 @@
+id: job-install-only
+summary: A Job gated on .Release.IsInstall is not rendered on upgrade and must pass; removing that gate on a changed Job must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.apply.immutable_field]}
+control_expect: {verdict: PASSED}
+status: active
+source: Helm renders upgrades with .Release.IsInstall false. Install-only init Jobs are not updated during helm upgrade.

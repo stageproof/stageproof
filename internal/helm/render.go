@@ -22,6 +22,9 @@ type RenderOptions struct {
 	SetJSON     []string
 	KubeVersion string
 	APIVersions []string
+	// IsUpgrade passes --is-upgrade to helm template so .Release.IsUpgrade is
+	// true and .Release.IsInstall is false.
+	IsUpgrade bool
 	// SkipSchemaValidation disables values.schema.json. It is used when the
 	// schema document itself does not validate, so the templates can still render.
 	SkipSchemaValidation bool
@@ -77,6 +80,9 @@ func RenderChartBinary(ctx context.Context, bin string, opts RenderOptions) (str
 		if len(clean) > 0 {
 			args = append(args, "--api-versions", strings.Join(clean, ","))
 		}
+	}
+	if opts.IsUpgrade {
+		args = append(args, "--is-upgrade")
 	}
 	if opts.SkipSchemaValidation {
 		args = append(args, "--skip-schema-validation")
