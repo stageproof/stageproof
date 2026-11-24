@@ -19,6 +19,8 @@ type ManifestObject struct {
 	Object   map[string]any `yaml:"-"`
 	RawBytes int            `yaml:"-"`
 	RawYAML  string         `yaml:"-"`
+	// Source is the template path Helm prints in its `# Source: ...` comment.
+	Source string `yaml:"-"`
 }
 
 type ObjectMetadata struct {
@@ -142,9 +144,33 @@ func ParseManifestStream(renderedYAML string) ([]ManifestObject, error) {
 		}
 		obj.RawBytes = len(rawDoc)
 		obj.RawYAML = string(rawDoc)
+		obj.Source = sourceComment(&node)
 		out = append(out, obj)
 	}
 	return out, nil
+}
+
+func sourceComment(node *yaml.Node) string {
+	var comments []string
+	if node != nil {
+		comments = append(comments, node.HeadComment)
+		if len(node.Content) > 0 {
+			root := node.Content[0]
+			comments = append(comments, root.HeadComment)
+			if len(root.Content) > 0 {
+				comments = append(comments, root.Content[0].HeadComment)
+			}
+		}
+	}
+	for _, block := range comments {
+		for _, line := range strings.Split(block, "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "# Source:") {
+				return strings.TrimSpace(strings.TrimPrefix(line, "# Source:"))
+			}
+		}
+	}
+	return ""
 }
 
 func ParseMinorVersion(k8sVersion string) int {

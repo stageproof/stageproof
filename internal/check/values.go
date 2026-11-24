@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/stageproof/stageproof/internal/helm"
+	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
 
@@ -30,6 +31,7 @@ func Gate(ctx context.Context, in Input, st *State) {
 		// reach. If the chart renders without a placeholder, the key is not a
 		// secret the chart refuses to start without.
 		trial := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
+		trial.APIVersions = knowledge.ServedAPIs(in.KubeVersion)
 		if _, trialErr := helm.RenderChart(ctx, trial); trialErr == nil {
 			placeholders = nil
 		}

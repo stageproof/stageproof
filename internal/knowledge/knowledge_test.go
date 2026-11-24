@@ -13,6 +13,39 @@ func TestKnowledgeEntriesCiteHTTPS(t *testing.T) {
 	}
 }
 
+func TestServedAPIsLookup(t *testing.T) {
+	for _, minor := range []string{"1.34", "1.35", "1.36", "1.37"} {
+		apis, ok := ExactServedAPIs(minor)
+		if !ok || len(apis) == 0 {
+			t.Fatalf("missing served APIs for %s", minor)
+		}
+		has := map[string]bool{}
+		for _, a := range apis {
+			has[a] = true
+		}
+		for _, want := range []string{"batch/v1/CronJob", "policy/v1/PodDisruptionBudget", "apps/v1/Deployment"} {
+			if !has[want] {
+				t.Errorf("%s missing %s", minor, want)
+			}
+		}
+	}
+	if apis, ok := ExactServedAPIs("v1.35.0"); !ok || len(apis) == 0 {
+		t.Fatal("v1.35.0 did not normalize to 1.35")
+	}
+	if _, ok := ExactServedAPIs("1.20"); ok {
+		t.Fatal("1.20 should not have an exact entry")
+	}
+	if got := ServedAPIs("1.20"); len(got) != 0 {
+		t.Fatalf("1.20 should not clamp to 1.34, got %d entries", len(got))
+	}
+	if got := ServedAPIs("1.33"); len(got) == 0 {
+		t.Fatal("1.33 should fall back to nearest stored minor")
+	}
+	if got := ServedAPIs("1.38"); len(got) == 0 {
+		t.Fatal("1.38 should fall back to nearest stored minor")
+	}
+}
+
 func TestEngineHasNoNames(t *testing.T) {
 	deny := []string{"cnpg", "harbor", "longhorn", "izbirai", "terraform/modules"}
 	roots := []string{"../.."}

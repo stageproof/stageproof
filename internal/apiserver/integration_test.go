@@ -3,17 +3,26 @@ package apiserver
 import (
 	"bytes"
 	"context"
+	"flag"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
+	"reflect"
 	"regexp"
+	"sort"
 	"strings"
 	"syscall"
 	"testing"
 	"time"
 
-	"sigs.k8s.io/yaml"
+	"gopkg.in/yaml.v3"
+	k8syaml "sigs.k8s.io/yaml"
+
+	"github.com/stageproof/stageproof/internal/knowledge"
 )
+
+var updateServedAPIs = flag.Bool("update-served-apis", false, "update internal/knowledge/served_apis.yaml for the requested Kubernetes minor")
 
 func apiServerOn(t *testing.T) string {
 	t.Helper()
@@ -406,7 +415,7 @@ func TestAPIServerStopOnSIGTERM(t *testing.T) {
 func manifest(t *testing.T, doc string) Manifest {
 	t.Helper()
 	raw := map[string]any{}
-	if err := yaml.Unmarshal([]byte(doc), &raw); err != nil {
+	if err := k8syaml.Unmarshal([]byte(doc), &raw); err != nil {
 		t.Fatal(err)
 	}
 	return Manifest{Raw: raw}
@@ -567,4 +576,98 @@ spec:
 	if !hasBlocker(res3, "k8s.apply.invalid") {
 		t.Fatalf("new invalid field introduced in upgrade must block: %+v", res3.Findings)
 	}
+}
+
+func TestAPIServerServedAPIsMatchKnowledge(t *testing.T) {
+	version := apiServerOn(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Minute)
+	defer cancel()
+
+	srv, err := Start(ctx, version, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = srv.Stop() }()
+
+	got, err := srv.ServedAPIs()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) == 0 {
+		t.Fatal("ServedAPIs returned empty list")
+	}
+
+	minor := minorOf(version)
+	if *updateServedAPIs {
+		path := filepath.Join("..", "knowledge", "served_apis.yaml")
+		raw, err := os.ReadFile(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var sets []knowledge.ServedAPISet
+		if err := yaml.Unmarshal(raw, &sets); err != nil {
+			t.Fatal(err)
+		}
+		entry := knowledge.ServedAPISet{
+			Minor:  minor,
+			Patch:  srv.Version(),
+			Source: IndexURL,
+			APIs:   got,
+		}
+		replaced := false
+		for i := range sets {
+			if sets[i].Minor == minor {
+				sets[i] = entry
+				replaced = true
+				break
+			}
+		}
+		if !replaced {
+			sets = append(sets, entry)
+		}
+		sort.Slice(sets, func(i, j int) bool { return sets[i].Minor < sets[j].Minor })
+		out, err := yaml.Marshal(sets)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, out, 0o644); err != nil {
+			t.Fatal(err)
+		}
+		t.Logf("updated %s for %s (%s): %d entries", path, minor, srv.Version(), len(got))
+		return
+	}
+
+	want, ok := knowledge.ExactServedAPIs(minor)
+	if !ok {
+		t.Fatalf("Kubernetes %s is missing from internal/knowledge/served_apis.yaml (run STAGEPROOF_APISERVER=1 STAGEPROOF_APISERVER_K8S=%s go test ./internal/apiserver -run TestAPIServerServedAPIsMatchKnowledge -update-served-apis)", minor, minor)
+	}
+	if !reflect.DeepEqual(got, want) {
+		var added, removed []string
+		wantSet := map[string]bool{}
+		for _, w := range want {
+			wantSet[w] = true
+		}
+		gotSet := map[string]bool{}
+		for _, g := range got {
+			gotSet[g] = true
+			if !wantSet[g] {
+				added = append(added, g)
+			}
+		}
+		for _, w := range want {
+			if !gotSet[w] {
+				removed = append(removed, w)
+			}
+		}
+		t.Fatalf("served APIs for Kubernetes %s (%s) drifted from internal/knowledge/served_apis.yaml\nadded: %v\nremoved: %v", minor, srv.Version(), added, removed)
+	}
+}
+
+func minorOf(v string) string {
+	v = strings.TrimPrefix(strings.TrimSpace(v), "v")
+	parts := strings.Split(v, ".")
+	if len(parts) >= 2 {
+		return parts[0] + "." + parts[1]
+	}
+	return v
 }

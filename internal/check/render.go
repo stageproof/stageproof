@@ -130,7 +130,8 @@ func (s *State) applyRepair(opts helm.RenderOptions) helm.RenderOptions {
 	opts.SetValues = append(append([]string{}, opts.SetValues...), s.RepairSets...)
 	opts.SetStrings = append(append([]string{}, opts.SetStrings...), s.Placeholders...)
 	opts.SetJSON = append(append([]string{}, opts.SetJSON...), s.RepairJSON...)
-	opts.APIVersions = append(append([]string{}, opts.APIVersions...), s.RepairAPIs...)
+	opts.APIVersions = mergeStrings(append([]string{}, opts.APIVersions...), s.ServedAPIs)
+	opts.APIVersions = mergeStrings(opts.APIVersions, s.RepairAPIs)
 	if s.RepairSkipSchema {
 		opts.SkipSchemaValidation = true
 	}

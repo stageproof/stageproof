@@ -1,0 +1,7 @@
+id: removed-api-capability-guarded
+summary: A PodSecurityPolicy guarded by Capabilities.APIVersions.Has "policy/v1beta1" is not proven removed because helm template includes policy/v1beta1 by default; an unconditional one must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.api.removed]}
+control_expect: {verdict: PASSED}
+status: active
+source: Kubernetes removed policy/v1beta1 PodSecurityPolicy in 1.25. Helm template includes policy/v1beta1 in its default version set and cannot remove it.

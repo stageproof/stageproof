@@ -40,6 +40,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		Require: in.RequireRehearsal,
 		Config:  in.Config,
 	}
+	defer st.closeAPIServer()
 	if note := placeholderFinding(in.PlaceholderTokens); note != nil {
 		st.Report.Findings = append(st.Report.Findings, *note)
 	}
@@ -73,6 +74,7 @@ func Run(ctx context.Context, in Input) *verdict.Report {
 		if st.Stopped {
 			return st.Report
 		}
+		prepareAPIs(ctx, in, st)
 		Charts(ctx, in, st)
 		if st.Stopped {
 			return st.Report

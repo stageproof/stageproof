@@ -1,0 +1,7 @@
+id: removed-api-capability-pdb
+summary: A PodDisruptionBudget gated on policy/v1/PodDisruptionBudget must render policy/v1 and pass; an unconditional policy/v1beta1 PodDisruptionBudget must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.api.removed]}
+control_expect: {verdict: PASSED}
+status: active
+source: Kubernetes removed policy/v1beta1 PodDisruptionBudget in 1.25. Charts select policy/v1 using Capabilities.APIVersions.Has "policy/v1/PodDisruptionBudget".

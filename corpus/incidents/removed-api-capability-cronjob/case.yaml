@@ -1,0 +1,7 @@
+id: removed-api-capability-cronjob
+summary: A CronJob gated on batch/v1/CronJob must render batch/v1 and pass; an unconditional batch/v1beta1 CronJob must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.api.removed]}
+control_expect: {verdict: PASSED}
+status: active
+source: Kubernetes removed batch/v1beta1 CronJob in 1.25. Charts select batch/v1 using Capabilities.APIVersions.Has "batch/v1/CronJob".
