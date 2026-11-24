@@ -115,7 +115,11 @@ func HelmCompare(ctx context.Context, in Input, st *State) {
 
 func headOptions(in Input, st *State) helm.RenderOptions {
 	opts := in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs)
-	return st.applyRepair(opts)
+	opts = st.applyRepair(opts)
+	if in.BaseDir != "" && !st.HeadUpgradeFallback {
+		opts.IsUpgrade = true
+	}
+	return opts
 }
 
 func baseOptions(in Input, st *State) helm.RenderOptions {

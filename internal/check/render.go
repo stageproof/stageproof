@@ -32,7 +32,31 @@ func Charts(ctx context.Context, in Input, st *State) {
 		baseOpts = st.applyRepair(in.renderOptions(in.BaseDir, in.BaseValues, in.BaseSet, in.BaseSetString, in.BaseSetFile, in.BaseRelease, in.BaseNamespace, in.BaseSkipCRDs))
 	}
 	headOpts := st.applyRepair(in.renderOptions(in.HeadDir, in.HeadValues, in.HeadSet, in.HeadSetString, in.HeadSetFile, in.HeadRelease, in.HeadNamespace, in.HeadSkipCRDs))
+	if in.BaseDir != "" {
+		headOpts.IsUpgrade = true
+	}
 	baseYAML, headYAML, repair, bErr, hErr := helm.CompleteCharts(ctx, "", baseOpts, headOpts)
+	if bErr == nil && hErr != nil && headOpts.IsUpgrade {
+		upgradeErr := hErr
+		fallbackOpts := headOpts
+		fallbackOpts.IsUpgrade = false
+		fbBase, fbHead, fbRepair, fbBaseErr, fbHeadErr := helm.CompleteCharts(ctx, "", baseOpts, fallbackOpts)
+		if fbBaseErr == nil && fbHeadErr == nil {
+			baseYAML, headYAML, repair, bErr, hErr = fbBase, fbHead, fbRepair, nil, nil
+			st.HeadUpgradeFallback = true
+			secrets := helm.SecretStrings(in.HeadValues)
+			secrets = append(secrets, helm.SecretValuesFromSets(in.SetValues)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSet)...)
+			secrets = append(secrets, helm.SecretValuesFromSets(in.HeadSetString)...)
+			st.Report.Findings = append(st.Report.Findings, verdict.Finding{
+				RuleID:   "helm.template.upgrade_fallback",
+				Severity: verdict.SeverityWarning,
+				File:     in.HeadDir,
+				Message:  "The new chart did not render with `--is-upgrade`; Stageproof fell back to install-mode rendering.",
+				Detail:   helm.Scrub(upgradeErr.Error(), secrets),
+			})
+		}
+	}
 	st.noteRepair(repair)
 	if bErr != nil {
 		secrets := helm.SecretStrings(in.BaseValues)

@@ -21,11 +21,12 @@ type State struct {
 	// RepairSets, RepairAPIs, and RepairSkipSchema are discovered while
 	// rendering. Later stages must use them or they render a different chart
 	// than the one the findings describe.
-	RepairSets        []string
-	RepairJSON        []string
-	RepairAPIs        []string
-	RepairSkipSchema  bool
-	Started           time.Time
+	RepairSets          []string
+	RepairJSON          []string
+	RepairAPIs          []string
+	RepairSkipSchema    bool
+	HeadUpgradeFallback bool
+	Started             time.Time
 	Require           bool
 	Stopped           bool
 	APIServerRan      bool

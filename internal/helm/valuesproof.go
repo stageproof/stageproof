@@ -258,8 +258,13 @@ func (p *prover) remember(opts RenderOptions, objs []k8sschema.ManifestObject, e
 
 func optsKey(opts RenderOptions) (string, error) {
 	h := sha256.New()
-	if err := hashLine(h, "%s\n%s\n%s\n%t\n%s\n", opts.ChartDir, opts.ReleaseName, opts.Namespace, opts.SkipCRDs, opts.KubeVersion); err != nil {
+	if err := hashLine(h, "%s\n%s\n%s\n%t\n%t\n%t\n%s\n", opts.ChartDir, opts.ReleaseName, opts.Namespace, opts.SkipCRDs, opts.IsUpgrade, opts.SkipSchemaValidation, opts.KubeVersion); err != nil {
 		return "", err
+	}
+	for _, s := range opts.APIVersions {
+		if err := hashLine(h, "api %s\n", s); err != nil {
+			return "", err
+		}
 	}
 	for _, s := range opts.SetValues {
 		if err := hashLine(h, "set %s\n", s); err != nil {
@@ -268,6 +273,11 @@ func optsKey(opts RenderOptions) (string, error) {
 	}
 	for _, s := range opts.SetStrings {
 		if err := hashLine(h, "str %s\n", s); err != nil {
+			return "", err
+		}
+	}
+	for _, s := range opts.SetJSON {
+		if err := hashLine(h, "json %s\n", s); err != nil {
 			return "", err
 		}
 	}
@@ -337,6 +347,22 @@ func (p *prover) proveKey(req ProofRequest, job leafJob, headUsage *ChartUsage, 
 			return keyResult{findings: []verdict.Finding{tmpl}, byRender: true}
 		}
 		return keyResult{byRender: true}
+	}
+	// When head was rendered with --is-upgrade and base with install mode, a
+	// key used only under .Release.IsInstall affects base but not head. Check
+	// head in base's mode before concluding the upgrade dropped the key.
+	if req.BaseDir != "" && req.Head.IsUpgrade != req.Base.IsUpgrade {
+		sameMode := req.Head
+		sameMode.IsUpgrade = req.Base.IsUpgrade
+		if sameObjs, sameMask, sameErr := p.calibrate(sameMode); sameErr == nil {
+			alt := p.answer(sameMode, job, sameObjs, sameMask)
+			if alt.has {
+				return keyResult{byRender: true}
+			}
+			if alt.unknown {
+				return keyResult{notProven: true}
+			}
+		}
 	}
 
 	finding := tmpl

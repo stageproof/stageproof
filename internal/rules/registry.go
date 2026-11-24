@@ -89,6 +89,12 @@ var rules = []Rule{
 		Fix:         "Fix the template that produces the invalid output.",
 	},
 	{
+		ID: "helm.template.upgrade_fallback", Severity: verdict.SeverityWarning, Group: GroupRendering,
+		Title:       "Upgrade-mode render failed; install-mode render was used",
+		Explanation: "Rendering the new chart with %%--is-upgrade%% failed (often because a template expects an existing cluster secret during upgrade), while install-mode rendering succeeded. Stageproof continued using the install-mode render.",
+		Fix:         "Pass the values that upgrade-mode templates require if you want the check to exercise %%.Release.IsUpgrade%% branches.",
+	},
+	{
 		ID: "manifest.invalid_yaml", Severity: verdict.SeverityBlocker, Group: GroupRendering,
 		Title:       "The manifest path could not be read",
 		Explanation: "%%--before%% or %%--after%% could not be read. The path is missing, the file is not %%.yaml%% or %%.yml%%, the directory has none of those files, or the YAML does not parse.",

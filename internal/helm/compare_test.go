@@ -66,7 +66,7 @@ func TestCommandsStageproofRunsExist(t *testing.T) {
 		cmd   string
 		flags []string
 	}{
-		{"template", []string{"--namespace", "--include-crds", "--skip-crds", "--kube-version", "--api-versions", "--set", "--set-string", "--set-file"}},
+		{"template", []string{"--namespace", "--include-crds", "--skip-crds", "--kube-version", "--api-versions", "--is-upgrade", "--set", "--set-string", "--set-file"}},
 		{"pull", []string{"--version", "--untar", "--untardir", "--repo", "--plain-http"}},
 		{"upgrade", []string{"--install", "--wait", "--timeout", "--namespace"}},
 		{"install", []string{"--wait", "--timeout", "--namespace"}},

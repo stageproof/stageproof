@@ -1,0 +1,7 @@
+id: job-upgrade-hook
+summary: A Job annotated as a pre-upgrade hook only when .Release.IsUpgrade is true must pass; dropping the upgrade hook annotation on a changed Job must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.apply.immutable_field]}
+control_expect: {verdict: PASSED}
+status: active
+source: Charts annotate migration Jobs with helm.sh/hook pre-upgrade and before-hook-creation inside .Release.IsUpgrade.
