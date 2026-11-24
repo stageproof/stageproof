@@ -1,0 +1,7 @@
+id: job-release-revision
+summary: A Job named with .Release.Revision gets a new name on upgrade and must pass with a warning; a fixed-name Job whose pod template changes must block.
+k8s: "1.35"
+expect: {verdict: BLOCKED, rules: [k8s.apply.immutable_field]}
+control_expect: {verdict: PASSED}
+status: active
+source: helm template always renders .Release.Revision as 1, while helm upgrade increments it and creates a new object name.
