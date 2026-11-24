@@ -1604,9 +1604,9 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 </dl>
 
 <h2>Use the action</h2>
-<p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. Pin the commit. A floating <code>v1</code> tag is not published yet.</p>
+<p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. <code>v1</code> is the major tag.</p>
 <pre data-kind="file" data-label=".github/workflows/stageproof.yml">
-      - uses: stageproof/action@db6a432ddaec807a9356e05c33ad302ade24803b
+      - uses: stageproof/action@v1
         with:
           current-k8s: "1.35"
           api-server: auto

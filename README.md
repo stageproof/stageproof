@@ -42,7 +42,7 @@ Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions a
 ### GitHub Actions
 
 ```yaml
-      - uses: stageproof/action@db6a432ddaec807a9356e05c33ad302ade24803b
+      - uses: stageproof/action@v1
         with:
           current-k8s: "1.35"
           api-server: auto
