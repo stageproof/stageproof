@@ -5,6 +5,8 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-25
+
 ### Breaking
 
 - Charts are now rendered with the target Kubernetes minor's served API versions and kinds (`group/version` and `group/version/Kind`) via `--api-versions`, taken from local API server discovery when it runs or from the embedded discovery table (`1.34` to `1.37`) when it does not. A removed-API finding whose template guards on `.Capabilities.APIVersions` for that legacy API version is now a warning, because `helm template` includes legacy API versions in its default list and cannot remove them. Charts that previously returned `BLOCKED` (exit 1) for capability-gated APIs now return `PASSED` (exit 0).
@@ -13,7 +15,7 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ### Added
 
-- A Helm plugin downloads the released archive, checks `checksums.txt`, and runs `helm stageproof` with the same arguments and exit codes. The default binary is `v0.3.1`. Helm 4 installs it with `--verify=false` because a git checkout has no `.prov` file.
+- A Helm plugin downloads the released archive, checks `checksums.txt`, and runs `helm stageproof` with the same arguments and exit codes. The default binary is `v0.4.0`. Helm 4 installs it with `--verify=false` because a git checkout has no `.prov` file.
 - Rule `helm.template.upgrade_fallback` (warning) records when the new chart failed `--is-upgrade` rendering and Stageproof fell back to install-mode rendering.
 
 ### Fixed

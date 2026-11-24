@@ -4,7 +4,7 @@ Stageproof checks a Kubernetes upgrade before you merge it: Helm charts, Argo CD
 
 You give it what you run today and what the pull request wants. It uses your values and the Kubernetes version your cluster already runs. It prints one word and an exit code. The pull request is only read. The cluster you deploy to is never contacted.
 
-The released binary is `v0.3.1`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
+The released binary is `v0.4.0`. It checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It includes local API server proof, render-based values proof, impact and CRD checks, image tag checks, Helm 4 comparison, cluster facts, `explain`, SARIF, ignores, policy, and live `smoke` commands.
 
 Chart-default upgrade reports for 300 public Helm charts are at the [Stageproof index](https://stageproof.github.io/index/). The index has more than 20,000 upgrade pairs. Each report uses that chart's default values, not the values a cluster runs.
 
@@ -50,7 +50,7 @@ Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions a
           live: "false"
 ```
 
-The job needs `permissions: pull-requests: write`. The action checks out the pull request, downloads Stageproof `v0.3.1`, checks `checksums.txt`, and adds the report to the job summary. It posts one comment, or updates the comment that already contains `<!-- stageproof-comment -->`. A fork pull request often has a read-only token. The comment step treats that as success and still returns the check exit code. Do not run this action from `pull_request_target`. `live: "true"` starts a temporary kind cluster, and the runner has to be able to start containers.
+The job needs `permissions: pull-requests: write`. The action checks out the pull request, downloads Stageproof `v0.4.0`, checks `checksums.txt`, and adds the report to the job summary. It posts one comment, or updates the comment that already contains `<!-- stageproof-comment -->`. A fork pull request often has a read-only token. The comment step treats that as success and still returns the check exit code. Do not run this action from `pull_request_target`. `live: "true"` starts a temporary kind cluster, and the runner has to be able to start containers.
 
 ### The four words
 
@@ -118,32 +118,32 @@ stageproof check \
 
 ## Install
 
-Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The `v0.3.1-live` image includes kind, kubectl, and the Docker client. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
+Helm 3 or Helm 4 is required for every check. The commands Stageproof runs were checked on Helm 3.22.1 and Helm 4.3.2. Git is required for a pull request. `--live` also needs kind, kubectl, the Docker client, and a running Docker daemon. The `v0.4.0-live` image includes kind, kubectl, and the Docker client. The daemon is the one already running on the machine. A binary you installed yourself uses kind, kubectl, and Docker from that machine.
 
 ### Container image
 
-`v0.3.1` publishes two images. `ghcr.io/stageproof/stageproof:v0.3.1` contains Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.3.1-live` adds kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client. A file check from a checkout:
+`v0.4.0` publishes two images. `ghcr.io/stageproof/stageproof:v0.4.0` contains Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.4.0-live` adds kind 0.33.0, kubectl 1.35.10, and the Docker 29.9.2 client. A file check from a checkout:
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.3.1 \
+  ghcr.io/stageproof/stageproof:v0.4.0 \
   check-pr --current-git "$BASE" --current-k8s 1.35
 ```
 
 To print the version:
 
 ```bash
-docker run --rm ghcr.io/stageproof/stageproof:v0.3.1 version
+docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version
 ```
 
-`--live` uses the `v0.3.1-live` image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
+`--live` uses the `v0.4.0-live` image. kind starts the temporary cluster by asking the machine's Docker daemon to run it, so the command gets the Docker socket. The temporary cluster's API is on `127.0.0.1`, so the container uses the host network. The image user is uid 65532, and the socket belongs to root, so the command runs as root.
 
 ```bash
 docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.3.1-live \
+  ghcr.io/stageproof/stageproof:v0.4.0-live \
   check-pr --current-git "$BASE" --current-k8s 1.35 --live
 ```
 
@@ -161,7 +161,7 @@ brew install stageproof/stageproof/stageproof
 
 ### Helm plugin
 
-Helm 3 and Helm 4 can run the same checks. The plugin downloads the `v0.3.1` archive and checks `checksums.txt` before it runs the binary. `helm stageproof` takes the same arguments as `stageproof` and returns the same exit code.
+Helm 3 and Helm 4 can run the same checks. The plugin downloads the `v0.4.0` archive and checks `checksums.txt` before it runs the binary. `helm stageproof` takes the same arguments as `stageproof` and returns the same exit code.
 
 ```bash
 helm plugin install https://github.com/stageproof/stageproof
@@ -178,14 +178,14 @@ helm stageproof version
 ```
 
 ```text
-stageproof v0.3.1 (Apache-2.0)
+stageproof v0.4.0 (Apache-2.0)
 ```
 
 ```bash
 helm stageproof check --current-chart current/metrics-server --new-chart new/metrics-server
 ```
 
-Set `STAGEPROOF_VERSION` to another `vX.Y.Z` release before `helm plugin install` or `helm plugin update stageproof` when you want a different binary. The default is `v0.3.1`.
+Set `STAGEPROOF_VERSION` to another `vX.Y.Z` release before `helm plugin install` or `helm plugin update stageproof` when you want a different binary. The default is `v0.4.0`.
 
 ### GitHub release
 
@@ -194,7 +194,7 @@ Download the archive for your OS from the [releases](https://github.com/stagepro
 ### From source
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.3.1
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.4.0
 ```
 
 ## What it leaves alone
