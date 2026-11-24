@@ -127,7 +127,7 @@ func withRepair(opts RenderOptions, repair Repair) RenderOptions {
 	opts.SetValues = append(dropKeys(withoutParentKeys(opts.SetValues, repair.Keys()), drop), repair.Sets...)
 	opts.SetStrings = append(dropKeys(withoutParentKeys(opts.SetStrings, repair.Keys()), drop), repair.SetStrings...)
 	opts.SetJSON = append(dropKeys(withoutParentKeys(opts.SetJSON, repair.Keys()), drop), repair.SetJSON...)
-	opts.APIVersions = append(append([]string{}, opts.APIVersions...), repair.APIVersions...)
+	opts.APIVersions = mergeStrings(append([]string{}, opts.APIVersions...), repair.APIVersions)
 	if repair.SkipSchema {
 		opts.SkipSchemaValidation = true
 	}

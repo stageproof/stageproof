@@ -3,6 +3,7 @@ package check
 import (
 	"time"
 
+	"github.com/stageproof/stageproof/internal/apiserver"
 	"github.com/stageproof/stageproof/internal/config"
 	"github.com/stageproof/stageproof/internal/k8sschema"
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -14,22 +15,36 @@ type State struct {
 	BaseObjs     []k8sschema.ManifestObject
 	HeadObjs     []k8sschema.ManifestObject
 	Placeholders []string
+	// ServedAPIs is the Kubernetes discovery list (group/version and
+	// group/version/Kind) passed to helm template via --api-versions.
+	ServedAPIs []string
 	// RepairSets, RepairAPIs, and RepairSkipSchema are discovered while
 	// rendering. Later stages must use them or they render a different chart
 	// than the one the findings describe.
-	RepairSets       []string
-	RepairJSON       []string
-	RepairAPIs       []string
-	RepairSkipSchema bool
-	Started          time.Time
-	Require          bool
-	Stopped          bool
-	APIServerRan     bool
-	APIServerVersion string
-	NextAPIServerRan bool
-	StoredBefore     [][]byte
-	StoredAfter      [][]byte
-	Config           *config.Config
+	RepairSets        []string
+	RepairJSON        []string
+	RepairAPIs        []string
+	RepairSkipSchema  bool
+	Started           time.Time
+	Require           bool
+	Stopped           bool
+	APIServerRan      bool
+	APIServerVersion  string
+	NextAPIServerRan  bool
+	StoredBefore      [][]byte
+	StoredAfter       [][]byte
+	Config            *config.Config
+	apiServer         *apiserver.Server
+	apiServerPrepared bool
+	apiServerStartErr error
+}
+
+func (s *State) closeAPIServer() {
+	if s == nil || s.apiServer == nil {
+		return
+	}
+	_ = s.apiServer.Stop()
+	s.apiServer = nil
 }
 
 func (s *State) stop(runtimeOK, couldNotCheck bool) {

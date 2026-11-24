@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -179,6 +180,48 @@ func (s *Server) Version() string {
 
 // BinaryDir is the directory that holds kube-apiserver, etcd, and kubectl.
 func (s *Server) BinaryDir() string { return s.binDir }
+
+// ServedAPIs returns every group/version and group/version/Kind this API server
+// serves, sorted and deduplicated. Subresources (names containing "/") are skipped.
+func (s *Server) ServedAPIs() ([]string, error) {
+	if s == nil || s.discovery == nil {
+		return nil, fmt.Errorf("api server discovery is unavailable")
+	}
+	groups, lists, err := s.discovery.ServerGroupsAndResources()
+	if err != nil && !discovery.IsGroupDiscoveryFailedError(err) {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	add := func(v string) {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			seen[v] = true
+		}
+	}
+	for _, g := range groups {
+		for _, v := range g.Versions {
+			add(v.GroupVersion)
+		}
+	}
+	for _, list := range lists {
+		if list == nil || list.GroupVersion == "" {
+			continue
+		}
+		add(list.GroupVersion)
+		for _, r := range list.APIResources {
+			if r.Kind == "" || strings.Contains(r.Name, "/") {
+				continue
+			}
+			add(list.GroupVersion + "/" + r.Kind)
+		}
+	}
+	out := make([]string, 0, len(seen))
+	for k := range seen {
+		out = append(out, k)
+	}
+	sort.Strings(out)
+	return out, nil
+}
 
 // Stop ends kube-apiserver and etcd. A second call does nothing.
 func (s *Server) Stop() error {

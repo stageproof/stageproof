@@ -223,7 +223,7 @@ var rules = []Rule{
 	{
 		ID: "k8s.api.removed", Severity: verdict.SeverityBlocker, Group: GroupK8s,
 		Title:       "The chart uses an API this Kubernetes version removed",
-		Explanation: "A resource uses an API version that the Kubernetes version in %%--current-k8s%% has removed.",
+		Explanation: "A resource uses an API version that the Kubernetes version in %%--current-k8s%% has removed. Charts are rendered with the target minor's served API kinds so capability-gated templates select the current version. When a template guards on %%.Capabilities.APIVersions%% for a legacy API version that %%helm template%% keeps in its default list, the finding is downgraded to a warning.",
 		Fix:         "Move the resource to the API version named in the report.",
 	},
 	{

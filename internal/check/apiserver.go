@@ -13,12 +13,38 @@ import (
 	"github.com/stageproof/stageproof/internal/facts"
 	"github.com/stageproof/stageproof/internal/helm"
 	"github.com/stageproof/stageproof/internal/k8sschema"
+	"github.com/stageproof/stageproof/internal/knowledge"
 	"github.com/stageproof/stageproof/internal/verdict"
 )
+
+// prepareAPIs populates st.ServedAPIs for helm template before Charts renders.
+// When --api-server is auto or require, it starts the local API server once
+// and reads its discovery; ServerProof reuses that running server and stops it.
+// When --api-server is off or binaries are unavailable, it uses the stored
+// discovery list for that Kubernetes minor from internal/knowledge.
+func prepareAPIs(ctx context.Context, in Input, st *State) {
+	mode := in.APIServer
+	if mode == "auto" || mode == "require" {
+		st.apiServerPrepared = true
+		srv, err := apiserver.Start(ctx, in.KubeVersion, in.APIServerDir)
+		if err != nil {
+			st.apiServerStartErr = err
+			st.ServedAPIs = knowledge.ServedAPIs(in.KubeVersion)
+			return
+		}
+		st.apiServer = srv
+		if apis, derr := srv.ServedAPIs(); derr == nil && len(apis) > 0 {
+			st.ServedAPIs = apis
+			return
+		}
+	}
+	st.ServedAPIs = knowledge.ServedAPIs(in.KubeVersion)
+}
 
 // ServerProof asks a local API server of the requested minor whether the
 // upgrade is accepted. --api-server off leaves the built-in table in place.
 func ServerProof(ctx context.Context, in Input, st *State) {
+	defer st.closeAPIServer()
 	mode := in.APIServer
 	if mode == "" || mode == "off" {
 		return
@@ -33,7 +59,17 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 		return
 	}
 
-	srv, err := apiserver.Start(ctx, in.KubeVersion, in.APIServerDir)
+	var srv *apiserver.Server
+	var err error
+	if st.apiServerPrepared {
+		srv = st.apiServer
+		err = st.apiServerStartErr
+	} else {
+		srv, err = apiserver.Start(ctx, in.KubeVersion, in.APIServerDir)
+		if err == nil {
+			st.apiServer = srv
+		}
+	}
 	if err != nil {
 		if mode == "require" {
 			st.Report.Skipped = append(st.Report.Skipped, verdict.SkipNotice{
@@ -51,7 +87,6 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 		})
 		return
 	}
-	defer func() { _ = srv.Stop() }()
 
 	preload, preloadErr := clusterPreload(in.Facts)
 	if preloadErr != nil {
@@ -82,6 +117,9 @@ func ServerProof(ctx context.Context, in Input, st *State) {
 			Summary: "The API server did not finish. The built-in API table was used.",
 		})
 		return
+	}
+	if !in.ManifestMode {
+		res.Findings = downgradeGuardedRemovedAPIs(in.HeadDir, st.HeadObjs, res.Findings)
 	}
 	st.APIServerRan = true
 	st.APIServerVersion = srv.Version()

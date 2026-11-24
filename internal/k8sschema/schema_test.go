@@ -81,3 +81,38 @@ func TestWildcardStillCoversOtherKinds(t *testing.T) {
 		t.Fatalf("FlowSchema v1beta3 is still served on 1.31")
 	}
 }
+
+func TestParseExtractsHelmSourceComments(t *testing.T) {
+	stream := `---
+# Source: demo/templates/cm.yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: first
+---
+# Source: demo/templates/multi.yaml
+# extra note
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: second
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nosource
+`
+	objs, err := ParseManifestStream(stream)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(objs) != 3 {
+		t.Fatalf("got %d objects, want 3", len(objs))
+	}
+	want := []string{"demo/templates/cm.yaml", "demo/templates/multi.yaml", ""}
+	for i, w := range want {
+		if objs[i].Source != w {
+			t.Errorf("obj[%d].Source = %q, want %q", i, objs[i].Source, w)
+		}
+	}
+}

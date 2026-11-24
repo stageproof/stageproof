@@ -66,8 +66,17 @@ func RenderChartBinary(ctx context.Context, bin string, opts RenderOptions) (str
 		}
 		args = append(args, "--kube-version", kv)
 	}
-	for _, av := range opts.APIVersions {
-		args = append(args, "--api-versions", av)
+	if len(opts.APIVersions) > 0 {
+		var clean []string
+		for _, av := range opts.APIVersions {
+			av = strings.TrimSpace(av)
+			if av != "" {
+				clean = append(clean, av)
+			}
+		}
+		if len(clean) > 0 {
+			args = append(args, "--api-versions", strings.Join(clean, ","))
+		}
 	}
 	if opts.SkipSchemaValidation {
 		args = append(args, "--skip-schema-validation")
