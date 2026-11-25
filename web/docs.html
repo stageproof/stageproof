@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css?v=18" />
-  <script src="assets/app.js?v=17" defer></script>
+  <link rel="stylesheet" href="assets/styles.css?v=19" />
+  <script src="assets/app.js?v=19" defer></script>
   <script src="assets/docs.js?v=20" defer></script>
 </head>
 <body>
@@ -31,10 +31,11 @@
 
       <nav class="nav-links" id="nav-links" aria-label="Primary">
         <a href="index.html">Overview</a>
-        <a href="roadmap.html">Roadmap</a>
+        <a href="https://stageproof.github.io/index/">Chart Index</a>
         <a href="docs.html" class="active">Docs</a>
         <a href="architecture.html">Architecture</a>
         <a href="security.html">Security</a>
+        <a href="roadmap.html">Roadmap</a>
       </nav>
 
       <div class="nav-cta">
@@ -44,7 +45,7 @@
             <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           </span>
         </button>
-        <a class="btn btn-primary btn-sm" href="docs.html">Read the docs</a>
+        <a class="btn btn-primary btn-sm" href="#first-check">Quickstart</a>
       </div>
 
       <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation">Menu</button>
@@ -75,8 +76,8 @@
   <footer class="footer">
     <div class="wrap">
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. CLI licensed under Apache-2.0. <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.4.0.</span>
+        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0). <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
+        <span class="status-pill"><span class="dot-live"></span>v0.4.0 · Single binary · Apache-2.0</span>
       </div>
     </div>
   </footer>
@@ -93,17 +94,17 @@
   <!-- ================================================================ START HERE -->
 
   <template data-topic="overview" data-group="Start here" data-title="What Stageproof does">
-<p class="docs-lede">Stageproof checks a Kubernetes upgrade before you merge it: Helm charts, Argo CD Applications, Flux HelmReleases, and rendered YAML manifests. It compares what you run today with what you want to deploy, and reports whether the upgrade is safe to apply to your cluster.</p>
+<p class="docs-lede">Stageproof is a free, open-source (Apache-2.0) single-binary CLI that checks Kubernetes upgrades before you merge them: Helm charts, Argo CD Applications, Flux HelmReleases, and rendered YAML manifests. No account, no config file, no cluster access, and 0 AI calls.</p>
 
 <h2>The problem</h2>
-<p>A chart upgrade can pass <code>helm lint</code> and <code>helm template</code> and still break a cluster. Those tools read the new chart on its own. They do not know which version you run today, which values you set, or which Kubernetes version your cluster runs. Three failures come from that gap:</p>
+<p>A chart upgrade can pass <code>helm lint</code> and <code>helm template</code> and still break a cluster. Those tools read the new chart on its own. They do not know which version you run today, which values you set, or which Kubernetes version your cluster runs. Four failures come from that gap:</p>
 <ul>
   <li><strong>A setting you rely on stops working.</strong> The new chart renames or removes a values key. Helm ignores the old key without an error, so your override is no longer applied.</li>
   <li><strong>The chart uses an API your cluster no longer serves.</strong> Kubernetes removes old API versions over time. A chart that still uses one fails when it is applied.</li>
-  <li><strong>The upgrade cannot be applied in place.</strong> Some fields cannot change on a running workload, for example the label selector of a Deployment. A fresh install works. The upgrade of an existing release fails.</li>
+  <li><strong>The upgrade cannot be applied in place.</strong> Some fields cannot change on a running workload, for example the label selector of a Deployment or a Job pod template. A fresh install works. The upgrade of an existing release fails.</li>
   <li><strong>The new chart deletes something you still need.</strong> Helm removes an object it no longer renders. A PersistentVolumeClaim, a Namespace, or a templated custom resource definition takes data or other objects with it.</li>
 </ul>
-<p>Stageproof finds these while the change is still a pull request.</p>
+<p>Stageproof finds these in seconds with one command, before you merge.</p>
 
 <h2>What it checks</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -141,7 +142,7 @@
   <thead><tr><th>Kind</th><th>Example</th><th>What Stageproof does</th></tr></thead>
   <tbody>
     <tr><td><strong>Chart upgrade</strong></td><td>The argo-cd chart moves from 10.9.6 to 10.18.0.</td><td>This is the main job. Stageproof compares the two chart versions.</td></tr>
-    <tr><td><strong>Kubernetes cluster upgrade</strong></td><td>Your cluster moves from Kubernetes 1.31 to 1.32.</td><td>Stageproof does not upgrade a cluster. It tells you whether a chart works on the version you run, and warns you about the version you plan to move to.</td></tr>
+    <tr><td><strong>Kubernetes cluster upgrade</strong></td><td>Your cluster moves from Kubernetes 1.35 to 1.36.</td><td>Stageproof does not upgrade a cluster. It tells you whether a chart works on the version you run, and warns you about the version you plan to move to.</td></tr>
   </tbody>
 </table></div>
 
@@ -155,108 +156,138 @@
     <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
-    <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are supported on <code>main</code>)</td></tr>
+    <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are included in v0.4.0)</td></tr>
     <tr><td>Kustomize and Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
   </tbody>
 </table></div>
-<p>The full list is in <a href="#limits">Scope and limits</a>. Measured accuracy numbers on 12 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects are in <a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>.</p>
+<p>The full list is in <a href="#limits">Scope and limits</a>. Measured accuracy numbers on 18 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects (0/283 wrong blocks) are in <a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>.</p>
 
 <h2>What it never does</h2>
 <ul>
+  <li><strong>It is free and requires no account.</strong> Apache-2.0 licensed, no signup, no telemetry, no hosted backend.</li>
   <li><strong>It does not change your repository.</strong> It does not commit, push, or edit files. It reads and reports.</li>
   <li><strong>It does not touch your real cluster.</strong> The live rehearsal runs in a temporary local cluster that Stageproof creates and deletes.</li>
-  <li><strong>It does not use AI.</strong> Results come from fixed rules. The same input gives the same result.</li>
+  <li><strong>It does not use AI.</strong> Results come from fixed rules and a local Kubernetes API server. The same input gives the same result.</li>
 </ul>
   </template>
 
   <template data-topic="install" data-group="Start here" data-title="Install">
-<p class="docs-lede">Stageproof is a single command line program. You can install the released <code>v0.4.0</code> binary from Homebrew, GitHub Releases, or the container image, run it as a Helm plugin, or build the source on <code>main</code>.</p>
+<p class="docs-lede">Stageproof is a single free binary (Apache-2.0). Pick Homebrew, the Helm plugin, a signed release archive, or the container image. No account or configuration file is required.</p>
+
+<h2>Homebrew (macOS and Linux)</h2>
+<pre data-kind="cmd" data-label="Install with Homebrew">
+brew install stageproof/stageproof/stageproof</pre>
+
+<h2>Helm plugin (Helm 3 and Helm 4)</h2>
+<p>The plugin downloads the signed <code>v0.4.0</code> binary for your OS and checks <code>checksums.txt</code> before running. <code>helm stageproof</code> takes the exact same flags and returns the same exit codes as <code>stageproof</code>.</p>
+<pre data-kind="cmd" data-label="Helm 3">
+helm plugin install https://github.com/stageproof/stageproof</pre>
+<pre data-kind="cmd" data-label="Helm 4">
+helm plugin install https://github.com/stageproof/stageproof --verify=false</pre>
+<p>Helm 4 checks a <code>.prov</code> signature when installing from git unless <code>--verify=false</code> is passed. Verified on Helm 3.22.1 and Helm 4.3.2.</p>
+<pre data-kind="cmd" data-label="Verify the plugin">
+helm stageproof version</pre>
+<pre data-kind="out">
+stageproof v0.4.0 (Apache-2.0)</pre>
+<p>Set <code>STAGEPROOF_VERSION</code> to another <code>vX.Y.Z</code> tag before installing or updating to pin a different release.</p>
+
+<h2>Container image (includes Helm and Git)</h2>
+<pre data-kind="cmd" data-label="Run with Docker">
+docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version</pre>
+<p><code>ghcr.io/stageproof/stageproof:v0.4.0</code> bundles Stageproof, Helm 3.22.1, and Git. <code>ghcr.io/stageproof/stageproof:v0.4.0-live</code> also bundles kind, kubectl, and the Docker client for <code>--live</code> runs.</p>
+
+<h2>Signed release binary (Linux, macOS, Windows)</h2>
+<p>Download the archive for your OS and architecture from <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>, unpack <code>stageproof</code> onto your <code>PATH</code>, and check the version:</p>
+<pre data-kind="cmd" data-label="Print the version">
+stageproof version</pre>
+<pre data-kind="out">
+stageproof v0.4.0 (Apache-2.0)</pre>
+
+<h2>From source (optional)</h2>
+<pre data-kind="cmd" data-label="Install with Go 1.27+">
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.4.0</pre>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
   <thead><tr><th>Tool</th><th>Version</th><th>Needed for</th></tr></thead>
   <tbody>
-    <tr><td>Go</td><td>1.27.4</td><td>Building from source on <code>main</code></td></tr>
-    <tr><td>Helm</td><td>3 or 4 (tested on 3.22.1 and 4.3.2)</td><td>Chart, Argo CD, and Flux checks, and <code>stageproof check --repo</code>. Stageproof calls <code>helm template</code> and <code>helm pull</code>. Comparing rendered manifests does not call Helm.</td></tr>
-    <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests</td></tr>
-    <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>The live rehearsal only</td></tr>
+    <tr><td>Helm</td><td>3 or 4 (tested on 3.22.1 and 4.3.2)</td><td>Chart, Argo CD, and Flux checks, and <code>stageproof check --repo</code>. Not needed for rendered manifests (<code>--before</code> / <code>--after</code>).</td></tr>
+    <tr><td>Git</td><td>Any recent version</td><td>Comparing against a branch and checking pull requests (<code>check-pr</code>)</td></tr>
+    <tr><td>kind, kubectl, Docker</td><td>Any recent version</td><td>Optional <code>--live</code> rehearsal only</td></tr>
   </tbody>
 </table></div>
-
-<h2>Install the released binary (v0.4.0)</h2>
-<pre data-kind="cmd" data-label="Homebrew">
-brew install stageproof/stageproof/stageproof</pre>
-<pre data-kind="cmd" data-label="Container image">
-docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version</pre>
-<p>Signed archives and SBOMs are published on <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>.</p>
-
-<h2>Helm plugin</h2>
-<p>Helm 3 and Helm 4 install the same plugin. The install hook downloads the <code>v0.4.0</code> archive for this machine and checks the matching line in <code>checksums.txt</code> before the binary is used. <code>helm stageproof</code> takes the same arguments as <code>stageproof</code> and returns the same exit code.</p>
-<pre data-kind="cmd" data-label="Helm 3">
-helm plugin install https://github.com/stageproof/stageproof</pre>
-<pre data-kind="cmd" data-label="Helm 4">
-helm plugin install https://github.com/stageproof/stageproof --verify=false</pre>
-<p>Helm 4 checks a signature when it installs a plugin archive. A git checkout has no <code>.prov</code> file, so the install stops unless <code>--verify=false</code> is set. These commands were checked with Helm 3.22.1 and Helm 4.3.2.</p>
-<pre data-kind="cmd" data-label="Print the version">
-helm stageproof version</pre>
-<pre data-kind="out">
-stageproof v0.4.0 (Apache-2.0)</pre>
-<pre data-kind="cmd" data-label="Check two chart directories">
-helm stageproof check --current-chart current/metrics-server --new-chart new/metrics-server</pre>
-<p>Set <code>STAGEPROOF_VERSION</code> to another <code>vX.Y.Z</code> release before <code>helm plugin install</code> or <code>helm plugin update stageproof</code> when you want a different binary. The default is <code>v0.4.0</code>.</p>
-
-<h2>Build from source (main)</h2>
-<p>In the Stageproof source tree, build from the repository root.</p>
-<pre data-kind="cmd" data-label="Build the program">
-go build -o stageproof ./cmd/stageproof</pre>
-
-<h2>Put it on your PATH</h2>
-<pre data-kind="cmd" data-label="Install for all users">
-sudo mv stageproof /usr/local/bin/</pre>
-
-<h2>Check that it works</h2>
-<pre data-kind="cmd" data-label="Print the version">
-stageproof version</pre>
-<pre data-kind="out">
-stageproof v0.4.0 (Apache-2.0)</pre>
 <p>Next: <a href="#first-check">Run your first check</a>.</p>
   </template>
 
   <template data-topic="first-check" data-group="Start here" data-title="Run your first check">
-<p class="docs-lede">This walkthrough compares two public versions of the metrics-server chart. You need Stageproof and Helm. It takes about a minute.</p>
+<p class="docs-lede">You can scan any public Helm chart upgrade in one command with zero setup: no git checkout, no config file, and no Kubernetes cluster.</p>
 
-<h2>1. Download two versions of a chart</h2>
-<p>The first command downloads the version you pretend to run today. The second downloads the version you want to move to.</p>
-<pre data-kind="cmd" data-label="Download version 3.12.2 and version 3.13.0">
-helm pull metrics-server --repo https://kubernetes-sigs.github.io/metrics-server/ --version 3.12.2 --untar --untardir current
-helm pull metrics-server --repo https://kubernetes-sigs.github.io/metrics-server/ --version 3.13.0 --untar --untardir new</pre>
-
-<h2>2. Compare them</h2>
-<pre data-kind="cmd" data-label="Check the upgrade">
-stageproof check --current-chart current/metrics-server --new-chart new/metrics-server</pre>
-
-<h2>3. Read the output</h2>
+<h2>1. Check a clean upgrade</h2>
+<p>This command pulls both versions of <code>metrics-server</code> into a temporary directory, checks image tags, runs a local Kubernetes 1.35 API server to dry-run the upgrade, and cleans up after itself.</p>
+<pre data-kind="cmd" data-label="One command, zero setup">
+stageproof check \
+  --repo https://kubernetes-sigs.github.io/metrics-server/ \
+  --chart metrics-server \
+  --from 3.12.2 --to 3.13.0 \
+  --current-k8s 1.35</pre>
 <pre data-kind="out">
+!  NOT TESTED LIVE. This job did not rehearse the upgrade. The files were checked. The upgrade itself was not.
 stageproof  PASSED  exit 0
-compare  current/metrics-server -> new/metrics-server
-k8s  1.33  ·  checked: files
+compare  metrics-server@3.12.2 -&gt; metrics-server@3.13.0
+k8s  1.35  ·  checked: files, API server 1.35.0
+
+Restarts
+  INFO  The pod template of Deployment/stageproof-check/stageproof-rel-metrics-server changed at spec.template.spec.containers[name=metrics-server].image. The pods will restart. A restart is normal for an upgrade.
 
   ✓ PASS  helm template            rendered 9 Kubernetes objects cleanly
   ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
-  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ! WARN  upgrade signals          2 named changes
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✓ PASS  API server 1.35.0        Kubernetes 1.35.0 accepted the upgrade
+  ✓ PASS  impact                   Compared stored objects for 8 of 9 objects, and rendered objects for the rest.
+  ✓ PASS  k8s 1.35 compatibility   current Kubernetes was checked by API server 1.35.0
 
-verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
-<p>The result is <code>PASSED</code>. Stageproof rendered the new chart, found no removed Kubernetes API, and found no field that would block an in-place upgrade. The line <code>checked: files</code> says that no cluster was used. <a href="#results">Read the result</a> explains each line. <a href="#live">Rehearse the upgrade</a> is how a run becomes <code>PROVEN</code>.</p>
+verdict  PASSED (exit 0)  · 9056ms · 0 AI calls</pre>
+<p>The result is <code>PASSED</code> (exit <code>0</code>). Add <code>-f values-prod.yaml</code> to check with your own values file.</p>
+
+<h2>2. See a real breaking upgrade caught</h2>
+<p>Run the exact same command on a chart upgrade whose Job pod template changes without a Helm hook annotation:</p>
+<pre data-kind="cmd" data-label="Catch an immutable field before deploying">
+stageproof check \
+  --repo https://ygqygq2.github.io/charts/ \
+  --chart nacos \
+  --from 2.1.9 --to 2.1.10 \
+  --current-k8s 1.35</pre>
+<pre data-kind="out">
+stageproof  BLOCKED  exit 1
+compare  nacos@2.1.9 -&gt; nacos@2.1.10
+k8s  1.35  ·  checked: files, API server 1.35.0
+
+  ✓ PASS  helm template            rendered 17 Kubernetes objects cleanly
+  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
+  ! WARN  upgrade signals          2 named changes
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✕ FAIL  API server 1.35.0        1 rejection
+  ✓ PASS  impact                   Compared stored objects for 14 of 17 objects, and rendered objects for the rest.
+  ✓ PASS  k8s 1.35 compatibility   current Kubernetes was checked by API server 1.35.0
+
+  ERROR  k8s.apply.immutable_field
+         Job/default/stageproof-rel-nacos-init-db
+         Kubernetes rejected the update. `spec.template` is immutable.
+
+verdict  BLOCKED (exit 1)  · 10560ms · 0 AI calls</pre>
+<p>The local Kubernetes 1.35 API server caught the immutable Job update and returned exit <code>1</code>. Your real cluster was never touched.</p>
 
 <h2>Where to go next</h2>
 <ul>
-  <li>You have your own chart and a values file: <a href="#compare-charts">Compare two chart versions</a>.</li>
-  <li>Your chart lives in a git repository: <a href="#compare-git">Compare a chart with a git branch</a>.</li>
-  <li>You deploy with Argo CD: <a href="#argocd">Check an Argo CD Application</a>.</li>
-  <li>You deploy with Flux: <a href="#flux">Check a Flux HelmRelease</a>.</li>
-  <li>You already rendered the manifests: <a href="#manifests">Compare rendered manifests</a>.</li>
-  <li>You want this on every pull request: <a href="#pull-request">Check a pull request</a>.</li>
-  <li>You promote with Kargo: <a href="#kargo">Gate a Kargo Stage</a>.</li>
+  <li>Compare two local chart directories with your values file: <a href="#compare-charts">Compare two chart versions</a>.</li>
+  <li>Check a chart against a git branch: <a href="#compare-git">Compare a chart with a git branch</a>.</li>
+  <li>Check an Argo CD Application: <a href="#argocd">Check an Argo CD Application</a>.</li>
+  <li>Check a Flux HelmRelease: <a href="#flux">Check a Flux HelmRelease</a>.</li>
+  <li>Compare already-rendered YAML: <a href="#manifests">Compare rendered manifests</a>.</li>
+  <li>Run automatically on every pull request: <a href="#ci-github">GitHub Actions</a> or <a href="#ci-gitlab">GitLab CI</a>.</li>
+  <li>Add upgrade badges to Renovate PRs: <a href="#renovate">Use with Renovate</a>.</li>
+  <li>Rehearse in a temporary kind cluster: <a href="#live">Rehearse the upgrade</a>.</li>
 </ul>
   </template>
 

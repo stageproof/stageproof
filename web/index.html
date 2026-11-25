@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <script>try{if(localStorage.getItem("stageproof-theme")==="light")document.documentElement.setAttribute("data-theme","light")}catch(e){}</script>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Stageproof - Check a Kubernetes upgrade before you merge it</title>
-  <meta name="description" content="Stageproof compares Helm charts, Argo CD Applications, Flux HelmReleases, and rendered Kubernetes manifests before you merge. It reports PASSED, PROVEN, BLOCKED, or NOT CHECKED." />
+  <title>Stageproof - Free single-binary Kubernetes upgrade checker</title>
+  <meta name="description" content="Free, open-source single binary that checks Helm, Argo CD, Flux, and Kubernetes manifest upgrades before you merge. No account, no config, no cluster access, 0 AI calls." />
   <meta property="og:title" content="Stageproof - Check a Kubernetes upgrade before you merge it" />
-  <meta property="og:description" content="A command line upgrade check for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests. It exits 0, 1, or 2." />
+  <meta property="og:description" content="Free, single-binary CLI that catches breaking Helm, Argo CD, and Flux upgrades locally with zero setup. Exits 0, 1, or 2." />
   <meta property="og:type" content="website" />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="assets/styles.css?v=19" />
-  <script src="assets/app.js?v=18" defer></script>
+  <script src="assets/app.js?v=19" defer></script>
 </head>
 <body>
   <a class="skip" href="#main">Skip to content</a>
@@ -32,10 +32,11 @@
       </a>
       <nav class="nav-links" id="nav-links" aria-label="Primary">
         <a href="index.html" class="active">Overview</a>
-        <a href="roadmap.html">Roadmap</a>
+        <a href="https://stageproof.github.io/index/">Chart Index</a>
         <a href="docs.html">Docs</a>
         <a href="architecture.html">Architecture</a>
         <a href="security.html">Security</a>
+        <a href="roadmap.html">Roadmap</a>
       </nav>
       <div class="nav-cta">
         <button class="theme-toggle" id="theme-toggle" type="button" aria-pressed="false" aria-label="Switch to light theme">
@@ -44,7 +45,7 @@
             <svg class="theme-icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>
           </span>
         </button>
-        <a class="btn btn-primary btn-sm" href="docs.html">Read the docs</a>
+        <a class="btn btn-primary btn-sm" href="docs.html#first-check">Quickstart</a>
       </div>
       <button class="nav-toggle" id="nav-toggle" type="button" aria-expanded="false" aria-controls="nav-links" aria-label="Toggle navigation">Menu</button>
     </div>
@@ -57,194 +58,323 @@
         <div class="hero-inner">
           <div class="hero-copy">
             <div class="eyebrow-row">
-              <span class="pill pill-accent">Helm, Argo CD, Flux, Manifests</span>
-              <span class="pill">CLI v0.4.0</span>
+              <span class="pill pill-accent">Free &amp; Open Source (Apache-2.0)</span>
+              <span class="pill">Single Binary</span>
+              <span class="pill">v0.4.0</span>
             </div>
-            <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">before you merge it.</span></h1>
+            <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">with one binary, zero setup.</span></h1>
             <p class="hero-lede">
-              <code>helm lint</code> and <code>helm template</code> read the new chart on its own. They do not know which version you run, which values you set, or which Kubernetes version your cluster runs. Stageproof compares Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests, and exits <strong>0</strong>, <strong>1</strong>, or <strong>2</strong>.
+              <code>helm lint</code> only reads the new chart. Stageproof compares what you run today with what you are about to merge, using your values and your Kubernetes version. No account, no config file, no cluster access, and <strong>0 AI calls</strong>.
             </p>
             <div class="hero-actions">
-              <a class="btn btn-primary" href="docs.html#first-check">Run a check</a>
-              <a class="btn btn-ghost" href="#checks">What it checks</a>
+              <a class="btn btn-primary" href="#quickstart">Try in 30 seconds</a>
+              <a class="btn btn-ghost" href="https://stageproof.github.io/index/">Browse 300-chart index</a>
+              <a class="btn btn-ghost" href="https://github.com/stageproof/stageproof">GitHub</a>
             </div>
             <div class="install-box">
+              <div class="install-tabs" role="tablist" aria-label="Install method">
+                <button class="install-tab is-active" type="button" role="tab" aria-selected="true" data-install-cmd="brew install stageproof/stageproof/stageproof">Homebrew</button>
+                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="helm plugin install https://github.com/stageproof/stageproof">Helm plugin</button>
+                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version">Docker</button>
+                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="gh release download v0.4.0 -R stageproof/stageproof -p '*linux_amd64.tar.gz'">Binary</button>
+              </div>
               <div class="install-cmd">
                 <span class="prompt">$</span>
-                <code id="hero-install-cmd">go build -o stageproof ./cmd/stageproof</code>
+                <code id="hero-install-cmd">brew install stageproof/stageproof/stageproof</code>
                 <button class="copy-btn" type="button" data-copy-target="#hero-install-cmd">Copy</button>
               </div>
             </div>
             <div class="hero-sub">
-              <span><code>PASSED</code> and <code>PROVEN</code> exit 0</span>
-              <span><code>BLOCKED</code> exits 1</span>
-              <span><code>NOT CHECKED</code> exits 2</span>
+              <span>Free forever (Apache-2.0)</span>
+              <span>No cluster credentials</span>
+              <span>Exits 0, 1, or 2</span>
             </div>
           </div>
 
-          <div class="proof-card" aria-label="Real Stageproof reports">
+          <div class="proof-card" aria-label="Real Stageproof v0.4.0 reports">
             <div class="proof-header">
               <span class="win-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span class="proof-label">real reports · copied from stageproof check</span>
+              <span class="proof-label">real v0.4.0 output · zero config · no cluster needed</span>
             </div>
             <div class="scenario-tabs" role="tablist" aria-label="Example reports">
-              <button class="scenario-btn is-active" type="button" data-example="passed" role="tab">File check</button>
-              <button class="scenario-btn" type="button" data-example="blocked" role="tab">Dropped value</button>
-              <button class="scenario-btn" type="button" data-example="proven" role="tab">Live rehearsal</button>
+              <button class="scenario-btn is-active" type="button" data-example="blocked-api" role="tab" aria-selected="true">
+                <span class="sc-eco">BLOCKED · exit 1</span>
+                <span class="sc-name">Immutable Job</span>
+              </button>
+              <button class="scenario-btn" type="button" data-example="blocked-val" role="tab" aria-selected="false">
+                <span class="sc-eco">BLOCKED · exit 1</span>
+                <span class="sc-name">Dropped value</span>
+              </button>
+              <button class="scenario-btn" type="button" data-example="passed" role="tab" aria-selected="false">
+                <span class="sc-eco">PASSED · exit 0</span>
+                <span class="sc-name">Clean upgrade</span>
+              </button>
             </div>
-            <pre class="term-raw" data-example-panel="passed">stageproof  PASSED  exit 0
-compare  current/metrics-server -> new/metrics-server
-k8s  1.33  ·  checked: files
+            <pre class="term-raw" data-example-panel="blocked-api">$ stageproof check \
+    --repo https://ygqygq2.github.io/charts/ \
+    --chart nacos --from 2.1.9 --to 2.1.10 --current-k8s 1.35
 
-  ✓ PASS  helm template            rendered 9 Kubernetes objects cleanly
-  ✓ PASS  values.yaml AST          no custom -f overlay passed (default chart values verified)
-  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+stageproof  BLOCKED  exit 1
+compare  nacos@2.1.9 -&gt; nacos@2.1.10
+k8s  1.35  ·  checked: files, API server 1.35.0
 
-verdict  PASSED (exit 0)  · 87ms · 0 AI calls</pre>
-            <pre class="term-raw" data-example-panel="blocked" hidden>stageproof  BLOCKED  exit 1
-compare  webapp-1.4.0 -> webapp-1.5.0
-values  values-prod.yaml
-k8s  1.33  ·  checked: files
+  ✓ PASS  helm template            rendered 17 Kubernetes objects cleanly
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✕ FAIL  API server 1.35.0        1 rejection
+
+  ERROR  k8s.apply.immutable_field
+         Job/default/stageproof-rel-nacos-init-db
+         Kubernetes rejected the update. `spec.template` is immutable.
+
+verdict  BLOCKED (exit 1)  · 0 AI calls</pre>
+            <pre class="term-raw" data-example-panel="blocked-val" hidden>$ stageproof check \
+    --current-chart testdata/dropped/base \
+    --new-chart testdata/dropped/head \
+    -f testdata/dropped/values.yaml --current-k8s 1.35
+
+stageproof  BLOCKED  exit 1
+compare  testdata/dropped/base -&gt; testdata/dropped/head
+values  testdata/dropped/values.yaml
+k8s  1.35  ·  checked: files
 
   ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
   ✕ FAIL  values.yaml AST          2 keys: 1 proven by rendering, 1 read in templates
-  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
+  ✓ PASS  k8s 1.35 compatibility   0 removed APIs or selector breaks on K8s 1.35
 
   ERROR  helm.values.silently_dropped
-         values-prod.yaml (log.level)
-         Values key `log.level` was consumed in baseline chart but is silently ignored in upgraded chart.
+         testdata/dropped/values.yaml (message)
+         Values key `message` was consumed in baseline chart but is silently ignored in upgraded chart.
 
-verdict  BLOCKED (exit 1)  · 75ms · 0 AI calls</pre>
-            <pre class="term-raw" data-example-panel="proven" hidden>stageproof  PROVEN  exit 0
-compare  ./webapp-1.4.0 -> ./webapp-1.5.0
-values  values-prod.yaml
-k8s  1.33  ·  checked: files, live cluster
+verdict  BLOCKED (exit 1)  · 859ms · 0 AI calls</pre>
+            <pre class="term-raw" data-example-panel="passed" hidden>$ stageproof check \
+    --repo https://kubernetes-sigs.github.io/metrics-server/ \
+    --chart metrics-server --from 3.12.2 --to 3.13.0 --current-k8s 1.35
 
-  ✓ PASS  helm template            rendered 1 Kubernetes object cleanly
-  ✓ PASS  values.yaml AST          2 keys: 0 proven by rendering, 2 read in templates
-  ✓ PASS  k8s 1.33 compatibility   0 removed APIs or selector breaks on K8s 1.33
-  ✓ PASS  kind cluster boot        isolated cluster `stageproof-ephemeral` ready on Kubernetes v1.33.12
-  ✓ PASS  baseline install         baseline revision 1 healthy in 7.3s
-  ✓ PASS  in-place helm upgrade    upgraded cleanly in 400ms (0 restarts)
-  ✓ PASS  rollback rehearsal       reverted to revision 1 cleanly in 200ms
+stageproof  PASSED  exit 0
+compare  metrics-server@3.12.2 -&gt; metrics-server@3.13.0
+k8s  1.35  ·  checked: files, API server 1.35.0
 
-verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
+  ✓ PASS  helm template            rendered 9 Kubernetes objects cleanly
+  ✓ PASS  image tags               1 new or changed image tag checked
+  ✓ PASS  API server 1.35.0        Kubernetes 1.35.0 accepted the upgrade
+  ✓ PASS  impact                   Compared stored objects for 8 of 9 objects
+
+verdict  PASSED (exit 0)  · 0 AI calls</pre>
             <div class="proof-foot">
-              <span>File check and dropped value were run today. Live rehearsal is a captured kind run.</span>
-              <span><a href="docs.html#results">How to read a report</a></span>
+              <span>Copied from real v0.4.0 runs. Add <code>--live</code> for a temporary kind rehearsal.</span>
+              <span><a href="docs.html#results">Read a report</a></span>
             </div>
+          </div>
+        </div>
+
+        <div class="stack-strip" aria-label="Supported tools">
+          <span class="strip-title">Works out of the box with</span>
+          <span class="stack-chip">Helm 3 &amp; 4</span>
+          <span class="stack-chip">Argo CD</span>
+          <span class="stack-chip">Flux HelmRelease</span>
+          <span class="stack-chip">Rendered YAML</span>
+          <span class="stack-chip">GitHub Actions</span>
+          <span class="stack-chip">GitLab CI</span>
+          <span class="stack-chip">Renovate</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="sec sec-alt" id="quickstart">
+      <div class="wrap">
+        <div class="sec-head">
+          <p class="kicker"><span class="kicker-num">01</span> Zero setup</p>
+          <h2>One binary scans any upgrade in seconds.</h2>
+          <p class="sec-lede">You do not need a staging cluster, a config file, a kubeconfig, or an account. Download the binary and run a check right away.</p>
+        </div>
+
+        <div class="flow3">
+          <article class="flow-step">
+            <span class="flow-n">Step 1 · Install</span>
+            <h3>One free binary</h3>
+            <p>Install via Homebrew, as a Helm plugin, with Docker, or grab a signed Linux, macOS, or Windows binary from GitHub Releases.</p>
+          </article>
+          <article class="flow-step">
+            <span class="flow-n">Step 2 · Run</span>
+            <h3>Point at any upgrade</h3>
+            <p>Give it a public chart repo, two local folders, a git pull request, an Argo CD Application, a Flux HelmRelease, or rendered YAML.</p>
+          </article>
+          <article class="flow-step">
+            <span class="flow-n">Step 3 · Decide</span>
+            <h3>Local Kubernetes API check</h3>
+            <p>Stageproof runs a local Kubernetes API server for your minor version, tests the upgrade in memory, and exits <code>0</code>, <code>1</code>, or <code>2</code>.</p>
+          </article>
+        </div>
+
+        <div class="ci-shell">
+          <div class="ci-tabs" role="tablist" aria-label="Usage examples">
+            <button class="ci-tab is-active" type="button" role="tab" aria-selected="true" data-ci-tab="cli">Scan any chart (zero setup)</button>
+            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="pr">Check a Git PR</button>
+            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="gha">GitHub Actions</button>
+            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="gitlab">GitLab CI</button>
+            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="renovate">Renovate badge</button>
+          </div>
+          <div class="ci-body" data-ci-panel="cli">
+            <button class="copy-btn" type="button" data-copy-target="#code-cli">Copy</button>
+            <pre id="code-cli"># No checkout, no config, no cluster needed. Pass -f values.yaml for your own overrides.
+stageproof check \
+  --repo https://kubernetes-sigs.github.io/metrics-server/ \
+  --chart metrics-server \
+  --from 3.12.2 --to 3.13.0 \
+  --current-k8s 1.35</pre>
+          </div>
+          <div class="ci-body" data-ci-panel="pr" hidden>
+            <button class="copy-btn" type="button" data-copy-target="#code-pr">Copy</button>
+            <pre id="code-pr"># Auto-discovers every changed Helm chart, Argo CD Application, and Flux HelmRelease in git diff.
+stageproof check-pr \
+  --current-git origin/main \
+  --current-k8s 1.35 \
+  --next-k8s 1.36</pre>
+          </div>
+          <div class="ci-body" data-ci-panel="gha" hidden>
+            <button class="copy-btn" type="button" data-copy-target="#code-gha">Copy</button>
+            <pre id="code-gha">permissions:
+  contents: read
+  pull-requests: write
+
+steps:
+  - uses: stageproof/action@v1
+    with:
+      current-k8s: "1.35"</pre>
+          </div>
+          <div class="ci-body" data-ci-panel="gitlab" hidden>
+            <button class="copy-btn" type="button" data-copy-target="#code-gitlab">Copy</button>
+            <pre id="code-gitlab">include:
+  - component: gitlab.com/zarovvvv/stageproof/stageproof@1
+    inputs:
+      current_k8s: "1.35"</pre>
+          </div>
+          <div class="ci-body" data-ci-panel="renovate" hidden>
+            <button class="copy-btn" type="button" data-copy-target="#code-renovate">Copy</button>
+            <pre id="code-renovate">{
+  "extends": ["github&gt;stageproof/renovate-presets"]
+}</pre>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="sec sec-alt" id="why">
+    <section class="sec" id="why">
       <div class="wrap">
         <div class="sec-head">
-          <p class="kicker"><span class="kicker-num">01</span> Why a green chart check is not enough</p>
-          <h2>Helm does not compare the upgrade.</h2>
-          <p class="sec-lede">Three failures come from that gap. Stageproof looks for them while the change is still a pull request.</p>
+          <p class="kicker"><span class="kicker-num">02</span> Why green lint still breaks production</p>
+          <h2>Helm never compares the old release with the new one.</h2>
+          <p class="sec-lede"><code>helm lint</code> and <code>helm template</code> inspect the new chart in isolation. Real outages happen in the diff between what is running and what you are about to apply.</p>
         </div>
         <div class="detect-grid">
           <article class="detect-card">
             <div class="detect-top"><span class="detect-tag">Values</span><code>helm.values.silently_dropped</code></div>
-            <h3>A setting you rely on stops working</h3>
-            <p>The new chart renames or removes a values key. Helm ignores the old key without an error, so your override is no longer applied.</p>
+            <h3>Your production override stops working</h3>
+            <p>The chart renames or drops a values key. Helm silently ignores your old key with exit 0, and your setting disappears on deploy.</p>
           </article>
           <article class="detect-card">
-            <div class="detect-top"><span class="detect-tag">API</span><code>k8s.api.removed</code></div>
-            <h3>The chart uses an API your cluster no longer serves</h3>
-            <p>Kubernetes removes old API versions over time. A chart that still emits one fails when it is applied.</p>
+            <div class="detect-top"><span class="detect-tag">Upgrade</span><code>k8s.apply.immutable_field</code></div>
+            <h3>A fresh install passes, the upgrade fails</h3>
+            <p>Changed Deployment selectors, immutable Job pod templates, StatefulSet claim templates, or deleted PVCs fail when applied over a running release.</p>
           </article>
           <article class="detect-card">
-            <div class="detect-top"><span class="detect-tag">Upgrade</span><code>k8s.upgrade.immutable_selector_changed</code></div>
-            <h3>The upgrade cannot be applied in place</h3>
-            <p>Some fields cannot change on a running workload, such as the label selector of a Deployment. A fresh install works. The upgrade fails.</p>
+            <div class="detect-top"><span class="detect-tag">APIs &amp; Images</span><code>k8s.api.removed</code></div>
+            <h3>Removed APIs, broken CRDs, missing tags</h3>
+            <p>Stageproof checks every object against a real local Kubernetes API server, diffs CRD schemas, and verifies new container image tags exist.</p>
           </article>
+        </div>
+
+        <div class="agnostic-bar">
+          <div class="agnostic-copy">
+            <strong>Try it without installing anything: the free Public Upgrade Index</strong>
+            <p>We run Stageproof automatically on 300 popular public Helm charts (21,000+ upgrade pairs) against Kubernetes 1.35. Browse any chart, inspect breaking changes, or copy the one-line reproduce command.</p>
+          </div>
+          <div class="agnostic-pills">
+            <a class="btn btn-primary btn-sm" href="https://stageproof.github.io/index/">Open the 300-chart index</a>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="sec" id="checks">
+    <section class="sec sec-alt" id="checks">
       <div class="wrap">
         <div class="sec-head">
-          <p class="kicker"><span class="kicker-num">02</span> What ships</p>
-          <h2>One command. Four input types. A result you can gate on.</h2>
-          <p class="sec-lede"><code>stageproof check</code> compares two chart directories, an Argo CD Application, a Flux HelmRelease, or two rendered manifest trees. <code>stageproof check-pr</code> finds the charts, Applications, and HelmReleases a git diff touched and checks each one. A deleted file inside a chart still counts. Flux HelmReleases and rendered manifest trees are included.</p>
+          <p class="kicker"><span class="kicker-num">03</span> What one binary checks</p>
+          <h2>Everything ships in v0.4.0. Free and local.</h2>
+          <p class="sec-lede">Every check below runs inside the same binary. Pass <code>--offline</code> to skip registry lookups, or <code>--api-server off</code> for an offline table-only check.</p>
         </div>
         <table class="spec-table">
           <thead>
-            <tr><th>Check</th><th>Question</th><th>When</th></tr>
+            <tr><th>Check</th><th>What it catches</th><th>How it runs</th></tr>
           </thead>
           <tbody>
-            <tr><td>Chart rendering</td><td>Does the new chart render with your values?</td><td>Chart, Argo CD, and Flux checks</td></tr>
-            <tr><td>Values proof</td><td>Does every key in your values file still have an effect?</td><td>When you pass a values file (render proof on main)</td></tr>
-            <tr><td>Kubernetes APIs</td><td>Does the upgrade use an API your version has removed?</td><td>Every run</td></tr>
-            <tr><td>Local API server</td><td>Does this Kubernetes minor accept the upgrade on top of current objects?</td><td>Source on main (default <code>--api-server auto</code>)</td></tr>
-            <tr><td>Impact and CRDs</td><td>What does the upgrade delete, restart, expose, privilege-escalate, or break in a CRD schema?</td><td>Included.</td></tr>
-            <tr><td>Image tags</td><td>Does a new or changed tag exist for <code>linux/amd64</code> or your cluster node architectures?</td><td>Source on main. Skip with <code>--offline</code>.</td></tr>
-            <tr><td>Helm 4</td><td>Does a second helm binary render the same objects, and is the chart <code>apiVersion: v3</code>?</td><td>Source on main (<code>--helm-compare</code>).</td></tr>
-            <tr><td>Rendered manifests</td><td>What changed between two YAML trees you already rendered?</td><td>Source on main (<code>--before</code> / <code>--after</code>).</td></tr>
-            <tr><td>Cluster facts</td><td>What Kubernetes version, CRDs, stored versions, admission policies, and node architectures does my real cluster run?</td><td>Source on main (<code>facts export</code> / <code>--cluster-facts</code>, read-only).</td></tr>
-            <tr><td>CI controls</td><td>Can I explain a rule, export SARIF 2.1.0, or set timed ignores and severity policy?</td><td>Source on main (<code>explain</code>, <code>--format sarif</code>, <code>.stageproof.yaml</code>).</td></tr>
-            <tr><td>CRD size</td><td>Is a CRD too large for client-side apply?</td><td>Every run. A warning, not a block.</td></tr>
-            <tr><td>Live rehearsal</td><td>Do the install, the upgrade, the <code>smoke</code> commands, and the rollback succeed in a temporary kind cluster on this machine?</td><td>Only with <code>--live</code></td></tr>
+            <tr><td>Chart rendering</td><td>Template failures on Helm 3 or Helm 4, and render diffs between the two</td><td>Every chart run (add <code>--helm-compare</code> for Helm 4 diff)</td></tr>
+            <tr><td>Values proof</td><td>Keys in your values files that the new chart silently ignores, renames, or changes</td><td>Whenever you pass values (render-proven)</td></tr>
+            <tr><td>Local API server</td><td>Removed Kubernetes APIs, immutable fields, invalid updates, and broken CRD upgrades</td><td>Default (<code>--api-server auto</code> downloads and caches the K8s minor)</td></tr>
+            <tr><td>Impact &amp; CRDs</td><td>Deleted PVCs, Namespaces, or CRDs, incompatible CRD schema changes, restarts, privilege changes</td><td>Every run</td></tr>
+            <tr><td>Image tags</td><td>Missing container image tags or wrong node architecture for new or changed images</td><td>Default (HTTP HEAD only; skip with <code>--offline</code>)</td></tr>
+            <tr><td>Next K8s minor</td><td>APIs that work today but will be removed in the next Kubernetes version</td><td>Add <code>--next-k8s 1.36</code> (warns without blocking)</td></tr>
+            <tr><td>Cluster facts</td><td>Uses your real server version, CRDs, and node architectures without touching production</td><td>Optional <code>stageproof facts export</code> (read-only)</td></tr>
+            <tr><td>CI &amp; Agent tools</td><td>PR comments, SARIF 2.1.0, rule explanations, timed ignores in <code>.stageproof.yaml</code>, MCP server</td><td>Built in (<code>comment</code>, <code>--format sarif</code>, <code>explain</code>, <code>mcp</code>)</td></tr>
+            <tr><td>Live rehearsal</td><td>Full install, upgrade, smoke tests, and rollback in a temporary local <code>kind</code> cluster</td><td>Optional: add <code>--live</code></td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> on 2026-11-25 (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>, <a href="https://github.com/stageproof/stageproof/actions/runs/45519144615">workflow run 45519144615</a>, commit <code>c3ec5b0</code>): <strong>18 / 18</strong> active incidents caught, <strong>18 / 18</strong> controls passed, <strong>0 / 283</strong> wrong blocks (0.00%) across 316 hand-checked CNCF upgrade pairs covering 105 CNCF projects, p95 <strong>3.47s</strong> file check and <strong>13.71s</strong> API server proof. That commit is v0.4.0 plus the corrected corpus labels. The released binary is v0.4.0.</p>
-        <p class="sec-lede">Chart-default upgrade reports for 300 public Helm charts are at <a href="https://stageproof.github.io/index/">the Stageproof index</a> (more than 20,000 upgrade pairs). A report there uses the chart's default values, not the values a cluster runs.</p>
+        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> on 2026-11-25 (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>, <a href="https://github.com/stageproof/stageproof/actions/runs/45519144615">workflow run 45519144615</a>): <strong>18 / 18</strong> real incidents caught, <strong>18 / 18</strong> clean controls passed, and <strong>0 / 283</strong> wrong blocks (0.00%) across 316 upgrade pairs from 105 CNCF projects. Median file check: <strong>0.92s</strong> (p95 3.47s). Median API server proof: <strong>5.42s</strong> (p95 13.71s).</p>
       </div>
     </section>
 
-    <section class="sec sec-alt" id="results">
+    <section class="sec" id="results">
       <div class="wrap">
         <div class="sec-head">
-          <p class="kicker"><span class="kicker-num">03</span> Results</p>
-          <h2>Four names. Three exit codes.</h2>
-          <p class="sec-lede">A file check that passes is a success. It is not a warning. The report says <code>checked: files</code> so you can see that no cluster was used.</p>
+          <p class="kicker"><span class="kicker-num">04</span> Results</p>
+          <h2>Four clear verdicts. Three exit codes.</h2>
+          <p class="sec-lede">Any CI job that fails on a non-zero exit code already knows what to do.</p>
         </div>
         <div class="verdict-strip">
           <article class="vcard">
             <div class="vcard-top"><span class="verdict-badge ok">PROVEN</span><span class="exit-code">exit 0</span></div>
-            <p>File checks passed, and the upgrade and the rollback both worked in a temporary cluster. <code>checked: files, live cluster</code>.</p>
+            <p>All file checks passed, and a temporary <code>kind</code> cluster installed, upgraded, and rolled back cleanly.</p>
           </article>
           <article class="vcard">
             <div class="vcard-top"><span class="verdict-badge ok">PASSED</span><span class="exit-code">exit 0</span></div>
-            <p>File checks passed. The upgrade was not rehearsed, or the rehearsal stopped for a reason outside the chart.</p>
+            <p>All checks passed. No live cluster was started (the report notes <code>checked: files</code> or <code>API server</code>).</p>
           </article>
           <article class="vcard">
             <div class="vcard-top"><span class="verdict-badge bad">BLOCKED</span><span class="exit-code">exit 1</span></div>
-            <p>The upgrade has a problem the report names. A CI job should fail.</p>
+            <p>A breaking change was found. The report names the exact rule, object, and reason. CI fails.</p>
           </article>
           <article class="vcard">
             <div class="vcard-top"><span class="verdict-badge warn">NOT CHECKED</span><span class="exit-code">exit 2</span></div>
-            <p>The check did not finish, or <code>--require-rehearsal</code> was set and no rehearsal ran. A CI job should fail. It does not say the upgrade is unsafe.</p>
+            <p>The check could not finish (bad flag, unreachable repo, or <code>--require-rehearsal</code> without kind). CI fails.</p>
           </article>
         </div>
       </div>
     </section>
 
-    <section class="sec" id="scope">
+    <section class="sec sec-alt" id="free">
       <div class="wrap">
         <div class="sec-head">
-          <p class="kicker"><span class="kicker-num">04</span> Scope</p>
-          <h2>Kubernetes upgrades.</h2>
+          <p class="kicker"><span class="kicker-num">05</span> Simple &amp; honest</p>
+          <h2>Free to run everywhere. Clear about what it does.</h2>
         </div>
         <div class="doc-grid">
           <article class="doc-card">
-            <h3>Supported</h3>
-            <p>A Helm chart in a directory. An Argo CD Application, including several sources and a chart path in this repository, and a Terraform <code>.yaml.tmpl</code> with placeholders. A Flux HelmRelease. Two rendered manifest trees. A pull request, by reading <code>git diff</code>. It does not call Renovate or GitLab to find out what changed.</p>
+            <h3>100% free &amp; open source</h3>
+            <p>Licensed under Apache-2.0. The CLI, GitHub Action, GitLab CI component, Helm plugin, Renovate preset, and 300-chart public index are all free with no seat limits, no accounts, and no telemetry.</p>
           </article>
           <article class="doc-card">
-            <h3>Not supported</h3>
-            <p>Terraform providers and modules. Container image contents. Kustomize and Helmfile. A loose manifest in a pull request stays ignored. Compare rendered trees with <code>stageproof check --before</code> and <code>--after</code>. Language packages.</p>
+            <h3>Your cluster stays untouched</h3>
+            <p>Everything runs on your laptop or CI runner. Charts and values never leave your machine, no AI model is called, and production clusters are never modified. Even <code>--live</code> only creates and deletes a local temporary <code>kind</code> cluster.</p>
           </article>
           <article class="doc-card">
-            <h3>What <code>--live</code> does</h3>
-            <p>It starts a temporary kind cluster on the machine running the command, installs the current chart, upgrades to the new chart, rolls back, and deletes the cluster. It does not commit, and it does not change a cluster you already have. The node is itself a container, so an unprivileged CI job cannot start it. That job stays on the file check.</p>
+            <h3>Focused on Kubernetes upgrades</h3>
+            <p>Built for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests (<code>--before</code> / <code>--after</code>). It does not check Terraform providers, container image internals, Kustomize directly, or language packages.</p>
           </article>
         </div>
-        <p style="margin-top:22px;"><a class="btn btn-ghost" href="roadmap.html">See what is planned</a></p>
+        <p style="margin-top:22px;">
+          <a class="btn btn-primary" href="docs.html#first-check">Run your first check</a>
+          <a class="btn btn-ghost" href="roadmap.html" style="margin-left:10px;">See roadmap</a>
+        </p>
       </div>
     </section>
   </main>
@@ -261,28 +391,30 @@ verdict  PROVEN (exit 0)  · 41393ms · 0 AI calls</pre>
             </svg>
             <span class="brand-word">stageproof</span>
           </a>
-          <p>A Kubernetes upgrade check for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests.</p>
+          <p>Free, open-source single-binary Kubernetes upgrade checker for Helm, Argo CD, Flux, and rendered manifests.</p>
         </div>
         <div class="footer-cols">
           <div class="footer-col">
             <span class="footer-h">Product</span>
-            <a href="index.html#checks">What it checks</a>
-            <a href="index.html#results">Results</a>
+            <a href="#quickstart">Quickstart</a>
+            <a href="#checks">What it checks</a>
+            <a href="#results">Results</a>
+            <a href="https://stageproof.github.io/index/">300-chart Index</a>
             <a href="roadmap.html">Roadmap</a>
           </div>
           <div class="footer-col">
-            <span class="footer-h">Docs</span>
+            <span class="footer-h">Docs &amp; Code</span>
             <a href="docs.html">Documentation</a>
-            <a href="docs.html#live">What --live does</a>
             <a href="architecture.html">Architecture</a>
             <a href="security.html">Security</a>
             <a href="https://github.com/stageproof/stageproof">GitHub</a>
+            <a href="https://github.com/stageproof/action">GitHub Action</a>
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. Apache-2.0.</span>
-        <span class="status-pill"><span class="dot-live"></span>Source on main. The released binary is v0.4.0.</span>
+        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0).</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.4.0 · Single binary · Apache-2.0</span>
       </div>
     </div>
   </footer>
