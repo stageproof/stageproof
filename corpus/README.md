@@ -16,11 +16,11 @@ This directory measures Stageproof. A case is a small chart pair, or a public ch
 
 `pairs/pairs.yaml` lists public CNCF Helm charts: repository URL (HTTP or OCI), chart name, `from`, and `to`. `pairs/pairs.lock` is the sha256 of each chart archive. The archives are downloaded at run time with `helm pull`. They are not committed.
 
-A label in `labels/chart-pairs.yaml` is `{case, truth, evidence, by, date}`. `truth` is `clean` or `breaks`. The evidence comes from an independent `helm template` diff (`rendered-diff`), a CRD file OpenAPI diff (`chart-file`), or a registry HEAD check (`registry-check`), not a Stageproof report. Labels are not inferred from version boundaries.
+A label in `labels/chart-pairs.yaml` is `{case, truth, evidence, by, date}`. `truth` is `clean` or `breaks`. The evidence comes from an independent `helm template` diff (`rendered-diff`), a reading of the chart templates (`template-read`), a CRD file OpenAPI diff (`chart-file`), or a registry HEAD check (`registry-check`), not a Stageproof report. `template-read` is used when the old install-mode render could not see a capability gate (`Capabilities.APIVersions.Has` with a kind) or a `.Release.IsInstall`, `.Release.IsUpgrade`, or `.Release.Revision` branch. Labels are not inferred from version boundaries.
 
 `go run ./cmd/corpus compare results.json corpus/baseline.json` exits non-zero when an active incident is missed, a control is blocked, or a labeled-clean pair is blocked and was not blocked in the baseline. The corpus workflow runs that compare on `incidents.json` and on the pair results (both `--api-server off` and `--api-server auto` on full runs, and `--pr` on pull requests).
 
-`blocked_clean` is empty on the current 316-pair CNCF corpus (105 CNCF projects, 281 labeled clean, 35 labeled breaks). Five retired archived Bitnami/Airflow pairs and two unreproduced incident fixtures (`conversion-webhook-breaks-api` and `keep-annotated-crd-migration`, whose fixtures never produced their named rules) were removed.
+`blocked_clean` is empty on the current 316-pair CNCF corpus (105 CNCF projects, 283 labeled clean, 33 labeled breaks). Five retired archived Bitnami/Airflow pairs and two unreproduced incident fixtures (`conversion-webhook-breaks-api` and `keep-annotated-crd-migration`, whose fixtures never produced their named rules) were removed.
 
 ## Replay
 
