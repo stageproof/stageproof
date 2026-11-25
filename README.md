@@ -4,7 +4,7 @@
 
 No account. No config file. No cluster credentials. **0 AI calls.**
 
-Stageproof compares the Helm chart, Argo CD Application, Flux HelmRelease, or rendered YAML you run today with the version you are about to merge, using your values and your Kubernetes version. It runs a local Kubernetes API server on your machine and exits `0`, `1`, or `2`.
+Stageproof compares the Helm chart, Argo CD Application, Flux HelmRelease, or rendered YAML you run today with the version you are about to merge. Pass your values with `-f`, or let Argo CD and Flux use the values files those manifests already name. It runs a local Kubernetes API server on your machine and exits `0`, `1`, or `2`.
 
 [Website & Docs](https://stageproof.github.io/stageproof/) · [300-Chart Public Index](https://stageproof.github.io/index/) · [GitHub Action](https://github.com/stageproof/action) · [Accuracy Report](docs/accuracy.md)
 
@@ -58,13 +58,19 @@ stageproof check \
   -f values.yaml # your values file
 ```
 
-Or scan an entire pull request with one command:
+Or, from inside a git checkout, check the pull request:
 
 ```bash
-stageproof check-pr --current-git origin/main --current-k8s 1.35 --next-k8s 1.36
+# Reads the git diff. Does not contact your cluster.
+# A chart uses its own values.yaml until .stageproof.yaml lists your files.
+# Argo CD and Flux use the values files those manifests already name.
+stageproof check-pr \
+  --current-git origin/main \
+  --current-k8s 1.35 \
+  --next-k8s 1.36
 ```
 
-`check-pr` reads `git diff` and automatically checks every changed Helm chart, Argo CD Application, and Flux HelmRelease. Your production cluster is never contacted.
+`check-pr` checks every changed Helm chart, Argo CD Application, and Flux HelmRelease. It does not guess a production values file. A chart is rendered with its own `values.yaml` until `.stageproof.yaml` lists the files you deploy. `stageproof init` writes that list: `values.yaml`, `values-*.yaml`, and files in `ci/`. The GitHub Action and the GitLab component run this same command. They have no separate values input. Your production cluster is never contacted.
 
 ## Why `helm lint` is not enough
 
@@ -82,28 +88,44 @@ Measured on GitHub `ubuntu-latest` (2026-11-25, [docs/accuracy.md](docs/accuracy
 ### GitHub Actions
 
 ```yaml
+# Same check as: stageproof check-pr
+# No values-file input. A chart uses its own values.yaml until
+# .stageproof.yaml lists your files. Argo CD and Flux use the
+# values files those manifests name.
+# current-k8s is the Kubernetes version you deploy to.
+name: stageproof
+on:
+  pull_request:
 permissions:
   contents: read
   pull-requests: write
-
-steps:
-  - uses: stageproof/action@v1
-    with:
-      current-k8s: "1.35"
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: stageproof/action@v1
+        with:
+          current-k8s: "1.35"
 ```
 
-Downloads the signed `v0.4.0` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
+The action checks out the pull request, downloads the signed `v0.4.0` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Values follow the `check-pr` rules above. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
 
 ### GitLab CI
 
 ```yaml
+# Same check as: stageproof check-pr
+# No values-file input. A chart uses its own values.yaml until
+# .stageproof.yaml lists your files. Argo CD and Flux use the
+# values files those manifests name.
+# current_k8s is the Kubernetes version you deploy to.
+# A merge request note needs STAGEPROOF_GITLAB_TOKEN.
 include:
   - component: gitlab.com/zarovvvv/stageproof/stageproof@1
     inputs:
       current_k8s: "1.35"
 ```
 
-Uses the [zarovvvv/stageproof](https://gitlab.com/explore/catalog/zarovvvv/stageproof) CI/CD catalog component. Manual job setup is in the [GitLab docs](https://stageproof.github.io/stageproof/docs.html#ci-gitlab).
+Uses the [zarovvvv/stageproof](https://gitlab.com/explore/catalog/zarovvvv/stageproof) CI/CD catalog component. Same values rules as `check-pr`. `CI_JOB_TOKEN` cannot write merge request notes. The check still runs, and the report is a job artifact. Manual job setup is in the [GitLab docs](https://stageproof.github.io/stageproof/docs.html#ci-gitlab).
 
 ### Renovate upgrade badges & public 300-chart index
 
@@ -115,7 +137,7 @@ Browse chart-default upgrade reports for 300 popular public Helm charts (21,000+
 }
 ```
 
-Index reports use chart defaults only, not your cluster's values. See the [Renovate guide](https://stageproof.github.io/stageproof/docs.html#renovate) for the patch auto-merge preset.
+The badge is that index report. It uses chart defaults, not the values file you deploy. Your values are checked by `stageproof check -f` or by `check-pr` after `.stageproof.yaml` lists them. See the [Renovate guide](https://stageproof.github.io/stageproof/docs.html#renovate) for the patch auto-merge preset.
 
 ## Verdicts & exit codes
 
@@ -142,7 +164,7 @@ stageproof check --flux-file clusters/prod/redis.yaml --current-k8s 1.35
 # 4. Compare already-rendered YAML trees (no Helm required)
 stageproof check --before ./rendered-old --after ./rendered-new --current-k8s 1.35
 
-# 5. Rehearse install, upgrade, smoke tests, and rollback in a temporary local kind cluster
+# 5. Pull request check. A chart uses values.yaml until .stageproof.yaml lists your files.
 stageproof check-pr --current-git origin/main --current-k8s 1.35 --live
 ```
 

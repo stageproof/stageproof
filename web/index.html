@@ -14,7 +14,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css?v=19" />
+  <link rel="stylesheet" href="assets/styles.css?v=20" />
   <script src="assets/app.js?v=19" defer></script>
 </head>
 <body>
@@ -216,7 +216,8 @@ verdict  PASSED (exit 0)  · 0 AI calls</pre>
           </div>
           <div class="ci-body" data-ci-panel="cli">
             <button class="copy-btn" type="button" data-copy-target="#code-cli">Copy</button>
-            <pre id="code-cli"># No checkout, no config, no cluster. -f and --values are the same flag.
+            <p class="ci-note">Downloads both chart versions and checks the upgrade on your machine. Nothing is installed in a cluster. <code>-f</code> is your values file. <code>--values</code> is the same flag. Drop the last line to check the chart's own defaults.</p>
+            <pre id="code-cli"># No checkout and no cluster. -f is your values file. --values is the same flag.
 stageproof check \
   --repo https://kubernetes-sigs.github.io/metrics-server/ \
   --chart metrics-server \
@@ -226,7 +227,10 @@ stageproof check \
           </div>
           <div class="ci-body" data-ci-panel="pr" hidden>
             <button class="copy-btn" type="button" data-copy-target="#code-pr">Copy</button>
-            <pre id="code-pr"># Auto-discovers every changed Helm chart, Argo CD Application, and Flux HelmRelease in git diff.
+            <p class="ci-note">Run this inside the git checkout. It reads the diff and checks every changed Helm chart, Argo CD Application, and Flux HelmRelease. It does not guess a values file. A chart is rendered with its own <code>values.yaml</code> until <a href="docs.html#values-files"><code>.stageproof.yaml</code></a> lists the files you deploy. <code>stageproof init</code> writes that list: <code>values.yaml</code>, <code>values-*.yaml</code>, and files in <code>ci/</code>. Argo CD and Flux use the values files those manifests already name.</p>
+            <pre id="code-pr"># In your checkout. Reads the git diff. Does not contact your cluster.
+# A chart uses its own values.yaml until .stageproof.yaml lists your files.
+# Argo CD and Flux use the values files those manifests already name.
 stageproof check-pr \
   --current-git origin/main \
   --current-k8s 1.35 \
@@ -234,24 +238,43 @@ stageproof check-pr \
           </div>
           <div class="ci-body" data-ci-panel="gha" hidden>
             <button class="copy-btn" type="button" data-copy-target="#code-gha">Copy</button>
-            <pre id="code-gha">permissions:
+            <p class="ci-note">This runs the same <code>check-pr</code> on every pull request. The action checks out the pull request, downloads the binary, and posts one comment. It has no values-file input. A chart uses its own <code>values.yaml</code> until <a href="docs.html#values-files"><code>.stageproof.yaml</code></a> lists yours. Argo CD and Flux use the values files those manifests name. <code>current-k8s</code> is the Kubernetes version you deploy to. Do not run it from <code>pull_request_target</code>.</p>
+            <pre id="code-gha"># Same check as: stageproof check-pr
+# No values-file input. A chart uses its own values.yaml until
+# .stageproof.yaml lists your files. Argo CD and Flux use the
+# values files those manifests name.
+# current-k8s is the Kubernetes version you deploy to.
+name: stageproof
+on:
+  pull_request:
+permissions:
   contents: read
   pull-requests: write
-
-steps:
-  - uses: stageproof/action@v1
-    with:
-      current-k8s: "1.35"</pre>
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: stageproof/action@v1
+        with:
+          current-k8s: "1.35"</pre>
           </div>
           <div class="ci-body" data-ci-panel="gitlab" hidden>
             <button class="copy-btn" type="button" data-copy-target="#code-gitlab">Copy</button>
-            <pre id="code-gitlab">include:
+            <p class="ci-note">This runs the same <code>check-pr</code> on merge requests, with the same values rules as the pull request command. <code>current_k8s</code> is the Kubernetes version you deploy to. A note on the merge request needs <code>STAGEPROOF_GITLAB_TOKEN</code>. <code>CI_JOB_TOKEN</code> cannot write notes. The check still runs, and the report is a job artifact.</p>
+            <pre id="code-gitlab"># Same check as: stageproof check-pr
+# No values-file input. A chart uses its own values.yaml until
+# .stageproof.yaml lists your files. Argo CD and Flux use the
+# values files those manifests name.
+# current_k8s is the Kubernetes version you deploy to.
+# A merge request note needs STAGEPROOF_GITLAB_TOKEN.
+include:
   - component: gitlab.com/zarovvvv/stageproof/stageproof@1
     inputs:
       current_k8s: "1.35"</pre>
           </div>
           <div class="ci-body" data-ci-panel="renovate" hidden>
             <button class="copy-btn" type="button" data-copy-target="#code-renovate">Copy</button>
+            <p class="ci-note">This adds a badge to Helm pull requests. The badge is the public index report for that chart pair, and those reports use chart defaults. It does not read your values file. To check the file you deploy, use <code>stageproof check -f</code> or <code>check-pr</code> with <a href="docs.html#values-files"><code>.stageproof.yaml</code></a>.</p>
             <pre id="code-renovate">{
   "extends": ["github&gt;stageproof/renovate-presets"]
 }</pre>
@@ -310,7 +333,7 @@ steps:
           </thead>
           <tbody>
             <tr><td>Chart rendering</td><td>Template failures on Helm 3 or Helm 4, and render diffs between the two</td><td>Every chart run (add <code>--helm-compare</code> for Helm 4 diff)</td></tr>
-            <tr><td>Values proof</td><td>Keys in your values files that the new chart silently ignores, renames, or changes</td><td>Whenever you pass values (render-proven)</td></tr>
+            <tr><td>Values proof</td><td>Keys in your values files that the new chart silently ignores, renames, or changes</td><td><code>-f</code>, files listed in <code>.stageproof.yaml</code>, or the values an Argo CD or Flux file names. Otherwise the chart's own <code>values.yaml</code></td></tr>
             <tr><td>Local API server</td><td>Removed Kubernetes APIs, immutable fields, invalid updates, and broken CRD upgrades</td><td>Default (<code>--api-server auto</code> downloads and caches the K8s minor)</td></tr>
             <tr><td>Impact &amp; CRDs</td><td>Deleted PVCs, Namespaces, or CRDs, incompatible CRD schema changes, restarts, privilege changes</td><td>Every run</td></tr>
             <tr><td>Image tags</td><td>Missing container image tags or wrong node architecture for new or changed images</td><td>Default (HTTP HEAD only; skip with <code>--offline</code>)</td></tr>
