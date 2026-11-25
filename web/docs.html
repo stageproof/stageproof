@@ -248,7 +248,7 @@ Restarts
   ✓ PASS  k8s 1.35 compatibility   current Kubernetes was checked by API server 1.35.0
 
 verdict  PASSED (exit 0)  · 9056ms · 0 AI calls</pre>
-<p>The result is <code>PASSED</code> (exit <code>0</code>). Add <code>-f values-prod.yaml</code> to check with your own values file.</p>
+<p>The result is <code>PASSED</code> (exit <code>0</code>). That run used chart defaults. Your values file is <code>-f values.yaml</code>. <code>--values</code> is the same flag. Repeat it for more than one file.</p>
 
 <h2>2. See a real breaking upgrade caught</h2>
 <p>Run the exact same command on a chart upgrade whose Job pod template changes without a Helm hook annotation:</p>

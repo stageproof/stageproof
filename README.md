@@ -47,7 +47,18 @@ k8s  1.35  ·  checked: files, API server 1.35.0
 verdict  BLOCKED (exit 1)  · 0 AI calls
 ```
 
-Pass `-f values-prod.yaml` to check with your own overrides. Or scan an entire pull request with one command:
+The flag for your values file is `-f`. `--values` is the same flag. Repeat it for more than one file. Drop that line to check chart defaults:
+
+```bash
+stageproof check \
+  --repo https://kubernetes-sigs.github.io/metrics-server/ \
+  --chart metrics-server \
+  --from 3.12.2 --to 3.13.0 \
+  --current-k8s 1.35 \
+  -f values.yaml # your values file
+```
+
+Or scan an entire pull request with one command:
 
 ```bash
 stageproof check-pr --current-git origin/main --current-k8s 1.35 --next-k8s 1.36

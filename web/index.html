@@ -216,12 +216,13 @@ verdict  PASSED (exit 0)  · 0 AI calls</pre>
           </div>
           <div class="ci-body" data-ci-panel="cli">
             <button class="copy-btn" type="button" data-copy-target="#code-cli">Copy</button>
-            <pre id="code-cli"># No checkout, no config, no cluster needed. Pass -f values.yaml for your own overrides.
+            <pre id="code-cli"># No checkout, no config, no cluster. -f and --values are the same flag.
 stageproof check \
   --repo https://kubernetes-sigs.github.io/metrics-server/ \
   --chart metrics-server \
   --from 3.12.2 --to 3.13.0 \
-  --current-k8s 1.35</pre>
+  --current-k8s 1.35 \
+  -f values.yaml # your values file</pre>
           </div>
           <div class="ci-body" data-ci-panel="pr" hidden>
             <button class="copy-btn" type="button" data-copy-target="#code-pr">Copy</button>
