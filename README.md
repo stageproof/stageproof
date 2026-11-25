@@ -2,7 +2,7 @@
 
 **Free, open-source (Apache-2.0) single binary that checks a Kubernetes upgrade before you merge it.**
 
-No account. No config file. No cluster credentials. **0 AI calls.**
+No account. No cluster credentials. **0 AI calls.** A config file is only for listing the values files a pull request should check.
 
 Stageproof compares the Helm chart, Argo CD Application, Flux HelmRelease, or rendered YAML you run today with the version you are about to merge. Pass your values with `-f`, or let Argo CD and Flux use the values files those manifests already name. It runs a local Kubernetes API server on your machine and exits `0`, `1`, or `2`.
 
