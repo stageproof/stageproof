@@ -330,20 +330,20 @@ labels:
   by: rendered-diff
   date: '2026-11-22'
 - case: artifact-hub-artifact-hub-1.23.0-1.24.0
-  truth: breaks
-  evidence: removed API batch/v1beta1
-  by: rendered-diff
-  date: '2026-11-22'
+  truth: clean
+  evidence: 'CronJobs scanner and tracker render batch/v1 when Capabilities.APIVersions.Has "batch/v1/CronJob"; batch/v1beta1 is only the fallback. templates/db_migrator_job.yaml names the Job db-migrator-install on .Release.IsInstall and a pre-upgrade hook db-migrator-upgrade otherwise. No fixed-name non-hook break remains.'
+  by: template-read
+  date: '2026-11-25'
 - case: artifact-hub-artifact-hub-1.22.0-1.23.0
-  truth: breaks
-  evidence: removed API batch/v1beta1
-  by: rendered-diff
-  date: '2026-11-22'
+  truth: clean
+  evidence: 'CronJobs scanner and tracker render batch/v1 when Capabilities.APIVersions.Has "batch/v1/CronJob"; batch/v1beta1 is only the fallback. templates/db_migrator_job.yaml names the Job db-migrator-install on .Release.IsInstall and a pre-upgrade hook db-migrator-upgrade otherwise. No fixed-name non-hook break remains.'
+  by: template-read
+  date: '2026-11-25'
 - case: artifact-hub-artifact-hub-1.21.0-1.22.0
   truth: breaks
-  evidence: 'removed from release: StatefulSet/stageproof-rel-postgresql; removed API batch/v1beta1'
-  by: rendered-diff
-  date: '2026-11-22'
+  evidence: 'Chart.yaml moves postgresql from https://charts.helm.sh/stable 8.2.1 (StatefulSet postgresql.master.fullname) to https://charts.bitnami.com/bitnami 18.0.15 (StatefulSet postgresql.v1.primary.fullname), so the old StatefulSet leaves the release. CronJobs scanner and tracker use batch/v1 when Capabilities.APIVersions.Has "batch/v1/CronJob"; batch/v1beta1 is only that fallback.'
+  by: template-read
+  date: '2026-11-25'
 - case: in-toto-archivista-0.8.4-0.8.5
   truth: clean
   evidence: rendered 3 objects to 3; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
@@ -466,19 +466,19 @@ labels:
   date: '2026-11-22'
 - case: cadence-workflow-cadence-1.6.6-1.6.7
   truth: breaks
-  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.6 -> cadence-1.6.7)
-  by: rendered-diff
-  date: '2026-11-22'
+  evidence: 'templates/schema-server-job.yaml is a fixed-name Job (cadence.fullname + "-schema-server"), enabled by default, with no .Release.IsInstall, .Release.IsUpgrade, .Release.Revision, and no helm.sh/hook. cadence.labels puts helm.sh/chart on spec.template.metadata.labels, and that value changes from cadence-1.6.6 to cadence-1.6.7.'
+  by: template-read
+  date: '2026-11-25'
 - case: cadence-workflow-cadence-1.6.5-1.6.6
   truth: breaks
-  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.5 -> cadence-1.6.6)
-  by: rendered-diff
-  date: '2026-11-22'
+  evidence: 'templates/schema-server-job.yaml is a fixed-name Job (cadence.fullname + "-schema-server"), enabled by default, with no .Release.IsInstall, .Release.IsUpgrade, .Release.Revision, and no helm.sh/hook. cadence.labels puts helm.sh/chart on spec.template.metadata.labels, and that value changes from cadence-1.6.5 to cadence-1.6.6.'
+  by: template-read
+  date: '2026-11-25'
 - case: cadence-workflow-cadence-1.6.4-1.6.5
   truth: breaks
-  evidence: non-hook Job/stageproof-rel-cadence-schema-server changes immutable spec.template.metadata.labels['helm.sh/chart'] (cadence-1.6.4 -> cadence-1.6.5)
-  by: rendered-diff
-  date: '2026-11-22'
+  evidence: 'templates/schema-server-job.yaml is a fixed-name Job (cadence.fullname + "-schema-server"), enabled by default, with no .Release.IsInstall, .Release.IsUpgrade, .Release.Revision, and no helm.sh/hook. cadence.labels puts helm.sh/chart on spec.template.metadata.labels, and that value changes from cadence-1.6.4 to cadence-1.6.5.'
+  by: template-read
+  date: '2026-11-25'
 - case: clusternet-clusternet-hub-0.15.1-1.0.0
   truth: clean
   evidence: rendered 26 objects to 26; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
@@ -941,9 +941,9 @@ labels:
   date: '2026-11-22'
 - case: kusionstack-karpor-0.7.5-0.7.6
   truth: breaks
-  evidence: non-hook Job/karpor-generate-cert changes immutable spec.template image (kusionstack/karpor:v0.6.3 -> v0.6.4)
-  by: rendered-diff
-  date: '2026-11-22'
+  evidence: 'templates/job.yml is a fixed-name Job karpor-generate-cert with no .Release.IsInstall, .Release.IsUpgrade, .Release.Revision, and no helm.sh/hook. The image tag defaults to appVersion with a v prefix, so the container image changes from kusionstack/karpor:v0.6.3 to kusionstack/karpor:v0.6.4.'
+  by: template-read
+  date: '2026-11-25'
 - case: backstage-backstage-2.10.2-2.11.0
   truth: clean
   evidence: rendered 2 objects to 2; no hard delete, selector/VCT change, removed API, or incompatible CRD schema break
