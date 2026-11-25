@@ -957,7 +957,7 @@ stageproof check-pr --current-git main</pre>
     <tr><td>Any other file</td><td>Nothing. The file is ignored.</td></tr>
   </tbody>
 </table></div>
-<p>For a chart in your repository, Stageproof uses the chart's own <code>values.yaml</code> as the values file. To check the values files you deploy with, see <a href="#values-files">Check each values file of a chart</a>.</p>
+<p>For a chart in your repository, Stageproof uses the chart's own <code>values.yaml</code>. It does not search the repository for <code>values-prod.yaml</code> or any other file. A key that only your production file sets is never looked at until <a href="#values-files"><code>.stageproof.yaml</code></a> lists that file. An Argo CD Application and a Flux HelmRelease are different: they use the values files those manifests already name.</p>
 
 <h2>When nothing relevant changed</h2>
 <p>If the pull request changes no chart, no Application, and no HelmRelease, Stageproof prints one line and exits <code>0</code>. There was nothing to check, so the pipeline stays green:</p>
@@ -1741,11 +1741,14 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
 <h2>Use the component</h2>
 <p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.4.0</code> digest. <code>1</code> is the major version in the CI/CD catalog.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
+# Same check as stageproof check-pr. No values-file input.
+# A chart uses its own values.yaml until .stageproof.yaml lists your files.
+# Argo CD and Flux use the values files those manifests name.
 include:
   - component: gitlab.com/zarovvvv/stageproof/stageproof@1
     inputs:
       current_k8s: "1.35"</pre>
-<p>Set <code>current_k8s</code> to the Kubernetes version of the cluster you deploy to. Set <code>STAGEPROOF_GITLAB_TOKEN</code> to a token that can write merge request notes. <code>CI_JOB_TOKEN</code> cannot write notes. Without that token the job still checks the merge request, and the report is a job artifact. A later run updates the note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. <code>live: true</code> rehearses the upgrade on a runner that can start containers.</p>
+<p>Set <code>current_k8s</code> to the Kubernetes version of the cluster you deploy to. The component does not take a values file. A chart in the repository is rendered with its own <code>values.yaml</code> unless <a href="#values-files"><code>.stageproof.yaml</code></a> lists the files you deploy. An Argo CD Application or a Flux HelmRelease uses the values those files name. Set <code>STAGEPROOF_GITLAB_TOKEN</code> to a token that can write merge request notes. <code>CI_JOB_TOKEN</code> cannot write notes. Without that token the job still checks the merge request, and the report is a job artifact. A later run updates the note that contains <code>&lt;!-- stageproof-comment --&gt;</code>. <code>live: true</code> rehearses the upgrade on a runner that can start containers.</p>
 
 <h2>The job</h2>
 <p>The job below does the same check without the component. Change the paths under <code>changes</code> to where your charts and Application files are. The image tag is a released version.</p>
@@ -1845,13 +1848,26 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 <h2>Use the action</h2>
 <p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. <code>v1</code> is the major tag.</p>
 <pre data-kind="file" data-label=".github/workflows/stageproof.yml">
+# Same check as stageproof check-pr. No values-file input.
+# A chart uses its own values.yaml until .stageproof.yaml lists your files.
+# Argo CD and Flux use the values files those manifests name.
+name: stageproof
+on:
+  pull_request:
+permissions:
+  contents: read
+  pull-requests: write
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
       - uses: stageproof/action@v1
         with:
           current-k8s: "1.35"
           api-server: auto
           comment: "true"
           live: "false"</pre>
-<p>The workflow still needs <code>on: pull_request</code> and <code>permissions: pull-requests: write</code>. Set <code>current-k8s</code> to the Kubernetes version of the cluster you deploy to. <code>live: "true"</code> rehearses the upgrade on a runner that can start containers. Do not run this action from <code>pull_request_target</code>.</p>
+<p>Set <code>current-k8s</code> to the Kubernetes version of the cluster you deploy to. The action does not take a values file. A chart in the repository is rendered with its own <code>values.yaml</code> unless <a href="#values-files"><code>.stageproof.yaml</code></a> lists the files you deploy. An Argo CD Application or a Flux HelmRelease uses the values those files name. <code>live: "true"</code> rehearses the upgrade on a runner that can start containers. Do not run this action from <code>pull_request_target</code>.</p>
 
 <h2>Install it yourself</h2>
 <p>The workflow below downloads Helm and the released binary without the action. Change <code>paths</code> to where your charts and Application files are. The version in the download URL is a released tag.</p>
