@@ -8,6 +8,16 @@ The released binary is `v0.4.0`. It checks Helm charts, Argo CD Applications, Fl
 
 Chart-default upgrade reports for 300 public Helm charts are at the [Stageproof index](https://stageproof.github.io/index/). The index has more than 20,000 upgrade pairs. Each report uses that chart's default values, not the values a cluster runs.
 
+A Renovate configuration can add that report to a Helm pull request:
+
+```json
+{
+  "extends": ["github>stageproof/renovate-presets"]
+}
+```
+
+The badge text is `no blocking finding (defaults)`, `not checked`, `not indexed`, `pair not indexed`, or the blocking finding. `not indexed` means the chart is not in the catalog. `pair not indexed` means the chart is listed and that exact upgrade is not stored. The image is not a check of your cluster. The [Renovate page](https://stageproof.github.io/stageproof/docs.html#renovate) has the patch auto-merge preset.
+
 ## Check a pull request
 
 ```bash
@@ -51,6 +61,17 @@ Exit 0 is `PASSED` or `PROVEN`. Exit 1 and exit 2 fail the job. GitHub Actions a
 ```
 
 The job needs `permissions: pull-requests: write`. The action checks out the pull request, downloads Stageproof `v0.4.0`, checks `checksums.txt`, and adds the report to the job summary. It posts one comment, or updates the comment that already contains `<!-- stageproof-comment -->`. A fork pull request often has a read-only token. The comment step treats that as success and still returns the check exit code. Do not run this action from `pull_request_target`. `live: "true"` starts a temporary kind cluster, and the runner has to be able to start containers.
+
+### GitLab CI
+
+```yaml
+include:
+  - component: gitlab.com/zarovvvv/stageproof/stageproof@1
+    inputs:
+      current_k8s: "1.35"
+```
+
+The component is [zarovvvv/stageproof](https://gitlab.com/explore/catalog/zarovvvv/stageproof) in the CI/CD catalog. `1` is that major version. The [GitLab page](https://stageproof.github.io/stageproof/docs.html#ci-gitlab) has the token and the job that does the same check without the component.
 
 ### The four words
 

@@ -1933,6 +1933,25 @@ jobs:
 <h2>2. Do not merge before the check has run</h2>
 <p>Keep <code>automerge</code> off, or protect your default branch so that a pull request cannot merge while the Stageproof job is failing. The CI pages show the setting for each platform.</p>
 
+<h2>Index badge</h2>
+<p><a href="https://github.com/stageproof/renovate-presets">stageproof/renovate-presets</a> adds one image to a Helm pull request. The image is the chart-defaults report from the <a href="https://stageproof.github.io/index/">index</a>. It is not a check of your cluster. The pipeline check above is that check.</p>
+<pre data-kind="file" data-label="renovate.json">
+{
+  "extends": ["github>stageproof/renovate-presets"]
+}</pre>
+<p>The text is <code>no blocking finding (defaults)</code>, <code>not checked</code>, <code>not indexed</code>, <code>pair not indexed</code>, or the blocking finding. <code>not indexed</code> means the chart is not in the catalog. <code>pair not indexed</code> means the chart is listed and that exact upgrade is not stored.</p>
+
+<h2>Patch auto-merge</h2>
+<p>A second preset asks GitHub to auto-merge a patch after the required checks pass. Minor updates, major updates, and OCI charts stay open.</p>
+<pre data-kind="file" data-label="renovate.json">
+{
+  "extends": [
+    "github>stageproof/renovate-presets",
+    "github>stageproof/renovate-presets:automerge-patch"
+  ]
+}</pre>
+<p>Require the Stageproof job in branch protection. A branch with no required checks can merge a patch as soon as GitHub's own rules pass.</p>
+
 <h2>3. On GitLab, avoid a second pipeline for each branch</h2>
 <p>Renovate pushes a branch and then opens a merge request. GitLab can start one pipeline for the push and another for the merge request. Only the merge request pipeline runs Stageproof. This rule in the root <code>.gitlab-ci.yml</code> skips the other one.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
