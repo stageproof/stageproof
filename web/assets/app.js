@@ -82,6 +82,19 @@
     });
   });
 
+  $$(".install-tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      var cmd = tab.getAttribute("data-install-cmd");
+      var target = $("#hero-install-cmd");
+      $$(".install-tab").forEach(function (t) {
+        var on = t === tab;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      if (target && cmd) target.textContent = cmd;
+    });
+  });
+
   $$(".scenario-btn").forEach(function (btn) {
     btn.addEventListener("click", function () {
       var key = btn.getAttribute("data-example");
@@ -92,6 +105,20 @@
       });
       $$("[data-example-panel]").forEach(function (panel) {
         panel.hidden = panel.getAttribute("data-example-panel") !== key;
+      });
+    });
+  });
+
+  $$(".ci-tab").forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      var key = tab.getAttribute("data-ci-tab");
+      $$(".ci-tab").forEach(function (t) {
+        var on = t === tab;
+        t.classList.toggle("is-active", on);
+        t.setAttribute("aria-selected", on ? "true" : "false");
+      });
+      $$("[data-ci-panel]").forEach(function (panel) {
+        panel.hidden = panel.getAttribute("data-ci-panel") !== key;
       });
     });
   });
