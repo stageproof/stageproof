@@ -236,7 +236,7 @@ The `.sbom.json` file is an SPDX document produced by syft. It names the module 
 
 The guides are in [`web/`](web/) and are published at <https://stageproof.github.io/stageproof/>.
 
-The scope, in one page, is [docs/scope.md](docs/scope.md). Measured accuracy on 12 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects (0/281 wrong blocks, p95 4.13s file check and 15.41s API server proof on `ubuntu-latest`) is in [docs/accuracy.md](docs/accuracy.md).
+The scope, in one page, is [docs/scope.md](docs/scope.md). Measured accuracy on 18 active incidents and 316 CNCF upgrade pairs across 105 CNCF projects (0/283 wrong blocks, p95 3.47s file check and 13.71s API server proof on `ubuntu-latest`, 2026-11-25) is in [docs/accuracy.md](docs/accuracy.md).
 
 ## License
 

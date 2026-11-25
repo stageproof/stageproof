@@ -66,4 +66,4 @@ Both tools are ways to write down "this Helm chart, this version, these values."
 
 A live rehearsal is `--live` on the runner that runs the command. `v0.4.0` does not read a saved rehearsal report. The previous release, v0.1.8, still accepts `--saved-live`.
 
-Measured accuracy across 12 active incidents and 316 CNCF upgrade pairs (105 CNCF projects) is in [docs/accuracy.md](accuracy.md).
+Measured accuracy across 18 active incidents and 316 CNCF upgrade pairs (105 CNCF projects, 0/283 wrong blocks on 2026-11-25) is in [docs/accuracy.md](accuracy.md).
