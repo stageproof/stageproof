@@ -64,7 +64,7 @@
             </div>
             <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">with one binary, zero setup.</span></h1>
             <p class="hero-lede">
-              <code>helm lint</code> only reads the new chart. Stageproof compares what you run today with what you are about to merge, using your values and your Kubernetes version. No account, no config file, no cluster access, and <strong>0 AI calls</strong>.
+              <code>helm lint</code> only reads the new chart. Stageproof compares what you run today with what you are about to merge. Pass <code>-f</code> for your values file. A pull request does not guess that file. No account, no cluster access, and <strong>0 AI calls</strong>.
             </p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="#quickstart">Try in 30 seconds</a>
@@ -185,7 +185,7 @@ verdict  PASSED (exit 0)  · 0 AI calls</pre>
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">01</span> Zero setup</p>
           <h2>One binary scans any upgrade in seconds.</h2>
-          <p class="sec-lede">You do not need a staging cluster, a config file, a kubeconfig, or an account. Download the binary and run a check right away.</p>
+          <p class="sec-lede">You do not need a staging cluster, a kubeconfig, or an account. Download the binary and run a check right away. A config file is only for listing the values files a pull request should check.</p>
         </div>
 
         <div class="flow3">
