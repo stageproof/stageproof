@@ -95,7 +95,7 @@ A local file-mode run of the 33 labeled breaks after that change blocked 26 and 
 
 CRDs under `crds/` stay `crd.not_upgraded_by_helm` blockers. A new blocker for every rendered schema edit would also flag pairs the 2026-11-25 run called clean. That check is not added.
 
-v0.5.0 also explains a RollingUpdate to Recreate conflict, and a Recreate to RollingUpdate conflict, instead of calling `spec.strategy.rollingUpdate` immutable. An upgrade-only password check (`'path' must not be empty`) is filled on both charts so `--is-upgrade` can render. The 0/283 wrong-block result above is the v0.4.0 measurement. The v0.5.0 corpus run is recorded when it finishes.
+v0.5.0 also explains a RollingUpdate to Recreate conflict, and a Recreate to RollingUpdate conflict, instead of calling `spec.strategy.rollingUpdate` immutable. An upgrade-only password check (`'path' must not be empty`) is filled on both charts so `--is-upgrade` can render. A path named inside a subchart template is prefixed with that dependency. Corpus run `45728461638` on the v0.5.0 tree measured 0/283 wrong blocks in file mode and in API mode. The incidents step passed. v0.5.1 prefixes a password path that a subchart template names, so that dependency key is what the parent chart receives.
 - Latency: p50 `5.42s`, p95 `13.71s`, max `66.23s` (`openfunction-openfunction-0.6.1-0.7.0`)
 - `corpus compare`: `0` missed active incidents, `0` failed controls, `0` newly blocked clean pairs (`corpus/baseline.json` `blocked_clean` is empty)
 

@@ -356,6 +356,9 @@ func (r *Repair) addCredentialPaths(text string, protected map[string]bool) {
 		if path == "" && len(match) > 2 {
 			path = match[2]
 		}
+		// A subchart template names the key inside that chart. The parent
+		// values file stores it under the dependency name.
+		path = scopePath(text, path)
 		if path == "" || protected[path] || seen[path] || !safeRepairKey(path) {
 			continue
 		}
