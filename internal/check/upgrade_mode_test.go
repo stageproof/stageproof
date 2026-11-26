@@ -68,6 +68,42 @@ data:
 	}
 }
 
+func TestUpgradePasswordPlaceholderRendersUpgradeMode(t *testing.T) {
+	if _, err := exec.LookPath("helm"); err != nil {
+		t.Skip("helm is not installed")
+	}
+	template := `{{- if and .Release.IsUpgrade (not .Values.auth.password) }}
+{{- fail "'auth.password' must not be empty, please add '--set auth.password=$PASSWORD' to the command." }}
+{{- end }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app
+data:
+  v: {{ .Chart.Version | quote }}
+`
+	base := writeTestChart(t, "1.0.0", "auth:\n  password: \"\"\n", template)
+	head := writeTestChart(t, "1.1.0", "auth:\n  password: \"\"\n", template)
+	rep := Run(context.Background(), Input{
+		BaseDir:     base,
+		HeadDir:     head,
+		KubeVersion: "1.35",
+		APIServer:   "off",
+		Started:     time.Now(),
+	})
+	if rep.Verdict != verdict.Passed {
+		t.Fatalf("verdict = %s, want PASSED; findings = %+v checks = %+v", rep.Verdict, rep.Findings, rep.Checks)
+	}
+	for _, f := range rep.Findings {
+		if f.RuleID == "helm.template.upgrade_fallback" {
+			t.Fatalf("upgrade password should render in upgrade mode, got %+v", f)
+		}
+	}
+	if !checkMentions(rep, "chart defaults", "auth.password") {
+		t.Fatalf("placeholder key missing from checks: %+v", rep.Checks)
+	}
+}
+
 func TestInstallOnlyValuesKeyNotFalselyDroppedOnUpgrade(t *testing.T) {
 	if _, err := exec.LookPath("helm"); err != nil {
 		t.Skip("helm is not installed")

@@ -32,6 +32,10 @@ type Repair struct {
 	Remove      []string
 	APIVersions []string
 	SkipSchema  bool
+	// UpgradeCredential is a password the new chart asks for only when
+	// .Release.IsUpgrade is true. The same placeholder is applied to both
+	// charts so upgrade-mode rendering can continue.
+	UpgradeCredential bool
 }
 
 func (r Repair) Empty() bool {
@@ -102,7 +106,10 @@ func CompleteCharts(ctx context.Context, bin string, base, head RenderOptions) (
 		// already added. A later Helm error can replace a placeholder with the
 		// type or the choice the chart actually accepts.
 		proposal := ProposeRepair(failingDir, failing, orig)
-		if headOnly {
+		// A value only the new chart rejects stays a blocker, except an
+		// existing-password check that install mode never reaches. That
+		// placeholder is the same on both charts.
+		if headOnly && !proposal.UpgradeCredential {
 			proposal.SetStrings = nil
 			proposal.Sets = nil
 			proposal.SetJSON = nil
@@ -170,6 +177,9 @@ func (r *Repair) merge(add Repair) bool {
 	before := r.state()
 	if add.SkipSchema {
 		r.SkipSchema = true
+	}
+	if add.UpgradeCredential {
+		r.UpgradeCredential = true
 	}
 	readded := map[string]bool{}
 	for _, key := range add.Keys() {
@@ -274,24 +284,25 @@ func mergeStrings(have, add []string) []string {
 }
 
 var (
-	schemaIssuePattern = regexp.MustCompile(`at '([^']*)':\s*(.+)`)
-	valuesPathPattern  = regexp.MustCompile(`\$?\.Values((?:\.[A-Za-z0-9_]+)+)`)
-	apiVersionPattern  = regexp.MustCompile(`\b([a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)+/v[0-9][A-Za-z0-9]*/[A-Z][A-Za-z0-9]+)\b`)
-	requiredVarPattern = regexp.MustCompile(`required\s+"[^"]*"\s+\$([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z0-9_]+)+)`)
-	trueAssignment     = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_.-]*)=true\b`)
-	setBothTrue        = regexp.MustCompile(`([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+) and ([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+) to true`)
-	setEqualsTrue      = regexp.MustCompile(`(?:set\s+|--set\s+)'?([A-Za-z_][A-Za-z0-9_.-]*)=true'?\b`)
-	mustBeFalse        = regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_.-]*) must be false`)
-	eitherSetting      = regexp.MustCompile(`setting "([^"]+)" or "([^"]+)"`)
-	unsetKey           = regexp.MustCompile(`unset '([^']+)'`)
-	eitherSet          = regexp.MustCompile(`(?i)either set ([A-Za-z_][A-Za-z0-9_.-]*)`)
-	errorSubchart      = regexp.MustCompile(`charts/([A-Za-z0-9_.-]+)/`)
-	typeMismatch       = regexp.MustCompile(`type mismatch on ([A-Za-z0-9_.-]+)`)
-	execLocation       = regexp.MustCompile(`(?:template: |\()([^()\s]+):(\d+):\d+`)
-	enableChoice       = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_-]*):\s*\n\s*<`)
-	dottedPath         = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)+`)
-	backtickPath       = regexp.MustCompile("`([A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)+)`")
-	eqLiteralPattern   = regexp.MustCompile(`eq\s+\$?\.Values((?:\.[A-Za-z0-9_]+)+)\s+"([^"]+)"`)
+	schemaIssuePattern    = regexp.MustCompile(`at '([^']*)':\s*(.+)`)
+	credentialPathPattern = regexp.MustCompile(`(?:'([A-Za-z_][A-Za-z0-9_.-]*)' must not be empty|--set\s+([A-Za-z_][A-Za-z0-9_.-]*)=)`)
+	valuesPathPattern     = regexp.MustCompile(`\$?\.Values((?:\.[A-Za-z0-9_]+)+)`)
+	apiVersionPattern     = regexp.MustCompile(`\b([a-z0-9](?:[-a-z0-9]*[a-z0-9])?(?:\.[a-z0-9](?:[-a-z0-9]*[a-z0-9])?)+/v[0-9][A-Za-z0-9]*/[A-Z][A-Za-z0-9]+)\b`)
+	requiredVarPattern    = regexp.MustCompile(`required\s+"[^"]*"\s+\$([A-Za-z_][A-Za-z0-9_]*)((?:\.[A-Za-z0-9_]+)+)`)
+	trueAssignment        = regexp.MustCompile(`\b([A-Za-z_][A-Za-z0-9_.-]*)=true\b`)
+	setBothTrue           = regexp.MustCompile(`([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+) and ([A-Za-z0-9_-]+(?:\.[A-Za-z0-9_-]+)+) to true`)
+	setEqualsTrue         = regexp.MustCompile(`(?:set\s+|--set\s+)'?([A-Za-z_][A-Za-z0-9_.-]*)=true'?\b`)
+	mustBeFalse           = regexp.MustCompile(`([A-Za-z_][A-Za-z0-9_.-]*) must be false`)
+	eitherSetting         = regexp.MustCompile(`setting "([^"]+)" or "([^"]+)"`)
+	unsetKey              = regexp.MustCompile(`unset '([^']+)'`)
+	eitherSet             = regexp.MustCompile(`(?i)either set ([A-Za-z_][A-Za-z0-9_.-]*)`)
+	errorSubchart         = regexp.MustCompile(`charts/([A-Za-z0-9_.-]+)/`)
+	typeMismatch          = regexp.MustCompile(`type mismatch on ([A-Za-z0-9_.-]+)`)
+	execLocation          = regexp.MustCompile(`(?:template: |\()([^()\s]+):(\d+):\d+`)
+	enableChoice          = regexp.MustCompile(`(?m)^([A-Za-z_][A-Za-z0-9_-]*):\s*\n\s*<`)
+	dottedPath            = regexp.MustCompile(`[A-Za-z_][A-Za-z0-9_-]*(?:\.[A-Za-z_][A-Za-z0-9_-]*)+`)
+	backtickPath          = regexp.MustCompile("`([A-Za-z_][A-Za-z0-9_-]*(?:\\.[A-Za-z_][A-Za-z0-9_-]*)+)`")
+	eqLiteralPattern      = regexp.MustCompile(`eq\s+\$?\.Values((?:\.[A-Za-z0-9_]+)+)\s+"([^"]+)"`)
 )
 
 // ProposeRepair reads one Helm failure and returns the next retry. The chart
@@ -308,6 +319,7 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 		return repair
 	}
 	repair.APIVersions = apiVersions(text)
+	repair.addCredentialPaths(text, protected)
 	repair.addSchemaIssues(chartDir, text, protected)
 	repair.addHelmType(text, protected)
 	repair.addRenderSite(chartDir, text, opts, protected)
@@ -334,6 +346,27 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 	repair.addEnabledChoice(chartDir, text, protected)
 	repair.sanitize()
 	return repair
+}
+
+func (r *Repair) addCredentialPaths(text string, protected map[string]bool) {
+	var added []string
+	seen := map[string]bool{}
+	for _, match := range credentialPathPattern.FindAllStringSubmatch(text, -1) {
+		path := match[1]
+		if path == "" && len(match) > 2 {
+			path = match[2]
+		}
+		if path == "" || protected[path] || seen[path] || !safeRepairKey(path) {
+			continue
+		}
+		seen[path] = true
+		added = append(added, path+"="+repairPlaceholder)
+	}
+	if len(added) == 0 {
+		return
+	}
+	r.SetStrings = mergeAssignments(r.SetStrings, added)
+	r.UpgradeCredential = true
 }
 
 func (r *Repair) addSchemaIssues(chartDir, text string, protected map[string]bool) {

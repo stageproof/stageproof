@@ -1,5 +1,5 @@
 name: stageproof
-version: 0.4.0
+version: 0.5.0
 usage: check a Helm chart upgrade
 description: Check a Helm chart upgrade before you merge it. The install hook downloads the released binary and checks checksums.txt.
 ignoreFlags: false

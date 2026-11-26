@@ -5,6 +5,18 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-26
+
+### Breaking
+
+- A file check (`--api-server off`) now blocks a non-hook Job whose `spec.template` changed, including a `helm.sh/chart` label on the pod template. The same input previously returned `PASSED` (exit 0) and now returns `BLOCKED` (exit 1). A Helm hook is not compared. A template that uses `.Release.Revision` in the object name stays a warning. This matches the API server, which already blocked these Jobs.
+- An upgrade that failed `helm template --is-upgrade` only because the chart asked for an existing password (`'path' must not be empty` or `--set path=`) now renders in upgrade mode with the same placeholder on both charts. If that render shows a blocker, the exit code changes from 0 to 1. Pairs that still cannot render in upgrade mode keep the `helm.template.upgrade_fallback` warning.
+
+### Fixed
+
+- Kubernetes rejecting `spec.strategy.rollingUpdate` because the strategy type is Recreate, or requiring `maxUnavailable` or `maxSurge` because the type is RollingUpdate, is explained as that conflict. The finding no longer says the field is immutable. Both directions are covered. The exit code is unchanged when the update was already blocked.
+- The Helm plugin default download is `v0.5.0`.
+
 ## [0.4.0] - 2026-11-25
 
 ### Breaking

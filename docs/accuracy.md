@@ -76,6 +76,26 @@ Other charts do contain those template patterns. Their label evidence does not n
 - Labeled `clean`: `283 PASSED`, `0 BLOCKED` (`0.00%` wrong blocks)
 - Labeled `breaks`: `26 BLOCKED`, `7 PASSED`
 - The 4 additional blocks over file mode are the three Cadence schema-server Jobs and the Karpor `karpor-generate-cert` Job. File mode does not apply those objects, so it does not see the immutable pod template.
+
+### v0.5.0 file-mode Job templates
+
+v0.4.0 API mode blocked 26 of 33 labeled breaks and passed 7. File mode passed those 7 and 4 more. The 4 are the Cadence schema Jobs and the Karpor cert Job. v0.5.0 compares `spec.template` on a non-hook Job when the API server does not run, which is the same rejection the API server already returns. A Helm hook is skipped. A template that uses `.Release.Revision` in the object name stays a warning. File mode still does not compare StatefulSet `volumeClaimTemplates`. The API server does, and `statefulset-volume-claim-templates-changed` stays an API-mode catch.
+
+A local file-mode run of the 33 labeled breaks after that change blocked 26 and passed the same 7 the API-mode measurement passed:
+
+| Case | Why it stays `PASSED` |
+|---|---|
+| `artifact-hub-artifact-hub-1.21.0-1.22.0` | The StatefulSet that leaves the release is a warning. |
+| `rook-rook-ceph-v1.20.10-1.21.0` | CRD schema edits on rendered CRDs. No rendered object uses the changed field, so the finding stays a warning. |
+| `volcano-volcano-1.15.4-1.16.0` | Same rendered-CRD schema warning. |
+| `koordinator-koordinator-1.7.0-1.8.0` | Same rendered-CRD schema warning. |
+| `keda-keda-2.20.2-2.21.0` | Same rendered-CRD schema warning. |
+| `keda-keda-2.20.1-2.20.2` | Same rendered-CRD schema warning. |
+| `linkerd-linkerd-crds-1.6.1-1.8.0` | Same rendered-CRD schema warning. |
+
+CRDs under `crds/` stay `crd.not_upgraded_by_helm` blockers. A new blocker for every rendered schema edit would also flag pairs the 2026-11-25 run called clean. That check is not added.
+
+v0.5.0 also explains a RollingUpdate to Recreate conflict, and a Recreate to RollingUpdate conflict, instead of calling `spec.strategy.rollingUpdate` immutable. An upgrade-only password check (`'path' must not be empty`) is filled on both charts so `--is-upgrade` can render. The 0/283 wrong-block result above is the v0.4.0 measurement. The v0.5.0 corpus run is recorded when it finishes.
 - Latency: p50 `5.42s`, p95 `13.71s`, max `66.23s` (`openfunction-openfunction-0.6.1-0.7.0`)
 - `corpus compare`: `0` missed active incidents, `0` failed controls, `0` newly blocked clean pairs (`corpus/baseline.json` `blocked_clean` is empty)
 

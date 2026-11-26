@@ -2,6 +2,7 @@ package apiserver
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -38,7 +39,11 @@ type Classified struct {
 	Field  string
 	Fields []string
 	Detail string
-	Reason metav1.StatusReason
+	// StrategyConflict means rollingUpdate is set for a strategy type that
+	// forbids it, or missing the values RollingUpdate requires. The finding
+	// explains that conflict. It does not call the field immutable.
+	StrategyConflict bool
+	Reason           metav1.StatusReason
 }
 
 // Classify reads the Status reason and cause type.
@@ -86,6 +91,16 @@ func Classify(err error) Classified {
 	seenField := map[string]bool{}
 	var firstInvalid *Classified
 	for _, cause := range causes {
+		if kind, ok := strategyConflict(cause.Field, cause.Message); ok {
+			class := ClassInvalid
+			if cause.Type == metav1.CauseTypeForbidden {
+				class = ClassImmutable
+			}
+			return Classified{
+				Class: class, Field: cause.Field, Fields: []string{cause.Field},
+				Detail: kind, StrategyConflict: true, Reason: st.Reason,
+			}
+		}
 		switch cause.Type {
 		case metav1.CauseTypeForbidden:
 			return Classified{Class: ClassImmutable, Field: cause.Field, Reason: st.Reason}
@@ -285,6 +300,43 @@ func firstCause(causes []metav1.StatusCause) string {
 		return causes[0].Field
 	}
 	return ""
+}
+
+// strategyConflict reports a Deployment, StatefulSet, or DaemonSet strategy
+// error that is about rollingUpdate versus the strategy type. kind is
+// "present" when rollingUpdate must be removed, and "missing" when RollingUpdate
+// needs maxUnavailable or maxSurge.
+func strategyConflict(field, message string) (kind string, ok bool) {
+	if !strings.Contains(field, "rollingUpdate") {
+		return "", false
+	}
+	low := strings.ToLower(message)
+	switch {
+	case strings.Contains(low, "may not be specified when strategy"),
+		(strings.Contains(low, "only allowed") && strings.Contains(low, "rollingupdate")):
+		return "present", true
+	case strings.Contains(low, "maxunavailable"), strings.Contains(low, "maxsurge"):
+		return "missing", true
+	default:
+		return "", false
+	}
+}
+
+// StrategyConflictMessage explains a strategy type change. Both directions are
+// named so a RollingUpdate to Recreate failure and a Recreate to RollingUpdate
+// failure say what to change.
+func StrategyConflictMessage(field, kind string) string {
+	if field == "" {
+		field = "spec.strategy.rollingUpdate"
+	}
+	typeField := field
+	if i := strings.LastIndex(field, ".rollingUpdate"); i >= 0 {
+		typeField = field[:i] + ".type"
+	}
+	if kind == "missing" {
+		return fmt.Sprintf("Kubernetes rejected the update because `%s` is RollingUpdate and `%s` does not set maxUnavailable or maxSurge. Set `%s` when the type changes to RollingUpdate. Remove `%s` when the type changes to Recreate.", typeField, field, field, field)
+	}
+	return fmt.Sprintf("Kubernetes rejected the update because `%s` is still set after `%s` changed. `%s` is allowed only when the type is RollingUpdate. Remove it when the type changes to Recreate, and set it when the type changes to RollingUpdate.", field, typeField, field)
 }
 
 // NoMatch is a mapper error for tests and for group checks.
