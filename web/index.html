@@ -13,7 +13,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="assets/styles.css?v=21" />
+  <link rel="stylesheet" href="assets/styles.css?v=22" />
   <script src="assets/app.js?v=19" defer></script>
 </head>
 <body>
@@ -30,10 +30,10 @@
         <span class="brand-word">stageproof</span>
       </a>
       <nav class="nav-links" id="nav-links" aria-label="Primary">
-        <a href="index.html" class="active">Overview</a>
-        <a href="https://stageproof.github.io/index/">Chart Index</a>
+        <a href="index.html" class="active" aria-current="page">Overview</a>
         <a href="docs.html">Docs</a>
-        <a href="architecture.html">Architecture</a>
+        <a href="https://stageproof.github.io/index/">Charts</a>
+        <a href="https://stageproof.github.io/index/values/">Check values</a>
         <a href="security.html">Security</a>
         <a href="roadmap.html">Roadmap</a>
       </nav>
@@ -57,17 +57,17 @@
         <div class="hero-inner">
           <div class="hero-copy">
             <div class="eyebrow-row">
-              <span class="pill pill-accent">Free &amp; Open Source (Apache-2.0)</span>
+              <span class="pill pill-accent">Free and open source</span>
               <span class="pill">Single Binary</span>
               <span class="pill">v0.5.2</span>
             </div>
             <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">with one binary, zero setup.</span></h1>
             <p class="hero-lede">
-              <code>helm lint</code> only reads the new chart. Stageproof compares what you run today with what you are about to merge. Pass <code>-f</code> for your values file. A pull request does not guess that file. No account, no cluster access, and <strong>0 AI calls</strong>.
+              <code>helm lint</code> looks at the new chart on its own. Stageproof compares the version you run today with the one you are about to merge, with your values, and tells you whether the upgrade breaks. No account, no cluster access, and <strong>no AI</strong>.
             </p>
             <div class="hero-actions">
               <a class="btn btn-primary" href="#quickstart">Try in 30 seconds</a>
-              <a class="btn btn-ghost" href="https://stageproof.github.io/index/">Browse 300-chart index</a>
+              <a class="btn btn-ghost" href="https://stageproof.github.io/index/">Browse chart reports</a>
               <a class="btn btn-ghost" href="https://github.com/stageproof/stageproof">GitHub</a>
             </div>
             <div class="install-box">
@@ -84,7 +84,7 @@
               </div>
             </div>
             <div class="hero-sub">
-              <span>Free forever (Apache-2.0)</span>
+              <span>Linux, macOS, Windows</span>
               <span>No cluster credentials</span>
               <span>Exits 0, 1, or 2</span>
             </div>
@@ -93,7 +93,7 @@
           <div class="proof-card" aria-label="Real Stageproof v0.5.2 reports">
             <div class="proof-header">
               <span class="win-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span class="proof-label">real v0.5.2 output · zero config · no cluster needed</span>
+              <span class="proof-label">real v0.5.2 output · no cluster needed</span>
             </div>
             <div class="scenario-tabs" role="tablist" aria-label="Example reports">
               <button class="scenario-btn is-active" type="button" data-example="blocked-api" role="tab" aria-selected="true">
@@ -160,8 +160,8 @@ k8s  1.35  ·  checked: files, API server 1.35.0
 
 verdict  PASSED (exit 0)  · 0 AI calls</pre>
             <div class="proof-foot">
-              <span>Copied from real v0.5.2 runs. Add <code>--live</code> for a temporary kind rehearsal.</span>
-              <span><a href="docs.html#results">Read a report</a></span>
+              <span>Copied from real v0.5.2 runs.</span>
+              <span><a href="docs.html#results">How to read a report</a></span>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ verdict  PASSED (exit 0)  · 0 AI calls</pre>
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">01</span> Zero setup</p>
           <h2>One binary scans any upgrade in seconds.</h2>
-          <p class="sec-lede">You do not need a staging cluster, a kubeconfig, or an account. Download the binary and run a check right away. A config file is only for listing the values files a pull request should check.</p>
+          <p class="sec-lede">You do not need a staging cluster, a kubeconfig, or an account. Install the binary and run your first check.</p>
         </div>
 
         <div class="flow3">
@@ -200,50 +200,56 @@ verdict  PASSED (exit 0)  · 0 AI calls</pre>
           </article>
           <article class="flow-step">
             <span class="flow-n">Step 3 · Decide</span>
-            <h3>Local Kubernetes API check</h3>
-            <p>Stageproof runs a local Kubernetes API server for your minor version, tests the upgrade in memory, and exits <code>0</code>, <code>1</code>, or <code>2</code>.</p>
+            <h3>Read the verdict</h3>
+            <p>A local Kubernetes API server for your version tries the upgrade. The exit code is <code>0</code> when it passes, <code>1</code> when it is blocked, and <code>2</code> when it could not be checked.</p>
           </article>
         </div>
 
         <div class="ci-shell">
           <div class="ci-tabs" role="tablist" aria-label="Usage examples">
-            <button class="ci-tab is-active" type="button" role="tab" aria-selected="true" data-ci-tab="cli">Scan any chart (zero setup)</button>
-            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="pr">Check a Git PR</button>
+            <button class="ci-tab is-active" type="button" role="tab" aria-selected="true" data-ci-tab="cli">Check any chart</button>
+            <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="pr">Check a pull request</button>
             <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="gha">GitHub Actions</button>
             <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="gitlab">GitLab CI</button>
             <button class="ci-tab" type="button" role="tab" aria-selected="false" data-ci-tab="renovate">Renovate badge</button>
           </div>
           <div class="ci-body" data-ci-panel="cli">
-            <button class="copy-btn" type="button" data-copy-target="#code-cli">Copy</button>
-            <p class="ci-note">Downloads both chart versions and checks the upgrade on your machine. Nothing is installed in a cluster. <code>-f</code> is your values file. <code>--values</code> is the same flag. Drop the last line to check the chart's own defaults.</p>
-            <pre id="code-cli"># No checkout and no cluster. -f is your values file. --values is the same flag.
-stageproof check \
+            <div class="ci-notes">
+              <p>Downloads both versions of a public chart and compares them on your machine. Nothing is installed in a cluster.</p>
+              <p>Replace <code>values.yaml</code> with the values file you deploy. Remove the last line to use the chart's own defaults.</p>
+            </div>
+            <div class="ci-code">
+              <button class="copy-btn" type="button" data-copy-target="#code-cli">Copy</button>
+              <pre id="code-cli">stageproof check \
   --repo https://kubernetes-sigs.github.io/metrics-server/ \
   --chart metrics-server \
   --from 3.12.2 --to 3.13.0 \
   --current-k8s 1.35 \
-  -f values.yaml # your values file</pre>
+  -f values.yaml</pre>
+            </div>
           </div>
           <div class="ci-body" data-ci-panel="pr" hidden>
-            <button class="copy-btn" type="button" data-copy-target="#code-pr">Copy</button>
-            <p class="ci-note">Run this inside the git checkout. It reads the diff and checks every changed Helm chart, Argo CD Application, and Flux HelmRelease. It does not guess a values file. A chart is rendered with its own <code>values.yaml</code> until <a href="docs.html#values-files"><code>.stageproof.yaml</code></a> lists the files you deploy. <code>stageproof init</code> writes that list: <code>values.yaml</code>, <code>values-*.yaml</code>, and files in <code>ci/</code>. Argo CD and Flux use the values files those manifests already name.</p>
-            <pre id="code-pr"># In your checkout. Reads the git diff. Does not contact your cluster.
-# A chart uses its own values.yaml until .stageproof.yaml lists your files.
-# Argo CD and Flux use the values files those manifests already name.
-stageproof check-pr \
+            <div class="ci-notes">
+              <p>Run this in your git checkout. It compares your branch with <code>origin/main</code> and checks every Helm chart, Argo CD Application, and Flux HelmRelease that changed. It does not contact your cluster.</p>
+              <p><code>--current-k8s</code> is the Kubernetes version you run. <code>--next-k8s</code> also warns about APIs the next version removes.</p>
+              <p>A chart is checked with its own <code>values.yaml</code>. To check the values files you deploy, list them in <a href="docs.html#values-files"><code>.stageproof.yaml</code></a>. <code>stageproof init</code> writes that file for you. Argo CD and Flux use the values files their manifests already name.</p>
+            </div>
+            <div class="ci-code">
+              <button class="copy-btn" type="button" data-copy-target="#code-pr">Copy</button>
+              <pre id="code-pr">stageproof check-pr \
   --current-git origin/main \
   --current-k8s 1.35 \
   --next-k8s 1.36</pre>
+            </div>
           </div>
           <div class="ci-body" data-ci-panel="gha" hidden>
-            <button class="copy-btn" type="button" data-copy-target="#code-gha">Copy</button>
-            <p class="ci-note">This runs the same <code>check-pr</code> on every pull request. The action checks out the pull request, downloads the binary, and posts one comment. It has no values-file input. A chart uses its own <code>values.yaml</code> until <a href="docs.html#values-files"><code>.stageproof.yaml</code></a> lists yours. Argo CD and Flux use the values files those manifests name. <code>current-k8s</code> is the Kubernetes version you deploy to. Do not run it from <code>pull_request_target</code>.</p>
-            <pre id="code-gha"># Same check as: stageproof check-pr
-# No values-file input. A chart uses its own values.yaml until
-# .stageproof.yaml lists your files. Argo CD and Flux use the
-# values files those manifests name.
-# current-k8s is the Kubernetes version you deploy to.
-name: stageproof
+            <div class="ci-notes">
+              <p>Save this as <code>.github/workflows/stageproof.yml</code>. It runs the same pull request check on every pull request and posts one comment with the result.</p>
+              <p>Set <code>current-k8s</code> to the Kubernetes version you deploy to. Values files follow the same rule as the pull request check. Use the <code>pull_request</code> trigger, not <code>pull_request_target</code>.</p>
+            </div>
+            <div class="ci-code">
+              <button class="copy-btn" type="button" data-copy-target="#code-gha">Copy</button>
+              <pre id="code-gha">name: stageproof
 on:
   pull_request:
 permissions:
@@ -256,27 +262,32 @@ jobs:
       - uses: stageproof/action@v1
         with:
           current-k8s: "1.35"</pre>
+            </div>
           </div>
           <div class="ci-body" data-ci-panel="gitlab" hidden>
-            <button class="copy-btn" type="button" data-copy-target="#code-gitlab">Copy</button>
-            <p class="ci-note">This runs the same <code>check-pr</code> on merge requests, with the same values rules as the pull request command. <code>current_k8s</code> is the Kubernetes version you deploy to. A note on the merge request needs <code>STAGEPROOF_GITLAB_TOKEN</code>. <code>CI_JOB_TOKEN</code> cannot write notes. The check still runs, and the report is a job artifact.</p>
-            <pre id="code-gitlab"># Same check as: stageproof check-pr
-# No values-file input. A chart uses its own values.yaml until
-# .stageproof.yaml lists your files. Argo CD and Flux use the
-# values files those manifests name.
-# current_k8s is the Kubernetes version you deploy to.
-# A merge request note needs STAGEPROOF_GITLAB_TOKEN.
-include:
+            <div class="ci-notes">
+              <p>Add this to <code>.gitlab-ci.yml</code>. It runs the same pull request check on every merge request.</p>
+              <p>Set <code>current_k8s</code> to the Kubernetes version you deploy to. To get a comment on the merge request, add a <code>STAGEPROOF_GITLAB_TOKEN</code> CI variable, because <code>CI_JOB_TOKEN</code> cannot write comments. Without it, the report is saved as a job artifact.</p>
+            </div>
+            <div class="ci-code">
+              <button class="copy-btn" type="button" data-copy-target="#code-gitlab">Copy</button>
+              <pre id="code-gitlab">include:
   - component: gitlab.com/zarovvvv/stageproof/stageproof@1
     inputs:
       current_k8s: "1.35"</pre>
+            </div>
           </div>
           <div class="ci-body" data-ci-panel="renovate" hidden>
-            <button class="copy-btn" type="button" data-copy-target="#code-renovate">Copy</button>
-            <p class="ci-note">This adds a badge to Helm pull requests. The badge is the public index report for that chart pair, and those reports use chart defaults. It does not read your values file. To check the file you deploy, use <code>stageproof check -f</code> or <code>check-pr</code> with <a href="docs.html#values-files"><code>.stageproof.yaml</code></a>.</p>
-            <pre id="code-renovate">{
+            <div class="ci-notes">
+              <p>Add this to your Renovate config. Each Helm update pull request then shows a badge with the <a href="https://stageproof.github.io/index/">chart index</a> result for that version jump.</p>
+              <p>The badge uses the chart's default values, not yours. To check your own values, run <code>stageproof check -f</code> or the pull request check.</p>
+            </div>
+            <div class="ci-code">
+              <button class="copy-btn" type="button" data-copy-target="#code-renovate">Copy</button>
+              <pre id="code-renovate">{
   "extends": ["github&gt;stageproof/renovate-presets"]
 }</pre>
+            </div>
           </div>
         </div>
       </div>
@@ -309,11 +320,12 @@ include:
 
         <div class="agnostic-bar">
           <div class="agnostic-copy">
-            <strong>Try it without installing anything: the free Public Upgrade Index</strong>
-            <p>We run Stageproof automatically on 300 popular public Helm charts (21,000+ upgrade pairs) against Kubernetes 1.35. Browse any chart, inspect breaking changes, or copy the one-line reproduce command.</p>
+            <strong>No install needed: the chart index</strong>
+            <p>Stageproof checks 300 popular public Helm charts every night, more than 21,000 version jumps on Kubernetes 1.35. Open a chart to see what an upgrade breaks, or paste your <code>values.yaml</code> to check it in your browser.</p>
           </div>
           <div class="agnostic-pills">
-            <a class="btn btn-primary btn-sm" href="https://stageproof.github.io/index/">Open the 300-chart index</a>
+            <a class="btn btn-primary btn-sm" href="https://stageproof.github.io/index/">Open the chart index</a>
+            <a class="btn btn-ghost btn-sm" href="https://stageproof.github.io/index/values/">Check your values</a>
           </div>
         </div>
       </div>
@@ -342,7 +354,7 @@ include:
             <tr><td>Live rehearsal</td><td>Full install, upgrade, smoke tests, and rollback in a temporary local <code>kind</code> cluster</td><td>Optional: add <code>--live</code></td></tr>
           </tbody>
         </table>
-        <p class="sec-lede" style="margin-top:22px;">Measured on GitHub <code>ubuntu-latest</code> on 2026-11-25 (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>, <a href="https://github.com/stageproof/stageproof/actions/runs/45519144615">workflow run 45519144615</a>): <strong>18 / 18</strong> real incidents caught, <strong>18 / 18</strong> clean controls passed, and <strong>0 / 283</strong> wrong blocks (0.00%) across 316 upgrade pairs from 105 CNCF projects. Median file check: <strong>0.92s</strong> (p95 3.47s). Median API server proof: <strong>5.42s</strong> (p95 13.71s).</p>
+        <p class="sec-lede measured">Measured on GitHub <code>ubuntu-latest</code> on 2026-11-25 (<a href="https://github.com/stageproof/stageproof/blob/main/docs/accuracy.md">docs/accuracy.md</a>, <a href="https://github.com/stageproof/stageproof/actions/runs/45519144615">workflow run 45519144615</a>): <strong>18 / 18</strong> real incidents caught, <strong>18 / 18</strong> clean controls passed, and <strong>0 / 283</strong> wrong blocks (0.00%) across 316 upgrade pairs from 105 CNCF projects. Median file check: <strong>0.92s</strong> (p95 3.47s). Median API server proof: <strong>5.42s</strong> (p95 13.71s).</p>
       </div>
     </section>
 
@@ -383,7 +395,7 @@ include:
         <div class="doc-grid">
           <article class="doc-card">
             <h3>100% free &amp; open source</h3>
-            <p>Licensed under Apache-2.0. The CLI, GitHub Action, GitLab CI component, Helm plugin, Renovate preset, and 300-chart public index are all free with no seat limits, no accounts, and no telemetry.</p>
+            <p>Licensed under Apache-2.0. The CLI, GitHub Action, GitLab CI component, Helm plugin, Renovate preset, and chart index are free, with no seat limits, no accounts, and no telemetry.</p>
           </article>
           <article class="doc-card">
             <h3>Your cluster stays untouched</h3>
@@ -394,10 +406,10 @@ include:
             <p>Built for Helm charts, Argo CD Applications, Flux HelmReleases, and rendered manifests (<code>--before</code> / <code>--after</code>). It does not check Terraform providers, container image internals, Kustomize directly, or language packages.</p>
           </article>
         </div>
-        <p style="margin-top:22px;">
+        <div class="cta-row">
           <a class="btn btn-primary" href="docs.html#first-check">Run your first check</a>
-          <a class="btn btn-ghost" href="roadmap.html" style="margin-left:10px;">See roadmap</a>
-        </p>
+          <a class="btn btn-ghost" href="roadmap.html">See the roadmap</a>
+        </div>
       </div>
     </section>
   </main>
@@ -414,30 +426,35 @@ include:
             </svg>
             <span class="brand-word">stageproof</span>
           </a>
-          <p>Free, open-source single-binary Kubernetes upgrade checker for Helm, Argo CD, Flux, and rendered manifests.</p>
+          <p>Checks a Kubernetes upgrade before you merge it. Free and open source (Apache-2.0).</p>
         </div>
         <div class="footer-cols">
           <div class="footer-col">
             <span class="footer-h">Product</span>
-            <a href="#quickstart">Quickstart</a>
-            <a href="#checks">What it checks</a>
-            <a href="#results">Results</a>
-            <a href="https://stageproof.github.io/index/">300-chart Index</a>
+            <a href="docs.html#first-check">Quickstart</a>
+            <a href="https://stageproof.github.io/index/">Chart index</a>
+            <a href="https://stageproof.github.io/index/values/">Check your values</a>
             <a href="roadmap.html">Roadmap</a>
           </div>
           <div class="footer-col">
-            <span class="footer-h">Docs &amp; Code</span>
+            <span class="footer-h">Docs</span>
             <a href="docs.html">Documentation</a>
             <a href="architecture.html">Architecture</a>
             <a href="security.html">Security</a>
+            <a href="https://stageproof.github.io/index/api/">JSON API</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Code</span>
             <a href="https://github.com/stageproof/stageproof">GitHub</a>
             <a href="https://github.com/stageproof/action">GitHub Action</a>
+            <a href="https://gitlab.com/zarovvvv/stageproof">GitLab component</a>
+            <a href="https://github.com/stageproof/renovate-presets">Renovate preset</a>
           </div>
         </div>
       </div>
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0).</span>
-        <span class="status-pill"><span class="dot-live"></span>v0.5.2 · Single binary · Apache-2.0</span>
+        <span>© 2026 Stageproof · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.2</span>
       </div>
     </div>
   </footer>

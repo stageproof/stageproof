@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="assets/styles.css?v=21" />
+  <link rel="stylesheet" href="assets/styles.css?v=22" />
   <script src="assets/app.js?v=19" defer></script>
 </head>
 <body>
@@ -27,10 +27,10 @@
       </a>
       <nav class="nav-links" id="nav-links" aria-label="Primary">
         <a href="index.html">Overview</a>
-        <a href="https://stageproof.github.io/index/">Chart Index</a>
         <a href="docs.html">Docs</a>
-        <a href="architecture.html">Architecture</a>
-        <a href="security.html" class="active">Security</a>
+        <a href="https://stageproof.github.io/index/">Charts</a>
+        <a href="https://stageproof.github.io/index/values/">Check values</a>
+        <a href="security.html" class="active" aria-current="page">Security</a>
         <a href="roadmap.html">Roadmap</a>
       </nav>
       <div class="nav-cta">
@@ -65,9 +65,24 @@
           <thead><tr><th>Action</th><th>What happens</th></tr></thead>
           <tbody>
             <tr><td>Reads</td><td>The chart directories you name, the values files you pass, the manifest files you pass to <code>--before</code> and <code>--after</code>, Argo CD Application files, Flux HelmRelease files and the source, ConfigMap, and Secret YAML they name, <code>.stageproof.yaml</code> in the working directory, and, for a pull request, files from <code>git</code>. Secret values are not printed.</td></tr>
-            <tr><td>Runs</td><td><code>helm template</code> and, for an Argo CD Application, a Flux Helm repository or OCI chart, or <code>stageproof check --repo</code>, <code>helm pull</code>. Helm executes chart templates. Treat a chart as code. <code>--repo</code> downloads the two versions you name from the <code>http://</code>, <code>https://</code>, or <code>oci://</code> URL you pass and deletes them when the command exits. <code>--offline</code> does not skip that download. <code>--helm-compare</code> runs a second helm binary on this machine and does not add a network call. Manifest mode does not call Helm. A Git repository that is not this checkout is not cloned. With <code>--live</code>, <code>smoke</code> commands in <code>.stageproof.yaml</code> run as <code>sh -c</code> in the temporary cluster. <code>check-pr</code> reads that list from the base ref, so a command added only in a pull request does not run.</td></tr>
+            <tr><td>Runs</td><td><ul class="cell-list">
+              <li><code>helm template</code>. Helm executes chart templates, so treat a chart as code. Manifest mode does not call Helm.</li>
+              <li><code>helm pull</code> for <code>stageproof check --repo</code>, an Argo CD Application, or a Flux Helm repository or OCI chart. It downloads the two versions you name and deletes them when the command exits.</li>
+              <li>A second helm binary on this machine with <code>--helm-compare</code>. It adds no network call.</li>
+              <li><code>smoke</code> commands from <code>.stageproof.yaml</code>, as <code>sh -c</code> in the temporary cluster, only with <code>--live</code>. <code>check-pr</code> reads that list from the base ref, so a command added only in a pull request does not run.</li>
+              <li>A Git repository that is not this checkout is not cloned.</li>
+            </ul></td></tr>
             <tr><td>Writes</td><td>The report on standard output, and the files you name with <code>--out</code> and <code>--comment-file</code>. It does not commit, push, or edit the chart. <code>stageproof mcp</code> writes protocol messages on stdout and logs on stderr. It does not write a report file.</td></tr>
-            <tr><td>Network</td><td>Charts that are already on disk need no network for registry checks when you pass <code>--offline</code>, and no API server download when you pass <code>--api-server off</code>. Those two flags are independent. <code>stageproof check --repo</code> runs <code>helm pull</code> against the repository URL you pass (<code>http://</code>, <code>https://</code>, or <code>oci://</code>). That host is not fixed. <code>--offline</code> does not skip the chart download. A new or changed image tag is asked of the registry named in that reference with HTTP HEAD. A manifest list is fetched only to see whether linux/amd64 is present, or each node architecture from <code>--cluster-facts</code> when that file lists nodes. Layers are not downloaded. The host is whatever the chart rendered. An unchanged image is not asked. The default check downloads <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for the Kubernetes minor you named, from the controller-tools envtest index on <code>raw.githubusercontent.com</code> and the release assets on <code>github.com</code>. The SHA-512 in the index is checked before unpacking. The files are cached. <code>--api-server-dir</code> uses binaries already on disk. Pulling a remote chart, or looking up a kind node image when you pass <code>--live</code>, also uses the network. The corpus replay command, which is not in the release binary, fetches the public commits named in its case file from <code>github.com</code>. <code>stageproof facts export</code> reads the cluster named by <code>--kubeconfig</code> and <code>--context</code>. It does not open the default kubeconfig. The calls are <code>get</code> and <code>list</code>. Helm release Secrets are read only with <code>--helm-releases</code>, and values are not written. <code>stageproof comment</code> posts or updates one comment. GitHub calls go to <code>api.github.com</code> or <code>GITHUB_API_URL</code>. GitLab calls go to the host in <code>CI_API_V4_URL</code>, or to <code>gitlab.com</code>. The token is not printed, and a redirect to another host is refused. The body is the Markdown file you pass. The chart and the values are not sent. <code>stageproof mcp</code> does not open a port and does not add a host. A check it runs uses the same hosts as <code>stageproof check</code>. Its <code>api_server</code> argument defaults to <code>off</code>.</td></tr>
+            <tr><td>Network</td><td><ul class="cell-list">
+              <li><strong>Chart download.</strong> <code>--repo</code> and remote charts run <code>helm pull</code> against the URL you pass (<code>http://</code>, <code>https://</code>, or <code>oci://</code>). <code>--offline</code> does not skip this download.</li>
+              <li><strong>Image tags.</strong> A new or changed image tag is checked with HTTP HEAD at the registry in that image reference. A manifest list is read only to see whether linux/amd64, or each node architecture in <code>--cluster-facts</code>, is present. Layers are not downloaded and unchanged images are not checked. <code>--offline</code> skips this.</li>
+              <li><strong>Local API server.</strong> <code>kube-apiserver</code>, <code>etcd</code>, and <code>kubectl</code> for your Kubernetes minor come from the controller-tools envtest index on <code>raw.githubusercontent.com</code> and its release assets on <code>github.com</code>. The SHA-512 in the index is checked before unpacking, and the files are cached. <code>--api-server off</code> skips this, and <code>--api-server-dir</code> uses binaries already on disk.</li>
+              <li><strong>Live rehearsal.</strong> <code>--live</code> looks up a kind node image.</li>
+              <li><strong>Cluster facts.</strong> <code>stageproof facts export</code> reads only the cluster named by <code>--kubeconfig</code> and <code>--context</code>, with <code>get</code> and <code>list</code>. It does not open the default kubeconfig. Helm release Secrets are read only with <code>--helm-releases</code>, and their values are not written.</li>
+              <li><strong>Comments.</strong> <code>stageproof comment</code> posts or updates one comment through <code>api.github.com</code> (or <code>GITHUB_API_URL</code>), or the GitLab host in <code>CI_API_V4_URL</code> (or <code>gitlab.com</code>). The body is the Markdown file you pass. The chart and values are not sent, the token is not printed, and a redirect to another host is refused.</li>
+              <li><strong>MCP server.</strong> <code>stageproof mcp</code> opens no port and adds no host. A check it runs uses the same hosts as <code>stageproof check</code>, and its <code>api_server</code> argument defaults to <code>off</code>.</li>
+              <li>The corpus replay command is not in the release binary. It fetches the public commits in its case file from <code>github.com</code>.</li>
+            </ul></td></tr>
             <tr><td>Telemetry</td><td>None. The CLI does not report usage.</td></tr>
           </tbody>
         </table>
@@ -115,9 +130,45 @@
 
   <footer class="footer">
     <div class="wrap">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect x="2" y="2" width="28" height="28" rx="7" fill="#0B0F17" stroke="#38BDF8" stroke-width="1.8"/>
+              <path d="M8.5 11.5h15M8.5 16h9" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 21.5l2.6 2.6 4.9-5.3" stroke="#2DD4BF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-word">stageproof</span>
+          </a>
+          <p>Checks a Kubernetes upgrade before you merge it. Free and open source (Apache-2.0).</p>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <span class="footer-h">Product</span>
+            <a href="docs.html#first-check">Quickstart</a>
+            <a href="https://stageproof.github.io/index/">Chart index</a>
+            <a href="https://stageproof.github.io/index/values/">Check your values</a>
+            <a href="roadmap.html">Roadmap</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Docs</span>
+            <a href="docs.html">Documentation</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="security.html">Security</a>
+            <a href="https://stageproof.github.io/index/api/">JSON API</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Code</span>
+            <a href="https://github.com/stageproof/stageproof">GitHub</a>
+            <a href="https://github.com/stageproof/action">GitHub Action</a>
+            <a href="https://gitlab.com/zarovvvv/stageproof">GitLab component</a>
+            <a href="https://github.com/stageproof/renovate-presets">Renovate preset</a>
+          </div>
+        </div>
+      </div>
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0). <a href="index.html" style="color:var(--accent);">Overview</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="docs.html" style="color:var(--accent);">Docs</a></span>
-        <span class="status-pill"><span class="dot-live"></span>v0.5.2 · Single binary · Apache-2.0</span>
+        <span>© 2026 Stageproof · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.2</span>
       </div>
     </div>
   </footer>
