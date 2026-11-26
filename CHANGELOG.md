@@ -5,6 +5,13 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-26
+
+### Fixed
+
+- `helm.image.changed` now counts and lists every workload that shares the same image update instead of dropping workloads after the first match. Raw YAML fallback scanning also skips images already captured on the same object from structured fields.
+- The Helm plugin default download is `v0.5.4`.
+
 ## [0.5.3] - 2026-11-26
 
 ### Changed
