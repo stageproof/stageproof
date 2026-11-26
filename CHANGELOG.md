@@ -5,6 +5,13 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.3] - 2026-11-26
+
+### Changed
+
+- Markdown pull request and merge request comments (`--comment-file` and `--format markdown`) now use status icons, a compact metadata table, collapsible `<details>` sections for info-only restarts and non-blocking findings, and a clean findings table without empty `()` targets. Blockers still expand by default, and `NOT TESTED LIVE` stays directly under the heading.
+- The Helm plugin default download is `v0.5.3`.
+
 ## [0.5.2] - 2026-11-26
 
 ### Fixed

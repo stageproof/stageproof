@@ -219,7 +219,7 @@ func WriteCombinedMarkdown(w io.Writer, c *Combined) {
 		WriteMarkdown(w, c.Reports[0])
 		return
 	}
-	fmt.Fprintf(w, "## Stageproof: `%s` (exit `%d`) across %d checks\n\n", c.Verdict, c.ExitCode, len(c.Reports))
+	fmt.Fprintf(w, "## %s Stageproof: `%s` (exit `%d`) across %d checks\n\n", verdictIcon(c.Verdict), c.Verdict, c.ExitCode, len(c.Reports))
 	fmt.Fprintln(w, "| Compared | Values | Result |")
 	fmt.Fprintln(w, "|---|---|---|")
 	for _, r := range c.Reports {
@@ -227,12 +227,13 @@ func WriteCombinedMarkdown(w io.Writer, c *Combined) {
 		if len(r.ValuesFiles) > 0 {
 			values = "`" + strings.Join(r.ValuesFiles, "`, `") + "`"
 		}
-		fmt.Fprintf(w, "| `%s` → `%s` | %s | **%s** |\n", r.BaseRef, r.HeadRef, values, r.Verdict)
+		fmt.Fprintf(w, "| `%s` → `%s` | %s | %s **%s** |\n", mdCell(r.BaseRef), mdCell(r.HeadRef), mdCell(values), verdictIcon(r.Verdict), r.Verdict)
 	}
 	for _, r := range c.Reports {
 		fmt.Fprint(w, "\n---\n\n")
-		WriteMarkdown(w, r)
+		writeMarkdownBody(w, r)
 	}
+	writeMarkdownFooter(w)
 }
 
 func verdictHeadlines(r *verdict.Report) []string {
@@ -304,38 +305,170 @@ func minorMismatch(r *verdict.Report) bool {
 	return false
 }
 
+func verdictIcon(v verdict.State) string {
+	switch v {
+	case verdict.Proven, verdict.Passed:
+		return "✅"
+	case verdict.Blocked:
+		return "❌"
+	default:
+		return "⚠️"
+	}
+}
+
+func checkStatusMarkdown(status string) string {
+	switch strings.ToLower(status) {
+	case "pass":
+		return "✅ PASS"
+	case "warn":
+		return "⚠️ WARN"
+	case "fail":
+		return "❌ FAIL"
+	case "skip":
+		return "⏭️ SKIP"
+	default:
+		return strings.ToUpper(status)
+	}
+}
+
+func severityMarkdown(sev verdict.Severity) string {
+	switch sev {
+	case verdict.SeverityBlocker:
+		return "❌ BLOCKER"
+	case verdict.SeverityWarning:
+		return "⚠️ WARN"
+	default:
+		return "ℹ️ INFO"
+	}
+}
+
+func headlineMarkdown(line string) string {
+	if strings.HasPrefix(line, "NOT TESTED LIVE.") {
+		rest := strings.TrimSpace(strings.TrimPrefix(line, "NOT TESTED LIVE."))
+		return "⚠️ **NOT TESTED LIVE.** " + rest
+	}
+	if strings.HasPrefix(line, "kind cluster ") || strings.HasPrefix(line, "This rehearsal used an empty cluster.") {
+		return "ℹ️ " + line
+	}
+	return "⚠️ " + line
+}
+
+func formatDuration(ms int64) string {
+	if ms >= 1000 {
+		return fmt.Sprintf("%.1fs", float64(ms)/1000.0)
+	}
+	return fmt.Sprintf("%dms", ms)
+}
+
+func mdCell(s string) string {
+	return strings.ReplaceAll(oneLine(s), "|", `\|`)
+}
+
+func findingsSummary(findings []verdict.Finding) string {
+	var blockers, warnings, infos int
+	for _, f := range findings {
+		switch f.Severity {
+		case verdict.SeverityBlocker:
+			blockers++
+		case verdict.SeverityWarning:
+			warnings++
+		default:
+			infos++
+		}
+	}
+	var parts []string
+	if blockers > 0 {
+		parts = append(parts, pluralCount(blockers, "blocker", "blockers"))
+	}
+	if warnings > 0 {
+		parts = append(parts, pluralCount(warnings, "warning", "warnings"))
+	}
+	if infos > 0 {
+		parts = append(parts, fmt.Sprintf("%d info", infos))
+	}
+	if len(parts) == 0 {
+		return fmt.Sprintf("%d", len(findings))
+	}
+	return fmt.Sprintf("%d: %s", len(findings), strings.Join(parts, ", "))
+}
+
+func pluralCount(n int, singular, plural string) string {
+	if n == 1 {
+		return "1 " + singular
+	}
+	return fmt.Sprintf("%d %s", n, plural)
+}
+
+func hasActiveBlocker(findings []verdict.Finding) bool {
+	for _, f := range findings {
+		if f.Severity == verdict.SeverityBlocker && !f.Ignored {
+			return true
+		}
+	}
+	return false
+}
+
+func writeMarkdownFooter(w io.Writer) {
+	fmt.Fprint(w, "\n---\n\n<sub>Checked by [Stageproof](https://stageproof.github.io/stageproof/) · 0 AI calls</sub>\n")
+}
+
 func WriteMarkdown(w io.Writer, r *verdict.Report) {
+	writeMarkdownBody(w, r)
+	writeMarkdownFooter(w)
+}
+
+func writeMarkdownBody(w io.Writer, r *verdict.Report) {
 	if r != nil {
 		r.Findings = OrderFindings(r.Findings)
 	}
 	badge := string(r.Verdict)
-	fmt.Fprintf(w, "## Stageproof Upgrade Gate: `%s` (exit `%d`)\n\n", badge, r.ExitCode)
+	fmt.Fprintf(w, "## %s Stageproof Upgrade Gate: `%s` (exit `%d`)\n\n", verdictIcon(r.Verdict), badge, r.ExitCode)
 	for _, line := range verdictHeadlines(r) {
-		fmt.Fprintf(w, "> %s\n\n", line)
+		fmt.Fprintf(w, "> %s\n\n", headlineMarkdown(line))
 	}
-	fmt.Fprintf(w, "- **Compare:** `%s` → `%s`\n", r.BaseRef, r.HeadRef)
+
+	k8s := "-"
 	if r.TargetK8s != "" {
-		fmt.Fprintf(w, "- **Target Kubernetes:** `%s`", r.TargetK8s)
+		k8s = "`" + mdCell(r.TargetK8s) + "`"
 		if r.NextK8sEOL != "" {
-			fmt.Fprintf(w, " (EOL readiness target: `%s`)", r.NextK8sEOL)
+			k8s += fmt.Sprintf(" (next `%s`)", mdCell(r.NextK8sEOL))
 		}
-		fmt.Fprintln(w)
 	}
 	checked := r.Checked
 	if checked == "" {
 		checked = verdict.CheckedFiles
 	}
-	fmt.Fprintf(w, "- **Checked:** `%s` · `%dms` · `0 AI calls`\n\n", checked, r.DurationMs)
+	compare := fmt.Sprintf("`%s` → `%s`", mdCell(r.BaseRef), mdCell(r.HeadRef))
+	duration := fmt.Sprintf("`%s` · `0 AI calls`", formatDuration(r.DurationMs))
+	if len(r.ValuesFiles) > 0 {
+		values := "`" + mdCell(strings.Join(r.ValuesFiles, "`, `")) + "`"
+		fmt.Fprintln(w, "| Compare | Values | Target K8s | Checked | Duration |")
+		fmt.Fprintln(w, "|---|---|---|---|---|")
+		fmt.Fprintf(w, "| %s | %s | %s | `%s` | %s |\n\n", compare, values, k8s, mdCell(checked), duration)
+	} else {
+		fmt.Fprintln(w, "| Compare | Target K8s | Checked | Duration |")
+		fmt.Fprintln(w, "|---|---|---|---|")
+		fmt.Fprintf(w, "| %s | %s | `%s` | %s |\n\n", compare, k8s, mdCell(checked), duration)
+	}
+
 	writeBriefMarkdown(w, r)
 
+	fmt.Fprintln(w, "### Checks")
+	fmt.Fprintln(w)
 	fmt.Fprintln(w, "| Check | Status | Summary |")
 	fmt.Fprintln(w, "|---|---|---|")
 	for _, ck := range r.Checks {
-		fmt.Fprintf(w, "| `%s` | **%s** | %s |\n", ck.Name, strings.ToUpper(ck.Status), ck.Summary)
+		fmt.Fprintf(w, "| `%s` | %s | %s |\n", mdCell(ck.Name), checkStatusMarkdown(ck.Status), mdCell(ck.Summary))
 	}
 
 	if len(r.Findings) > 0 {
-		fmt.Fprintln(w, "\n### Deterministic Findings")
+		openAttr := ""
+		if hasActiveBlocker(r.Findings) {
+			openAttr = " open"
+		}
+		fmt.Fprintf(w, "\n<details%s>\n<summary>📋 <b>Deterministic Findings (%s)</b></summary>\n\n", openAttr, findingsSummary(r.Findings))
+		fmt.Fprintln(w, "| Severity | Rule | Target | Detail |")
+		fmt.Fprintln(w, "|---|---|---|---|")
 		for _, f := range r.Findings {
 			loc := f.File
 			if f.Resource != "" {
@@ -345,16 +478,22 @@ func WriteMarkdown(w io.Writer, r *verdict.Report) {
 					loc = f.Resource
 				}
 			}
+			target := "-"
+			if loc != "" {
+				target = "`" + mdCell(loc) + "`"
+			}
 			line := f.Message
 			if f.Ignored {
 				line += " Ignored until " + f.IgnoreExpires + ": " + oneLine(f.IgnoreReason)
 			}
-			fmt.Fprintf(w, "- **[%s] `%s`** (%s): %s\n", strings.ToUpper(string(f.Severity)), f.RuleID, loc, line)
+			fmt.Fprintf(w, "| %s | `%s` | %s | %s |\n", severityMarkdown(f.Severity), mdCell(f.RuleID), target, mdCell(line))
 		}
+		fmt.Fprintln(w, "\n</details>")
 	}
 
 	if len(r.Skipped) > 0 {
-		fmt.Fprintln(w, "\n### Live rehearsal did not finish")
+		fmt.Fprintln(w, "\n### ⏭️ Live rehearsal did not finish")
+		fmt.Fprintln(w)
 		for _, d := range r.Skipped {
 			fmt.Fprintf(w, "- **`%s`**: %s\n", d.Code, d.Reason)
 			if d.Remediation != "" {

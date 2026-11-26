@@ -143,7 +143,7 @@ charts:
 	if err != nil {
 		t.Fatalf("the comment must be written when several charts changed: %v", err)
 	}
-	if !strings.HasPrefix(string(comment), "## Stageproof: `BLOCKED` (exit `1`) across 3 checks") {
+	if !strings.HasPrefix(string(comment), "## ❌ Stageproof: `BLOCKED` (exit `1`) across 3 checks") {
 		t.Fatalf("comment must start with the combined result:\n%s", comment)
 	}
 	if !strings.Contains(string(comment), "helm.values.silently_dropped") {
