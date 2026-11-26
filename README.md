@@ -1,3 +1,7 @@
+<p>
+  <img src="web/assets/logo.svg" width="64" height="64" alt="Stageproof">
+</p>
+
 # Stageproof
 
 **Free, open-source (Apache-2.0) single binary that checks a Kubernetes upgrade before you merge it.**
@@ -10,13 +14,25 @@ Stageproof compares the Helm chart, Argo CD Application, Flux HelmRelease, or re
 
 ## Try it in 30 seconds (zero setup)
 
-Install one binary:
+Install one binary.
+
+Homebrew, on macOS or Linux:
 
 ```bash
 brew install stageproof/stageproof/stageproof
 ```
 
-(Or install as a [Helm plugin](#helm-plugin), run via [Docker](#container-image), or download a [signed release binary](#signed-release-binary).)
+Linux, from the signed release archive. This is x86_64. On ARM, use `stageproof_0.5.2_linux_arm64.tar.gz` in the same commands. macOS and Windows archives are on the [release](https://github.com/stageproof/stageproof/releases/tag/v0.5.2).
+
+```bash
+curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.5.2/checksums.txt
+curl -fsSL -o stageproof_0.5.2_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.5.2/stageproof_0.5.2_linux_amd64.tar.gz
+sha256sum -c checksums.txt --ignore-missing
+tar -xzf stageproof_0.5.2_linux_amd64.tar.gz
+sudo mv stageproof /usr/local/bin/stageproof
+```
+
+A [Helm plugin](#helm-plugin), [Docker](#container-image), and the [signature check](#verify-a-release-download) are below.
 
 Scan any chart upgrade right away, with no checkout, no config, and no Kubernetes cluster:
 
@@ -221,7 +237,7 @@ docker run --rm --network host --user 0 \
 
 ### Signed release binary
 
-Download the archive for Linux, macOS, or Windows (`amd64` / `arm64`) from [GitHub Releases](https://github.com/stageproof/stageproof/releases), or install with Go:
+The Linux x86_64 download is in [Try it in 30 seconds](#try-it-in-30-seconds-zero-setup). The same release has `linux_arm64`, `darwin_amd64`, `darwin_arm64`, `windows_amd64`, and `windows_arm64`. Or install with Go:
 
 ```bash
 go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.2
