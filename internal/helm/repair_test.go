@@ -231,6 +231,26 @@ func TestProposeRepairPrefixesSubchartPassword(t *testing.T) {
 	}
 }
 
+func TestProposeRepairPrefixesNestedSubchartPassword(t *testing.T) {
+	err := errString("Error: execution error at (artifactory-oss/charts/artifactory/charts/postgresql/templates/secrets.yaml:26:16): \n'auth.password' must not be empty, please add '--set auth.password=$PASSWORD' to the command.")
+	repair := ProposeRepair(t.TempDir(), err, RenderOptions{})
+	if !repair.UpgradeCredential || !containsAssignment(repair.SetStrings, "artifactory.postgresql.auth.password="+repairPlaceholder) {
+		t.Fatalf("nested password = %#v", repair)
+	}
+}
+
+func TestProposeRepairUsesAliasForNestedPassword(t *testing.T) {
+	dir := t.TempDir()
+	writeRepairFile(t, dir, "Chart.yaml", "apiVersion: v2\nname: artifactory-oss\nversion: 0.1.0\ndependencies:\n  - name: artifactory\n    alias: art\n")
+	writeRepairFile(t, dir, "charts/artifactory/Chart.yaml", "apiVersion: v2\nname: artifactory\nversion: 0.1.0\ndependencies:\n  - name: postgresql\n")
+	writeRepairFile(t, dir, "charts/artifactory/charts/postgresql/templates/secrets.yaml", "password: required\n")
+	err := errString("Error: execution error at (artifactory-oss/charts/artifactory/charts/postgresql/templates/secrets.yaml:26:16): \n'auth.password' must not be empty, please add '--set auth.password=$PASSWORD' to the command.")
+	repair := ProposeRepair(dir, err, RenderOptions{})
+	if !repair.UpgradeCredential || !containsAssignment(repair.SetStrings, "art.postgresql.auth.password="+repairPlaceholder) {
+		t.Fatalf("aliased nested password = %#v", repair)
+	}
+}
+
 func TestProposeRepairTurnsStringIntoArray(t *testing.T) {
 	err := errString("Error: values don't meet the specifications of the schema(s):\n- at '/agent/acquisition': got string, want array")
 	repair := ProposeRepair(t.TempDir(), err, RenderOptions{})

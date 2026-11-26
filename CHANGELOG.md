@@ -5,6 +5,13 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.2] - 2026-11-26
+
+### Fixed
+
+- A password path inside nested subchart templates (`charts/<outer>/charts/<inner>/...`) is stored under each dependency. `'auth.password'` in `charts/artifactory/charts/postgresql` becomes `artifactory.postgresql.auth.password`. A Chart.yaml alias replaces the directory name when the chart files are present. `global.*` stays unprefixed. Camunda platform 8.3.24 to 8.3.25 and Artifactory OSS 107.111.10 to 107.111.11 stayed `PASSED`, and those pairs no longer fall back to install-mode rendering.
+- The Helm plugin default download is `v0.5.2`.
+
 ## [0.5.1] - 2026-11-26
 
 ### Fixed
