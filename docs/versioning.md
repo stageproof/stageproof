@@ -8,4 +8,4 @@ Before 1.0, a minor version (`0.x.0`) may change behavior. The changelog lists t
 
 Rule IDs and JSON fields are only added. A released ID is not renamed and not reused.
 
-The current release is 0.5.1.
+The current release is 0.5.2.

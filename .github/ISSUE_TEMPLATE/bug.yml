@@ -14,6 +14,6 @@ body:
     id: version
     attributes:
       label: Stageproof version
-      placeholder: v0.5.1
+      placeholder: v0.5.2
     validations:
       required: true
