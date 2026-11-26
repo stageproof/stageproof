@@ -319,7 +319,7 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 		return repair
 	}
 	repair.APIVersions = apiVersions(text)
-	repair.addCredentialPaths(text, protected)
+	repair.addCredentialPaths(chartDir, text, protected)
 	repair.addSchemaIssues(chartDir, text, protected)
 	repair.addHelmType(text, protected)
 	repair.addRenderSite(chartDir, text, opts, protected)
@@ -348,7 +348,7 @@ func ProposeRepair(chartDir string, renderErr error, opts RenderOptions) Repair 
 	return repair
 }
 
-func (r *Repair) addCredentialPaths(text string, protected map[string]bool) {
+func (r *Repair) addCredentialPaths(chartDir, text string, protected map[string]bool) {
 	var added []string
 	seen := map[string]bool{}
 	for _, match := range credentialPathPattern.FindAllStringSubmatch(text, -1) {
@@ -356,6 +356,10 @@ func (r *Repair) addCredentialPaths(text string, protected map[string]bool) {
 		if path == "" && len(match) > 2 {
 			path = match[2]
 		}
+		// A subchart template names the key inside that chart. Nested
+		// charts/<name>/ directories are the parent values path. An alias
+		// in Chart.yaml replaces the directory name when the chart is on disk.
+		path = scopeCredential(chartDir, text, path)
 		if path == "" || protected[path] || seen[path] || !safeRepairKey(path) {
 			continue
 		}
@@ -1245,15 +1249,58 @@ func prefixPath(prefix, path string) string {
 	return prefix + "." + path
 }
 
+func scopeCredential(chartDir, text, path string) string {
+	if path == "" || path == "global" || strings.HasPrefix(path, "global.") {
+		return path
+	}
+	if prefix := credentialPrefix(chartDir, text); prefix != "" {
+		return prefixPath(prefix, path)
+	}
+	return scopePath(text, path)
+}
+
+// credentialPrefix is the alias-aware values prefix for the template named
+// in the Helm error. An empty result means the chart files are not available
+// and the caller should use the directory names from the error path.
+func credentialPrefix(chartDir, text string) string {
+	match := execLocation.FindStringSubmatch(text)
+	if match == nil || chartDir == "" {
+		return ""
+	}
+	rel := match[1]
+	idx := strings.Index(rel, "/charts/")
+	if idx < 0 {
+		return ""
+	}
+	file := filepath.Join(chartDir, filepath.FromSlash(rel[idx+1:]))
+	info, err := os.Stat(file)
+	if err != nil || info.IsDir() {
+		return ""
+	}
+	return valuesPrefix(chartDir, file)
+}
+
 func scopePath(text, path string) string {
 	if path == "" || path == "global" || strings.HasPrefix(path, "global.") {
 		return path
 	}
-	match := errorSubchart.FindStringSubmatch(text)
-	if match == nil || strings.HasPrefix(path, match[1]+".") {
+	location := text
+	if match := execLocation.FindStringSubmatch(text); match != nil {
+		location = match[1]
+	}
+	matches := errorSubchart.FindAllStringSubmatch(location, -1)
+	if len(matches) == 0 {
 		return path
 	}
-	return match[1] + "." + path
+	names := make([]string, 0, len(matches))
+	for _, match := range matches {
+		names = append(names, match[1])
+	}
+	prefix := strings.Join(names, ".")
+	if strings.HasPrefix(path, prefix+".") {
+		return path
+	}
+	return prefix + "." + path
 }
 
 func (r *Repair) addBool(path, value string, protected map[string]bool) {

@@ -3,6 +3,29 @@
    Zero dependencies. High contrast. Immediate initial paint (no opacity:0 trap).
    ========================================================================== */
 
+/* Fonts are served from this site. SIL Open Font License: fonts/LICENSE.txt */
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/inter-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Space Grotesk";
+  font-style: normal;
+  font-weight: 500 700;
+  font-display: swap;
+  src: url("fonts/space-grotesk-latin.woff2") format("woff2");
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("fonts/jetbrains-mono-latin.woff2") format("woff2");
+}
+
 :root {
   color-scheme: dark;
   --bg:           #06080D;
@@ -699,16 +722,21 @@ pre { max-width: 100%; overflow-x: auto; }
 }
 .ci-tab:hover { color: var(--text); }
 .ci-tab.is-active { color: var(--accent); border-bottom-color: var(--accent); background: rgba(56, 189, 248, 0.06); }
-.ci-body { position: relative; padding: 20px; background: var(--term-bg); }
-.ci-body .copy-btn { position: absolute; top: 16px; right: 16px; }
-.ci-note {
-  margin: 0 0 14px; padding-right: 88px;
-  font-size: 0.92rem; line-height: 1.55; color: var(--text-2);
+.ci-body { padding: 20px; background: var(--surface); }
+.ci-notes { max-width: 78ch; margin-bottom: 16px; }
+.ci-notes p { margin: 0 0 8px; font-size: 0.93rem; line-height: 1.6; color: var(--text-2); }
+.ci-notes p:last-child { margin-bottom: 0; }
+.ci-notes code { font-size: 0.84em; }
+.ci-code {
+  position: relative; background: var(--term-bg); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 16px 18px;
 }
-.ci-note code { font-size: 0.84em; }
-.ci-body pre {
-  margin: 0; font-family: var(--mono); font-size: 0.76rem; line-height: 1.75; color: var(--code-fg); overflow-x: auto;
+.ci-code .copy-btn { position: absolute; top: 12px; right: 12px; }
+.ci-code pre {
+  margin: 0; padding-right: 72px; font-family: var(--mono); font-size: 0.8rem; line-height: 1.75; color: var(--code-fg); overflow-x: auto;
 }
+.cta-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 28px; }
+.sec-lede.measured { margin-top: 22px; }
 
 /* ---------------- Signed Evidence Card ---------------- */
 .evidence-wrap {
@@ -830,6 +858,8 @@ pre { max-width: 100%; overflow-x: auto; }
   color: var(--accent); background: var(--chip-bg);
 }
 .spec-table td { color: var(--text-2); }
+.cell-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.cell-list li { line-height: 1.6; }
 
 /* ---------------- Footer ---------------- */
 .footer { padding: 56px 0 36px; border-top: 1px solid var(--border); background: var(--bg); }
