@@ -129,19 +129,86 @@ func formatBriefLine(color bool, line briefLine) string {
 	return "  " + paint(color, code, line.level) + "  " + line.text
 }
 
+func briefIcon(title string) string {
+	switch title {
+	case "Deletes":
+		return "🗑️"
+	case "CRDs":
+		return "📜"
+	case "Privilege":
+		return "🔐"
+	case "Exposure":
+		return "🌐"
+	case "Values":
+		return "⚙️"
+	case "Restarts":
+		return "🔄"
+	case "Not checked":
+		return "⏭️"
+	default:
+		return "•"
+	}
+}
+
+func briefLevelMarkdown(level string) string {
+	switch level {
+	case "ERROR":
+		return "❌ **ERROR**"
+	case "WARN":
+		return "⚠️ **WARN**"
+	case "INFO":
+		return "ℹ️ **INFO**"
+	default:
+		return "**" + level + "**"
+	}
+}
+
+func collapseBriefSection(sec briefSection) bool {
+	if sec.title == "Restarts" {
+		for _, line := range sec.lines {
+			if line.level == "ERROR" || line.level == "WARN" {
+				return false
+			}
+		}
+		return true
+	}
+	if sec.title == "Values" && len(sec.lines) > 5 {
+		for _, line := range sec.lines {
+			if line.level == "ERROR" {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func writeBriefMarkdown(w io.Writer, r *verdict.Report) {
 	sections := briefSections(r)
 	if len(sections) == 0 {
 		return
 	}
 	for _, sec := range sections {
-		_, _ = fmt.Fprintf(w, "### %s\n\n", sec.title)
+		icon := briefIcon(sec.title)
+		if collapseBriefSection(sec) {
+			_, _ = fmt.Fprintf(w, "<details>\n<summary>%s <b>%s (%d)</b></summary>\n\n", icon, sec.title, len(sec.lines))
+			for _, line := range sec.lines {
+				if line.level == "" {
+					_, _ = fmt.Fprintf(w, "- %s\n", line.text)
+					continue
+				}
+				_, _ = fmt.Fprintf(w, "- %s %s\n", briefLevelMarkdown(line.level), line.text)
+			}
+			_, _ = fmt.Fprint(w, "\n</details>\n\n")
+			continue
+		}
+		_, _ = fmt.Fprintf(w, "### %s %s\n\n", icon, sec.title)
 		for _, line := range sec.lines {
 			if line.level == "" {
 				_, _ = fmt.Fprintf(w, "- %s\n", line.text)
 				continue
 			}
-			_, _ = fmt.Fprintf(w, "- **%s** %s\n", line.level, line.text)
+			_, _ = fmt.Fprintf(w, "- %s %s\n", briefLevelMarkdown(line.level), line.text)
 		}
 		_, _ = fmt.Fprintln(w)
 	}

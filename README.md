@@ -1,3 +1,7 @@
+<p>
+  <img src="web/assets/logo.svg" width="64" height="64" alt="Stageproof">
+</p>
+
 # Stageproof
 
 **Free, open-source (Apache-2.0) single binary that checks a Kubernetes upgrade before you merge it.**
@@ -10,13 +14,25 @@ Stageproof compares the Helm chart, Argo CD Application, Flux HelmRelease, or re
 
 ## Try it in 30 seconds (zero setup)
 
-Install one binary:
+Install one binary.
+
+Homebrew, on macOS or Linux:
 
 ```bash
 brew install stageproof/stageproof/stageproof
 ```
 
-(Or install as a [Helm plugin](#helm-plugin), run via [Docker](#container-image), or download a [signed release binary](#signed-release-binary).)
+Linux, from the signed release archive. This is x86_64. On ARM, use `stageproof_0.5.4_linux_arm64.tar.gz` in the same commands. macOS and Windows archives are on the [release](https://github.com/stageproof/stageproof/releases/tag/v0.5.4).
+
+```bash
+curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.5.4/checksums.txt
+curl -fsSL -o stageproof_0.5.4_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.5.4/stageproof_0.5.4_linux_amd64.tar.gz
+sha256sum -c checksums.txt --ignore-missing
+tar -xzf stageproof_0.5.4_linux_amd64.tar.gz
+sudo mv stageproof /usr/local/bin/stageproof
+```
+
+A [Helm plugin](#helm-plugin), [Docker](#container-image), and the [signature check](#verify-a-release-download) are below.
 
 Scan any chart upgrade right away, with no checkout, no config, and no Kubernetes cluster:
 
@@ -108,7 +124,7 @@ jobs:
           current-k8s: "1.35"
 ```
 
-The action checks out the pull request, downloads the signed `v0.5.0` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Values follow the `check-pr` rules above. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
+The action checks out the pull request, downloads the signed `v0.5.4` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Values follow the `check-pr` rules above. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
 
 ### GitLab CI
 
@@ -168,7 +184,7 @@ stageproof check --before ./rendered-old --after ./rendered-new --current-k8s 1.
 stageproof check-pr --current-git origin/main --current-k8s 1.35 --live
 ```
 
-Also built into `v0.5.0`:
+Also built into `v0.5.4`:
 - `stageproof facts export`: read-only export of your cluster's Kubernetes version, CRDs, and node architectures (`--cluster-facts`).
 - `stageproof explain <rule-id>`: plain explanation and fix for any rule.
 - `--helm-compare`: compare Helm 3 and Helm 4 renders side by side.
@@ -200,11 +216,11 @@ helm stageproof version
 
 ### Container image
 
-`ghcr.io/stageproof/stageproof:v0.5.0` bundles Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.5.0-live` adds kind, kubectl, and the Docker client.
+`ghcr.io/stageproof/stageproof:v0.5.4` bundles Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.5.4-live` adds kind, kubectl, and the Docker client.
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.5.0 \
+  ghcr.io/stageproof/stageproof:v0.5.4 \
   check-pr --current-git origin/main --current-k8s 1.35
 ```
 
@@ -215,16 +231,16 @@ docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.5.0-live \
+  ghcr.io/stageproof/stageproof:v0.5.4-live \
   check-pr --current-git origin/main --current-k8s 1.35 --live
 ```
 
 ### Signed release binary
 
-Download the archive for Linux, macOS, or Windows (`amd64` / `arm64`) from [GitHub Releases](https://github.com/stageproof/stageproof/releases), or install with Go:
+The Linux x86_64 download is in [Try it in 30 seconds](#try-it-in-30-seconds-zero-setup). The same release has `linux_arm64`, `darwin_amd64`, `darwin_arm64`, `windows_amd64`, and `windows_arm64`. Or install with Go:
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.0
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.4
 ```
 
 ### Verify a release download
@@ -232,19 +248,19 @@ go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.0
 Every release signs `checksums.txt` and the container images with keyless GitHub Actions OIDC (Sigstore Cosign) and publishes SPDX SBOMs:
 
 ```bash
-gh release download v0.5.0 -R stageproof/stageproof \
+gh release download v0.5.4 -R stageproof/stageproof \
   -p checksums.txt -p checksums.txt.pem -p checksums.txt.sig \
-  -p stageproof_0.5.0_linux_amd64.tar.gz
+  -p stageproof_0.5.4_linux_amd64.tar.gz
 
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature checksums.txt.sig \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.5.0" \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.5.4" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 
 sha256sum -c --ignore-missing checksums.txt
-gh attestation verify stageproof_0.5.0_linux_amd64.tar.gz --repo stageproof/stageproof
+gh attestation verify stageproof_0.5.4_linux_amd64.tar.gz --repo stageproof/stageproof
 ```
 
 ## What it does not do
