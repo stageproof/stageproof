@@ -199,6 +199,7 @@ func packagedVersion(chartDir, name string) string {
 }
 
 type imageRef struct {
+	objID string
 	where string
 	image string
 }
@@ -225,6 +226,18 @@ func ImageUses(objs []k8sschema.ManifestObject) []ImageUse {
 	return out
 }
 
+type changedImageRef struct {
+	objID string
+	where string
+	kind  string
+}
+
+type imageMoveGroup struct {
+	from string
+	to   string
+	refs []changedImageRef
+}
+
 func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Finding {
 	base := indexImages(baseObjs)
 	head := indexImages(headObjs)
@@ -236,37 +249,52 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
-	var msgs []string
-	seenMove := map[string]bool{}
+
+	var groups []*imageMoveGroup
+	byMove := map[string]*imageMoveGroup{}
+	totalChanged := 0
 	for _, k := range keys {
 		old, ok := base[k]
 		if !ok || old.image == head[k].image {
 			continue
 		}
-		msg := fmt.Sprintf("%s %s moves from %s to %s.", head[k].where, labelKind(k), old.image, head[k].image)
-		if vPrefixOnly(old.image, head[k].image) {
-			msg += " The tags differ by a leading v. A registry treats them as different tags."
-		}
+		totalChanged++
 		move := old.image + " -> " + head[k].image
-		if seenMove[move] {
-			continue
+		g := byMove[move]
+		if g == nil {
+			g = &imageMoveGroup{from: old.image, to: head[k].image}
+			byMove[move] = g
+			groups = append(groups, g)
 		}
-		seenMove[move] = true
-		msgs = append(msgs, msg)
+		g.refs = append(g.refs, changedImageRef{
+			objID: head[k].objID,
+			where: head[k].where,
+			kind:  labelKind(k),
+		})
 	}
-	if len(msgs) == 0 {
+	if totalChanged == 0 {
 		return nil
 	}
+
 	const maxShown = 12
+	var msgs []string
+	for _, g := range groups {
+		msg := formatImageMoveGroup(g, maxShown)
+		if vPrefixOnly(g.from, g.to) {
+			msg += " The tags differ by a leading v. A registry treats them as different tags."
+		}
+		msgs = append(msgs, msg)
+	}
+
 	shown := msgs
 	noun := "container images"
-	if len(msgs) == 1 {
+	if totalChanged == 1 {
 		noun = "container image"
 	}
-	headLine := fmt.Sprintf("%d %s changed.", len(msgs), noun)
+	headLine := fmt.Sprintf("%d %s changed.", totalChanged, noun)
 	if len(msgs) > maxShown {
 		shown = msgs[:maxShown]
-		headLine = fmt.Sprintf("%d %s changed. Showing %d.", len(msgs), noun, maxShown)
+		headLine = fmt.Sprintf("%d %s changed. Showing %d image updates.", totalChanged, noun, maxShown)
 	}
 	return []verdict.Finding{{
 		RuleID:   "helm.image.changed",
@@ -274,6 +302,41 @@ func imageSignals(baseObjs, headObjs []k8sschema.ManifestObject) []verdict.Findi
 		Message:  headLine + " " + strings.Join(shown, " "),
 		Detail:   "The render names a different image, including images on custom resources and images passed as container arguments. Whether that tag exists is a separate check.",
 	}}
+}
+
+func formatImageMoveGroup(g *imageMoveGroup, maxWorkloads int) string {
+	if len(g.refs) == 1 {
+		r := g.refs[0]
+		return fmt.Sprintf("%s %s moves from %s to %s.", r.where, r.kind, g.from, g.to)
+	}
+	seenObj := map[string]bool{}
+	var objs []string
+	for _, r := range g.refs {
+		id := r.objID
+		if id == "" {
+			id = r.where
+		}
+		if seenObj[id] {
+			continue
+		}
+		seenObj[id] = true
+		objs = append(objs, id)
+	}
+	sort.Strings(objs)
+	if len(objs) == 1 {
+		return fmt.Sprintf("%d references in %s move from %s to %s.", len(g.refs), objs[0], g.from, g.to)
+	}
+	shown := objs
+	suffix := ""
+	if len(objs) > maxWorkloads {
+		shown = objs[:maxWorkloads]
+		suffix = fmt.Sprintf(", and %d more", len(objs)-maxWorkloads)
+	}
+	list := strings.Join(shown, ", ") + suffix
+	if len(g.refs) == len(objs) {
+		return fmt.Sprintf("%d workloads move from %s to %s (%s).", len(objs), g.from, g.to, list)
+	}
+	return fmt.Sprintf("%d references across %d workloads move from %s to %s (%s).", len(g.refs), len(objs), g.from, g.to, list)
 }
 
 // labelKind keeps the sentence readable. The map key ends with /container, /field, or /arg.
@@ -433,7 +496,9 @@ var renderedImageRe = regexp.MustCompile(`(?i)(?:(image:\s*)|(=\s*))["']?([A-Za-
 func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
 	out := map[string]imageRef{}
 	for _, obj := range objs {
-		walkImages(obj.Spec, obj.ID(), out)
+		objID := obj.ID()
+		foundOnObj := map[string]bool{}
+		walkImages(obj.Spec, objID, objID, out, foundOnObj)
 		for i, match := range renderedImageRe.FindAllStringSubmatch(obj.RawYAML, -1) {
 			if len(match) < 4 {
 				continue
@@ -447,14 +512,17 @@ func indexImages(objs []k8sschema.ManifestObject) map[string]imageRef {
 			} else if !looksLikeUntypedImage(ref) {
 				continue
 			}
-			key := obj.ID() + "/raw/" + imageRepo(ref)
+			if foundOnObj[ref] {
+				continue
+			}
+			key := objID + "/raw/" + imageRepo(ref)
 			if prev, ok := out[key]; ok && prev.image != ref {
 				key = fmt.Sprintf("%s#%d", key, i)
 			}
 			if _, ok := out[key]; ok {
 				continue
 			}
-			out[key] = imageRef{where: obj.ID() + " " + imageRepo(ref), image: ref}
+			out[key] = imageRef{objID: objID, where: objID + " " + imageRepo(ref), image: ref}
 		}
 	}
 	return out
@@ -470,7 +538,7 @@ func imageRepo(ref string) string {
 	return ref
 }
 
-func walkImages(v any, path string, out map[string]imageRef) {
+func walkImages(v any, objID, path string, out map[string]imageRef, foundOnObj map[string]bool) {
 	switch t := v.(type) {
 	case map[string]any:
 		if ref, ok := imageFromValue(t["image"]); ok {
@@ -481,7 +549,8 @@ func walkImages(v any, path string, out map[string]imageRef) {
 				where = path + " " + name
 				key = path + "/" + name + "/container"
 			}
-			out[key] = imageRef{where: where, image: ref}
+			out[key] = imageRef{objID: objID, where: where, image: ref}
+			foundOnObj[ref] = true
 		}
 		if args, ok := t["args"].([]any); ok {
 			for _, item := range args {
@@ -493,7 +562,8 @@ func walkImages(v any, path string, out map[string]imageRef) {
 				if img == "" {
 					continue
 				}
-				out[path+"/args/"+flag+"/arg"] = imageRef{where: path + " " + flag, image: img}
+				out[path+"/args/"+flag+"/arg"] = imageRef{objID: objID, where: path + " " + flag, image: img}
+				foundOnObj[img] = true
 			}
 		}
 		keys := make([]string, 0, len(t))
@@ -502,11 +572,11 @@ func walkImages(v any, path string, out map[string]imageRef) {
 		}
 		sort.Strings(keys)
 		for _, k := range keys {
-			walkImages(t[k], path+"."+k, out)
+			walkImages(t[k], objID, path+"."+k, out, foundOnObj)
 		}
 	case []any:
 		for i, child := range t {
-			walkImages(child, fmt.Sprintf("%s[%d]", path, i), out)
+			walkImages(child, objID, fmt.Sprintf("%s[%d]", path, i), out, foundOnObj)
 		}
 	}
 }
