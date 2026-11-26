@@ -8,9 +8,9 @@ require (
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/santhosh-tekuri/jsonschema/v6 v6.0.2
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.37.0
+	k8s.io/api v0.37.2
 	k8s.io/apiextensions-apiserver v0.37.0
-	k8s.io/apimachinery v0.37.0
+	k8s.io/apimachinery v0.37.2
 	k8s.io/client-go v0.37.0
 	sigs.k8s.io/controller-runtime v0.25.3
 	sigs.k8s.io/crdify v0.6.0
