@@ -65,16 +65,17 @@ func TestBriefOmitsEmptySectionsAndKeepsOrder(t *testing.T) {
 	var md bytes.Buffer
 	writeBriefMarkdown(&md, r)
 	mdGot := md.String()
-	if !strings.Contains(mdGot, "### Deletes\n\n- **ERROR** Helm will delete") {
+	if !strings.Contains(mdGot, "### 🗑️ Deletes\n\n- ❌ **ERROR** Helm will delete") {
 		t.Fatalf("markdown brief:\n%s", mdGot)
 	}
-	if strings.Contains(mdGot, "### Capacity") || strings.Contains(mdGot, "secret-value") {
+	if strings.Contains(mdGot, "Capacity") || strings.Contains(mdGot, "secret-value") {
 		t.Fatalf("markdown brief leaked a section or a detail:\n%s", mdGot)
 	}
-	deletes := strings.Index(mdGot, "### Deletes")
-	values := strings.Index(mdGot, "### Values")
-	notChecked := strings.Index(mdGot, "### Not checked")
-	if deletes < 0 || values < deletes || notChecked < values {
+	deletes := strings.Index(mdGot, "### 🗑️ Deletes")
+	values := strings.Index(mdGot, "### ⚙️ Values")
+	restarts := strings.Index(mdGot, "<summary>🔄 <b>Restarts (1)</b></summary>")
+	notChecked := strings.Index(mdGot, "### ⏭️ Not checked")
+	if deletes < 0 || values < deletes || restarts < values || notChecked < restarts {
 		t.Fatalf("markdown order:\n%s", mdGot)
 	}
 }
@@ -116,7 +117,7 @@ func TestBriefSitsAboveTheCheckList(t *testing.T) {
 	var md bytes.Buffer
 	WriteMarkdown(&md, sampleReport())
 	mdOut := md.String()
-	if strings.Index(mdOut, "### Values") > strings.Index(mdOut, "| Check |") {
+	if strings.Index(mdOut, "### ⚙️ Values") > strings.Index(mdOut, "| Check |") {
 		t.Fatalf("markdown brief must come before the check table:\n%s", mdOut)
 	}
 }
