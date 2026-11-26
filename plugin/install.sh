@@ -2,9 +2,9 @@
 # Download one released Stageproof archive and verify it before the binary is used.
 set -eu
 
-version="${STAGEPROOF_VERSION:-v0.5.0}"
+version="${STAGEPROOF_VERSION:-v0.5.1}"
 if ! printf '%s\n' "$version" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; then
-  echo "stageproof: version must look like v0.5.0" >&2
+  echo "stageproof: version must look like v0.5.1" >&2
   exit 2
 fi
 

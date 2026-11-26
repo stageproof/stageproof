@@ -5,6 +5,13 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.1] - 2026-11-26
+
+### Fixed
+
+- A password path named inside a subchart template (`charts/<name>/...`) is stored under that dependency, so `'auth.replicationPassword'` in the postgresql subchart becomes `postgresql.auth.replicationPassword`. `--is-upgrade` can render those charts. Pairs that were already `PASSED` or `BLOCKED` stayed on that exit in the pairs checked for this release.
+- The Helm plugin default download is `v0.5.1`.
+
 ## [0.5.0] - 2026-11-26
 
 ### Breaking

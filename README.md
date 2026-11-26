@@ -108,7 +108,7 @@ jobs:
           current-k8s: "1.35"
 ```
 
-The action checks out the pull request, downloads the signed `v0.5.0` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Values follow the `check-pr` rules above. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
+The action checks out the pull request, downloads the signed `v0.5.1` binary, checks `checksums.txt`, runs `stageproof check-pr`, writes the job summary, and posts or updates one PR comment. Values follow the `check-pr` rules above. Safe on fork PRs (do not use `pull_request_target`). See [stageproof/action](https://github.com/stageproof/action).
 
 ### GitLab CI
 
@@ -168,7 +168,7 @@ stageproof check --before ./rendered-old --after ./rendered-new --current-k8s 1.
 stageproof check-pr --current-git origin/main --current-k8s 1.35 --live
 ```
 
-Also built into `v0.5.0`:
+Also built into `v0.5.1`:
 - `stageproof facts export`: read-only export of your cluster's Kubernetes version, CRDs, and node architectures (`--cluster-facts`).
 - `stageproof explain <rule-id>`: plain explanation and fix for any rule.
 - `--helm-compare`: compare Helm 3 and Helm 4 renders side by side.
@@ -200,11 +200,11 @@ helm stageproof version
 
 ### Container image
 
-`ghcr.io/stageproof/stageproof:v0.5.0` bundles Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.5.0-live` adds kind, kubectl, and the Docker client.
+`ghcr.io/stageproof/stageproof:v0.5.1` bundles Stageproof, Helm 3.22.1, and Git. `ghcr.io/stageproof/stageproof:v0.5.1-live` adds kind, kubectl, and the Docker client.
 
 ```bash
 docker run --rm -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.5.0 \
+  ghcr.io/stageproof/stageproof:v0.5.1 \
   check-pr --current-git origin/main --current-k8s 1.35
 ```
 
@@ -215,7 +215,7 @@ docker run --rm --network host --user 0 \
   --security-opt label=disable \
   -v /var/run/docker.sock:/var/run/docker.sock \
   -v "$PWD:/work" -w /work \
-  ghcr.io/stageproof/stageproof:v0.5.0-live \
+  ghcr.io/stageproof/stageproof:v0.5.1-live \
   check-pr --current-git origin/main --current-k8s 1.35 --live
 ```
 
@@ -224,7 +224,7 @@ docker run --rm --network host --user 0 \
 Download the archive for Linux, macOS, or Windows (`amd64` / `arm64`) from [GitHub Releases](https://github.com/stageproof/stageproof/releases), or install with Go:
 
 ```bash
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.0
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.1
 ```
 
 ### Verify a release download
@@ -232,19 +232,19 @@ go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.0
 Every release signs `checksums.txt` and the container images with keyless GitHub Actions OIDC (Sigstore Cosign) and publishes SPDX SBOMs:
 
 ```bash
-gh release download v0.5.0 -R stageproof/stageproof \
+gh release download v0.5.1 -R stageproof/stageproof \
   -p checksums.txt -p checksums.txt.pem -p checksums.txt.sig \
-  -p stageproof_0.5.0_linux_amd64.tar.gz
+  -p stageproof_0.5.1_linux_amd64.tar.gz
 
 cosign verify-blob \
   --certificate checksums.txt.pem \
   --signature checksums.txt.sig \
-  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.5.0" \
+  --certificate-identity "https://github.com/stageproof/stageproof/.github/workflows/release.yml@refs/tags/v0.5.1" \
   --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
   checksums.txt
 
 sha256sum -c --ignore-missing checksums.txt
-gh attestation verify stageproof_0.5.0_linux_amd64.tar.gz --repo stageproof/stageproof
+gh attestation verify stageproof_0.5.1_linux_amd64.tar.gz --repo stageproof/stageproof
 ```
 
 ## What it does not do

@@ -223,6 +223,14 @@ func TestProposeRepairFillsUpgradePassword(t *testing.T) {
 	}
 }
 
+func TestProposeRepairPrefixesSubchartPassword(t *testing.T) {
+	err := errString("Error: execution error at (dify/charts/postgresql/templates/secrets.yaml:9:27): \n'auth.replicationPassword' must not be empty, please add '--set auth.replicationPassword=$REPLICATION_PASSWORD' to the command.")
+	repair := ProposeRepair(t.TempDir(), err, RenderOptions{})
+	if !repair.UpgradeCredential || !containsAssignment(repair.SetStrings, "postgresql.auth.replicationPassword="+repairPlaceholder) {
+		t.Fatalf("subchart password = %#v", repair)
+	}
+}
+
 func TestProposeRepairTurnsStringIntoArray(t *testing.T) {
 	err := errString("Error: values don't meet the specifications of the schema(s):\n- at '/agent/acquisition': got string, want array")
 	repair := ProposeRepair(t.TempDir(), err, RenderOptions{})
