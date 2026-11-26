@@ -404,10 +404,14 @@ func (s *Server) finding(ctx context.Context, u *unstructured.Unstructured, err 
 		if field == "" {
 			field = "the field Kubernetes named"
 		}
+		msg := "Kubernetes rejected the update. `" + field + "` is immutable."
+		if class.StrategyConflict {
+			msg = StrategyConflictMessage(class.Field, class.Detail)
+		}
 		return &verdict.Finding{
 			RuleID: ruleImmutable, Severity: s.sev(verdict.SeverityBlocker, opt),
 			Resource: objectID(u),
-			Message:  "Kubernetes rejected the update. `" + field + "` is immutable.",
+			Message:  msg,
 		}, false
 	case ClassUnknown:
 		sev := verdict.SeverityWarning
@@ -431,6 +435,9 @@ func (s *Server) finding(ctx context.Context, u *unstructured.Unstructured, err 
 		msg := "Kubernetes rejected " + objectID(u) + "."
 		if class.Field != "" {
 			msg = "Kubernetes rejected `" + class.Field + "` on " + objectID(u) + "."
+		}
+		if class.StrategyConflict {
+			msg = StrategyConflictMessage(class.Field, class.Detail)
 		}
 		return &verdict.Finding{
 			RuleID: ruleInvalid, Severity: s.sev(verdict.SeverityBlocker, opt),

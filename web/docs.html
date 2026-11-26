@@ -77,7 +77,7 @@
     <div class="wrap">
       <div class="footer-bottom">
         <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0). <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>v0.4.0 · Single binary · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.0 · Single binary · Apache-2.0</span>
       </div>
     </div>
   </footer>
@@ -156,7 +156,7 @@
     <tr><td>A Flux <code>HelmRelease</code> (<code>helm.toolkit.fluxcd.io/v2</code>, <code>v2beta2</code>, or <code>v2beta1</code>)</td><td>Supported. See <a href="#flux">Check a Flux HelmRelease</a>.</td></tr>
     <tr><td>Two directories or files of rendered YAML (<code>--before</code> and <code>--after</code>)</td><td>Supported. See <a href="#manifests">Compare rendered manifests</a>.</td></tr>
     <tr><td>Terraform providers and modules</td><td>Not supported</td></tr>
-    <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are included in v0.4.0)</td></tr>
+    <tr><td>Container image contents</td><td>Not supported (registry tag existence and platform checks are included in v0.5.0)</td></tr>
     <tr><td>Kustomize and Helmfile</td><td>Not supported. <code>check-pr</code> also ignores a loose manifest that is not inside a chart.</td></tr>
   </tbody>
 </table></div>
@@ -179,7 +179,7 @@
 brew install stageproof/stageproof/stageproof</pre>
 
 <h2>Helm plugin (Helm 3 and Helm 4)</h2>
-<p>The plugin downloads the signed <code>v0.4.0</code> binary for your OS and checks <code>checksums.txt</code> before running. <code>helm stageproof</code> takes the exact same flags and returns the same exit codes as <code>stageproof</code>.</p>
+<p>The plugin downloads the signed <code>v0.5.0</code> binary for your OS and checks <code>checksums.txt</code> before running. <code>helm stageproof</code> takes the exact same flags and returns the same exit codes as <code>stageproof</code>.</p>
 <pre data-kind="cmd" data-label="Helm 3">
 helm plugin install https://github.com/stageproof/stageproof</pre>
 <pre data-kind="cmd" data-label="Helm 4">
@@ -188,24 +188,24 @@ helm plugin install https://github.com/stageproof/stageproof --verify=false</pre
 <pre data-kind="cmd" data-label="Verify the plugin">
 helm stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.4.0 (Apache-2.0)</pre>
+stageproof v0.5.0 (Apache-2.0)</pre>
 <p>Set <code>STAGEPROOF_VERSION</code> to another <code>vX.Y.Z</code> tag before installing or updating to pin a different release.</p>
 
 <h2>Container image (includes Helm and Git)</h2>
 <pre data-kind="cmd" data-label="Run with Docker">
-docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version</pre>
-<p><code>ghcr.io/stageproof/stageproof:v0.4.0</code> bundles Stageproof, Helm 3.22.1, and Git. <code>ghcr.io/stageproof/stageproof:v0.4.0-live</code> also bundles kind, kubectl, and the Docker client for <code>--live</code> runs.</p>
+docker run --rm ghcr.io/stageproof/stageproof:v0.5.0 version</pre>
+<p><code>ghcr.io/stageproof/stageproof:v0.5.0</code> bundles Stageproof, Helm 3.22.1, and Git. <code>ghcr.io/stageproof/stageproof:v0.5.0-live</code> also bundles kind, kubectl, and the Docker client for <code>--live</code> runs.</p>
 
 <h2>Signed release binary (Linux, macOS, Windows)</h2>
 <p>Download the archive for your OS and architecture from <a href="https://github.com/stageproof/stageproof/releases">GitHub Releases</a>, unpack <code>stageproof</code> onto your <code>PATH</code>, and check the version:</p>
 <pre data-kind="cmd" data-label="Print the version">
 stageproof version</pre>
 <pre data-kind="out">
-stageproof v0.4.0 (Apache-2.0)</pre>
+stageproof v0.5.0 (Apache-2.0)</pre>
 
 <h2>From source (optional)</h2>
 <pre data-kind="cmd" data-label="Install with Go 1.27+">
-go install github.com/stageproof/stageproof/cmd/stageproof@v0.4.0</pre>
+go install github.com/stageproof/stageproof/cmd/stageproof@v0.5.0</pre>
 
 <h2>Requirements</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -511,7 +511,7 @@ verdict  PASSED (exit 0)  · 90ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="manifests" data-group="Guides" data-title="Compare rendered manifests">
-<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.4.0.</p>
+<p class="docs-lede">Compare two sets of YAML you already rendered. Stageproof does not call Helm. The released binary is v0.5.0.</p>
 
 <h2>The example</h2>
 <p>The directory <code>before</code> has a Deployment and a PersistentVolumeClaim. The directory <code>after</code> has the same Deployment and drops the claim. The sample below is the output of this command on that input.</p>
@@ -559,7 +559,7 @@ verdict  BLOCKED (exit 1)  · 3426ms · 0 AI calls
   </template>
 
   <template data-topic="argocd" data-group="Guides" data-title="Check an Argo CD Application">
-<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. The released binary is v0.4.0. It reads several sources and a chart path in this checkout.</p>
+<p class="docs-lede">Check the Helm chart an Argo CD Application renders. A remote chart is downloaded. A chart path in this checkout is read from Git. The released binary is v0.5.0. It reads several sources and a chart path in this checkout.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>An Application pins a Helm chart, in a chart repository or in this Git repository, and the pull request changes the chart or its values.</dd></div>
@@ -701,7 +701,7 @@ verdict  PASSED (exit 0)  · 1896ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="flux" data-group="Guides" data-title="Check a Flux HelmRelease">
-<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. The released binary is v0.4.0.</p>
+<p class="docs-lede">Check the Helm chart a Flux HelmRelease renders. A Helm repository or an OCI chart is downloaded. A GitRepository in this checkout is read from Git. The released binary is v0.5.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>A HelmRelease pins a chart, in a Helm repository, an OCI registry, or this Git repository, and the pull request changes the chart, the source, or its values.</dd></div>
@@ -846,7 +846,7 @@ verdict  PASSED (exit 0)  · 1436ms · 0 AI calls</pre>
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>Kargo promotes a chart, an Argo CD Application, or a Flux HelmRelease, and you want a failed check to stop the next Stage.</dd></div>
   <div><dt>Finds</dt><dd>The same result as <a href="#compare-charts">Compare two chart versions</a>. The Job exits with that code.</dd></div>
-  <div><dt>Needs</dt><dd>The <code>v0.4.0</code> image, which includes Helm. This job sets <code>--api-server off</code> because that image does not start an API server.</dd></div>
+  <div><dt>Needs</dt><dd>The <code>v0.5.0</code> image, which includes Helm. This job sets <code>--api-server off</code> because that image does not start an API server.</dd></div>
 </dl>
 
 <h2>Check the pull request first</h2>
@@ -882,7 +882,7 @@ spec:
                 restartPolicy: Never
                 containers:
                   - name: stageproof
-                    image: ghcr.io/stageproof/stageproof:v0.4.0
+                    image: ghcr.io/stageproof/stageproof:v0.5.0
                     args:
                       - check
                       - --repo
@@ -1169,7 +1169,7 @@ verdict  BLOCKED (exit 1)  · 2668ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="cluster-facts" data-group="Guides" data-title="Read a cluster">
-<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.4.0.</p>
+<p class="docs-lede"><code>stageproof facts export</code> reads a cluster you name and writes a JSON file. The check reads that file with <code>--cluster-facts</code>. It does not read the file from git. The released binary is v0.5.0.</p>
 
 <dl class="doc-facts">
   <div><dt>Use it when</dt><dd>You want the Kubernetes version, the stored custom resource versions, and the node architectures to come from the cluster, instead of being typed on the command.</dd></div>
@@ -1682,7 +1682,7 @@ verdict  PASSED (exit 0)  · 404ms · 0 AI calls</pre>
   </template>
 
   <template data-topic="helm4" data-group="Guides" data-title="Moving to Helm 4">
-<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.4.0.</p>
+<p class="docs-lede">What changes when the helm binary is Helm 4, and what Stageproof can already see. The notes below follow <a href="https://helm.sh/docs/overview/">Helm 4 Overview</a>. The released binary is v0.5.0.</p>
 
 <h2>What the check can decide</h2>
 <p><code>Chart.yaml</code> <code>apiVersion: v3</code> is <code>helm4.chart_v3</code>, a warning. Charts v3 are experimental. v2 charts work on Helm 3 and Helm 4. <a href="https://helm.sh/docs/overview/#charts-v3">Charts v3</a>.</p>
@@ -1739,7 +1739,7 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
 </dl>
 
 <h2>Use the component</h2>
-<p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.4.0</code> digest. <code>1</code> is the major version in the CI/CD catalog.</p>
+<p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.5.0</code> digest. <code>1</code> is the major version in the CI/CD catalog.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
 # Same check as stageproof check-pr. No values-file input.
 # A chart uses its own values.yaml until .stageproof.yaml lists your files.
@@ -1756,7 +1756,7 @@ include:
 stageproof:
   stage: test
   image:
-    name: ghcr.io/stageproof/stageproof:v0.4.0
+    name: ghcr.io/stageproof/stageproof:v0.5.0
     entrypoint: [""]
   variables:
     GIT_DEPTH: "50"
@@ -1900,13 +1900,13 @@ jobs:
           tar -xzf /tmp/helm.tgz -C /tmp
           sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
 
-      - name: Install Stageproof v0.4.0
+      - name: Install Stageproof v0.5.0
         run: |
           set -euo pipefail
-          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.4.0/checksums.txt
-          curl -fsSL -o stageproof_0.4.0_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.4.0/stageproof_0.4.0_linux_amd64.tar.gz
+          curl -fsSL -o checksums.txt https://github.com/stageproof/stageproof/releases/download/v0.5.0/checksums.txt
+          curl -fsSL -o stageproof_0.5.0_linux_amd64.tar.gz https://github.com/stageproof/stageproof/releases/download/v0.5.0/stageproof_0.5.0_linux_amd64.tar.gz
           sha256sum -c checksums.txt --ignore-missing
-          tar -xzf stageproof_0.4.0_linux_amd64.tar.gz
+          tar -xzf stageproof_0.5.0_linux_amd64.tar.gz
           sudo mv stageproof /usr/local/bin/stageproof
 
       - name: Check the pull request
@@ -2018,7 +2018,7 @@ workflow:
   <!-- ================================================================ REFERENCE -->
 
   <template data-topic="cli" data-group="Reference" data-title="Commands and flags">
-<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.4.0.</p>
+<p class="docs-lede">Every command and every flag in the source on main. The released binary is v0.5.0.</p>
 
 <h2>Commands</h2>
 <div class="doc-table-wrap"><table class="doc-table">
@@ -2524,7 +2524,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
     <tr><td><code>k8s.api.eol_blocker</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A resource uses an API version that works today and is removed in the version in <code>--next-k8s</code>.</td><td>Migrate the resource before you upgrade the cluster.</td></tr>
     <tr><td><code>k8s.api.deprecated</code></td><td><span class="verdict-badge warn">WARN</span></td><td>A resource uses an API version that is deprecated on the version in <code>--current-k8s</code>.</td><td>Plan the migration. The report names the version in which the API is removed.</td></tr>
     <tr><td><code>k8s.upgrade.immutable_selector_changed</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The label selector of a Deployment, StatefulSet, or DaemonSet differs between the current and the new chart. Kubernetes does not allow that change on an existing workload.</td><td>Keep the selector as it was, or plan to delete and recreate the workload.</td></tr>
-    <tr><td><code>k8s.apply.immutable_field</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The local API server rejected an update. The report names the field. A Job pod template and a StatefulSet <code>volumeClaimTemplates</code> change are this rule. A Helm hook is dry-run as a create, not as an update. When a template names an object dynamically with <code>.Release.Revision</code>, the finding is downgraded to a warning because <code>helm template</code> always renders revision 1.</td><td>Keep the field, or plan to delete and recreate the object. On <code>--next-k8s</code> the same rejection is a warning.</td></tr>
+    <tr><td><code>k8s.apply.immutable_field</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The local API server rejected an update, or the rendered objects show a non-hook Job whose pod template changed. The report names the field. A strategy change that leaves rollingUpdate set, or that switches to RollingUpdate without maxUnavailable or maxSurge, is explained as that conflict. A Job pod template and a StatefulSet <code>volumeClaimTemplates</code> change are this rule. A Helm hook is dry-run as a create, not as an update. When a template names an object dynamically with <code>.Release.Revision</code>, the finding is downgraded to a warning because <code>helm template</code> always renders revision 1.</td><td>Keep the field, or plan to delete and recreate the object. On <code>--next-k8s</code> the same rejection is a warning.</td></tr>
     <tr><td><code>k8s.apply.unknown_field</code></td><td><span class="verdict-badge warn">WARN</span></td><td>The object has a field the schema does not declare. Helm 3 drops it and the upgrade succeeds. A new Helm 4 install uses server-side apply and rejects it, and so does <code>--server-side-apply</code>. Those two cases are <code>ERROR</code>. An upgrade of a release Helm 3 created stays a warning.</td><td>Remove the field, or keep it only if your apply path drops unknown fields.</td></tr>
     <tr><td><code>k8s.apply.invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>The API server rejected the object. An unsupported enum value is this rule. The report names the field and the constraint. It does not print the rejected value. On <code>--next-k8s</code> this is a warning.</td><td>Change the object so that Kubernetes version accepts it.</td></tr>
     <tr><td><code>crd.existing_object_invalid</code></td><td><span class="verdict-badge bad">ERROR</span></td><td>An object from the current chart does not match the new CRD schema. The same rule covers a storage version that was removed, and a field an existing custom resource uses when that field was removed, changed type, became required, or lost an enum value. The API server can also emit this rule.</td><td>Keep the stored object valid, or plan a migration before the upgrade.</td></tr>
@@ -2599,7 +2599,7 @@ verdict  BLOCKED (exit 1)  · 895ms · 0 AI calls
   </template>
 
   <template data-topic="limits" data-group="Reference" data-title="Scope and limits">
-<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.4.0.</p>
+<p class="docs-lede">What the source on main covers, what it leaves out, and where a passing result says less than you might expect. The released binary is v0.5.0.</p>
 
 <h2>What is not supported</h2>
 <div class="doc-table-wrap"><table class="doc-table">

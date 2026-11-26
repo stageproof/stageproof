@@ -1,6 +1,8 @@
 package k8sschema
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"strconv"
 	"strings"
@@ -298,8 +300,50 @@ func DiffUpgradeSafety(baseObjs, headObjs []ManifestObject) []verdict.Finding {
 				})
 			}
 		}
+		if finding, ok := jobTemplateFinding(b, h); ok {
+			findings = append(findings, finding)
+		}
 	}
 	return findings
+}
+
+// jobTemplateFinding reports a non-hook Job whose pod template changed.
+// Kubernetes rejects that update. A Helm hook is created, not updated.
+// A name built from .Release.Revision is downgraded later, because helm
+// template renders revision 1 for both charts.
+func jobTemplateFinding(base, head ManifestObject) (verdict.Finding, bool) {
+	if base.Kind != "Job" || head.Kind != "Job" {
+		return verdict.Finding{}, false
+	}
+	if !strings.HasPrefix(base.APIVersion, "batch/") || !strings.HasPrefix(head.APIVersion, "batch/") {
+		return verdict.Finding{}, false
+	}
+	if hookJob(base) || hookJob(head) {
+		return verdict.Finding{}, false
+	}
+	if sameJSON(base.Spec["template"], head.Spec["template"]) {
+		return verdict.Finding{}, false
+	}
+	return verdict.Finding{
+		RuleID:   "k8s.apply.immutable_field",
+		Severity: verdict.SeverityBlocker,
+		Resource: head.ID(),
+		Message:  "Kubernetes rejects an update of " + head.ID() + " because `spec.template` changed. A Job pod template is immutable.",
+	}, true
+}
+
+func hookJob(obj ManifestObject) bool {
+	_, ok := obj.Metadata.Annotations["helm.sh/hook"]
+	return ok
+}
+
+func sameJSON(a, b any) bool {
+	ab, errA := json.Marshal(a)
+	bb, errB := json.Marshal(b)
+	if errA != nil || errB != nil {
+		return false
+	}
+	return bytes.Equal(ab, bb)
 }
 
 // DetectExternalCRDs returns custom `apiVersion/Kind` resources referenced inobjs

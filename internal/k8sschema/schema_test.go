@@ -1,6 +1,7 @@
 package k8sschema
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stageproof/stageproof/internal/verdict"
@@ -114,5 +115,46 @@ metadata:
 		if objs[i].Source != w {
 			t.Errorf("obj[%d].Source = %q, want %q", i, objs[i].Source, w)
 		}
+	}
+}
+
+func job(name, chart, image string, hook bool) ManifestObject {
+	obj := ManifestObject{
+		APIVersion: "batch/v1",
+		Kind:       "Job",
+		Metadata:   ObjectMetadata{Name: name, Namespace: "default"},
+		Spec: map[string]any{
+			"template": map[string]any{
+				"metadata": map[string]any{"labels": map[string]any{"helm.sh/chart": chart}},
+				"spec":     map[string]any{"containers": []any{map[string]any{"name": "job", "image": image}}},
+			},
+		},
+	}
+	if hook {
+		obj.Metadata.Annotations = map[string]string{"helm.sh/hook": "pre-upgrade"}
+	}
+	return obj
+}
+
+func TestJobPodTemplateChangeIsBlockedInFileMode(t *testing.T) {
+	base := job("schema-server", "cadence-1.6.4", "busybox:1.36", false)
+	head := job("schema-server", "cadence-1.6.5", "busybox:1.36", false)
+	findings := DiffUpgradeSafety([]ManifestObject{base}, []ManifestObject{head})
+	if len(findings) != 1 || findings[0].RuleID != "k8s.apply.immutable_field" || findings[0].Severity != verdict.SeverityBlocker {
+		t.Fatalf("label change: %+v", findings)
+	}
+	image := job("karpor-generate-cert", "karpor-0.7.5", "example/app:v0.6.3", false)
+	imageNext := job("karpor-generate-cert", "karpor-0.7.5", "example/app:v0.6.4", false)
+	findings = DiffUpgradeSafety([]ManifestObject{image}, []ManifestObject{imageNext})
+	if len(findings) != 1 || !strings.Contains(findings[0].Message, "spec.template") {
+		t.Fatalf("image change: %+v", findings)
+	}
+	hooked := job("migrate", "demo-1.0.0", "busybox:1.36", true)
+	hookedNext := job("migrate", "demo-1.1.0", "busybox:1.37", true)
+	if got := DiffUpgradeSafety([]ManifestObject{hooked}, []ManifestObject{hookedNext}); len(got) != 0 {
+		t.Fatalf("hook must not block: %+v", got)
+	}
+	if got := DiffUpgradeSafety([]ManifestObject{base}, []ManifestObject{base}); len(got) != 0 {
+		t.Fatalf("unchanged job: %+v", got)
 	}
 }

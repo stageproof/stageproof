@@ -60,7 +60,7 @@
             <div class="eyebrow-row">
               <span class="pill pill-accent">Free &amp; Open Source (Apache-2.0)</span>
               <span class="pill">Single Binary</span>
-              <span class="pill">v0.4.0</span>
+              <span class="pill">v0.5.0</span>
             </div>
             <h1>Check a Kubernetes upgrade<br /><span class="accent-grad">with one binary, zero setup.</span></h1>
             <p class="hero-lede">
@@ -75,8 +75,8 @@
               <div class="install-tabs" role="tablist" aria-label="Install method">
                 <button class="install-tab is-active" type="button" role="tab" aria-selected="true" data-install-cmd="brew install stageproof/stageproof/stageproof">Homebrew</button>
                 <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="helm plugin install https://github.com/stageproof/stageproof">Helm plugin</button>
-                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="docker run --rm ghcr.io/stageproof/stageproof:v0.4.0 version">Docker</button>
-                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="gh release download v0.4.0 -R stageproof/stageproof -p '*linux_amd64.tar.gz'">Binary</button>
+                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="docker run --rm ghcr.io/stageproof/stageproof:v0.5.0 version">Docker</button>
+                <button class="install-tab" type="button" role="tab" aria-selected="false" data-install-cmd="gh release download v0.5.0 -R stageproof/stageproof -p '*linux_amd64.tar.gz'">Binary</button>
               </div>
               <div class="install-cmd">
                 <span class="prompt">$</span>
@@ -91,10 +91,10 @@
             </div>
           </div>
 
-          <div class="proof-card" aria-label="Real Stageproof v0.4.0 reports">
+          <div class="proof-card" aria-label="Real Stageproof v0.5.0 reports">
             <div class="proof-header">
               <span class="win-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-              <span class="proof-label">real v0.4.0 output · zero config · no cluster needed</span>
+              <span class="proof-label">real v0.5.0 output · zero config · no cluster needed</span>
             </div>
             <div class="scenario-tabs" role="tablist" aria-label="Example reports">
               <button class="scenario-btn is-active" type="button" data-example="blocked-api" role="tab" aria-selected="true">
@@ -161,7 +161,7 @@ k8s  1.35  ·  checked: files, API server 1.35.0
 
 verdict  PASSED (exit 0)  · 0 AI calls</pre>
             <div class="proof-foot">
-              <span>Copied from real v0.4.0 runs. Add <code>--live</code> for a temporary kind rehearsal.</span>
+              <span>Copied from real v0.5.0 runs. Add <code>--live</code> for a temporary kind rehearsal.</span>
               <span><a href="docs.html#results">Read a report</a></span>
             </div>
           </div>
@@ -324,7 +324,7 @@ include:
       <div class="wrap">
         <div class="sec-head">
           <p class="kicker"><span class="kicker-num">03</span> What one binary checks</p>
-          <h2>Everything ships in v0.4.0. Free and local.</h2>
+          <h2>Everything ships in v0.5.0. Free and local.</h2>
           <p class="sec-lede">Every check below runs inside the same binary. Pass <code>--offline</code> to skip registry lookups, or <code>--api-server off</code> for an offline table-only check.</p>
         </div>
         <table class="spec-table">
@@ -438,7 +438,7 @@ include:
       </div>
       <div class="footer-bottom">
         <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0).</span>
-        <span class="status-pill"><span class="dot-live"></span>v0.4.0 · Single binary · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.0 · Single binary · Apache-2.0</span>
       </div>
     </div>
   </footer>

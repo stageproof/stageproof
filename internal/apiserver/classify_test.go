@@ -166,3 +166,51 @@ func TestClassifySortsAndCollectsInvalidFields(t *testing.T) {
 		t.Fatalf("expected sorted Fields [spec.credential spec.provider], got %+v", got.Fields)
 	}
 }
+
+func TestStrategyConflictCoversBothDirections(t *testing.T) {
+	toRecreate := &apierrors.StatusError{ErrStatus: metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{
+			Type:    metav1.CauseTypeForbidden,
+			Field:   "spec.strategy.rollingUpdate",
+			Message: "may not be specified when strategy `type` is 'Recreate'",
+		}}},
+	}}
+	got := Classify(toRecreate)
+	if got.Class != ClassImmutable || !got.StrategyConflict || got.Detail != "present" {
+		t.Fatalf("RollingUpdate to Recreate: %+v", got)
+	}
+	msg := StrategyConflictMessage(got.Field, got.Detail)
+	if strings.Contains(msg, "immutable") || !strings.Contains(msg, "Recreate") || !strings.Contains(msg, "RollingUpdate") {
+		t.Fatalf("RollingUpdate to Recreate message: %s", msg)
+	}
+
+	toRolling := &apierrors.StatusError{ErrStatus: metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{
+			Type:    metav1.CauseTypeFieldValueRequired,
+			Field:   "spec.strategy.rollingUpdate.maxUnavailable",
+			Message: "maxUnavailable or maxSurge must be set when strategy type is RollingUpdate",
+		}}},
+	}}
+	got = Classify(toRolling)
+	if got.Class != ClassInvalid || !got.StrategyConflict || got.Detail != "missing" {
+		t.Fatalf("Recreate to RollingUpdate: %+v", got)
+	}
+	msg = StrategyConflictMessage(got.Field, got.Detail)
+	if strings.Contains(msg, "immutable") || !strings.Contains(msg, "Recreate") || !strings.Contains(msg, "maxUnavailable") {
+		t.Fatalf("Recreate to RollingUpdate message: %s", msg)
+	}
+
+	stillImmutable := &apierrors.StatusError{ErrStatus: metav1.Status{
+		Reason: metav1.StatusReasonInvalid,
+		Details: &metav1.StatusDetails{Causes: []metav1.StatusCause{{
+			Type:    metav1.CauseTypeForbidden,
+			Field:   "spec.template",
+			Message: "field is immutable",
+		}}},
+	}}
+	if got := Classify(stillImmutable); got.StrategyConflict || got.Class != ClassImmutable {
+		t.Fatalf("plain forbidden field: %+v", got)
+	}
+}

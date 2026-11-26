@@ -24,7 +24,11 @@ func APIs(in Input, st *State) {
 		compatFindings = downgradeGuardedRemovedAPIs(in.HeadDir, st.HeadObjs, compatFindings)
 	}
 	if len(st.BaseObjs) > 0 {
-		compatFindings = append(compatFindings, k8sschema.DiffUpgradeSafety(st.BaseObjs, st.HeadObjs)...)
+		safety := k8sschema.DiffUpgradeSafety(st.BaseObjs, st.HeadObjs)
+		if !in.ManifestMode {
+			safety = downgradeRevisionNamedImmutable(in.HeadDir, st.HeadObjs, safety)
+		}
+		compatFindings = append(compatFindings, safety...)
 	}
 	st.Report.Findings = append(st.Report.Findings, compatFindings...)
 	k8sBlockers := countBlockers(compatFindings)

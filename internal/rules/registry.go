@@ -253,7 +253,7 @@ var rules = []Rule{
 	{
 		ID: "k8s.apply.immutable_field", Severity: verdict.SeverityBlocker, Group: GroupK8s,
 		Title:       "The API server rejected an update",
-		Explanation: "The local API server rejected an update. The report names the field. A Job pod template and a StatefulSet %%volumeClaimTemplates%% change are this rule. A Helm hook is dry-run as a create, not as an update. When a template names an object dynamically with %%.Release.Revision%%, the finding is downgraded to a warning because %%helm template%% always renders revision 1.",
+		Explanation: "The local API server rejected an update, or the rendered objects show a non-hook Job whose pod template changed. The report names the field. A strategy change that leaves rollingUpdate set, or that switches to RollingUpdate without maxUnavailable or maxSurge, is explained as that conflict. A Job pod template and a StatefulSet %%volumeClaimTemplates%% change are this rule. A Helm hook is dry-run as a create, not as an update. When a template names an object dynamically with %%.Release.Revision%%, the finding is downgraded to a warning because %%helm template%% always renders revision 1.",
 		Fix:         "Keep the field, or plan to delete and recreate the object. On %%--next-k8s%% the same rejection is a warning.",
 	},
 	{
