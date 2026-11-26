@@ -10,7 +10,7 @@
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
   <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
   <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
-  <link rel="stylesheet" href="assets/styles.css?v=21" />
+  <link rel="stylesheet" href="assets/styles.css?v=22" />
   <script src="assets/app.js?v=19" defer></script>
   <script src="assets/docs.js?v=20" defer></script>
 </head>
@@ -30,9 +30,9 @@
 
       <nav class="nav-links" id="nav-links" aria-label="Primary">
         <a href="index.html">Overview</a>
-        <a href="https://stageproof.github.io/index/">Chart Index</a>
-        <a href="docs.html" class="active">Docs</a>
-        <a href="architecture.html">Architecture</a>
+        <a href="docs.html" class="active" aria-current="page">Docs</a>
+        <a href="https://stageproof.github.io/index/">Charts</a>
+        <a href="https://stageproof.github.io/index/values/">Check values</a>
         <a href="security.html">Security</a>
         <a href="roadmap.html">Roadmap</a>
       </nav>
@@ -74,9 +74,45 @@
 
   <footer class="footer">
     <div class="wrap">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect x="2" y="2" width="28" height="28" rx="7" fill="#0B0F17" stroke="#38BDF8" stroke-width="1.8"/>
+              <path d="M8.5 11.5h15M8.5 16h9" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 21.5l2.6 2.6 4.9-5.3" stroke="#2DD4BF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-word">stageproof</span>
+          </a>
+          <p>Checks a Kubernetes upgrade before you merge it. Free and open source (Apache-2.0).</p>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <span class="footer-h">Product</span>
+            <a href="docs.html#first-check">Quickstart</a>
+            <a href="https://stageproof.github.io/index/">Chart index</a>
+            <a href="https://stageproof.github.io/index/values/">Check your values</a>
+            <a href="roadmap.html">Roadmap</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Docs</span>
+            <a href="docs.html">Documentation</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="security.html">Security</a>
+            <a href="https://stageproof.github.io/index/api/">JSON API</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Code</span>
+            <a href="https://github.com/stageproof/stageproof">GitHub</a>
+            <a href="https://github.com/stageproof/action">GitHub Action</a>
+            <a href="https://gitlab.com/zarovvvv/stageproof">GitLab component</a>
+            <a href="https://github.com/stageproof/renovate-presets">Renovate preset</a>
+          </div>
+        </div>
+      </div>
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0). <a href="index.html" style="color:var(--accent);">Home</a> · <a href="architecture.html" style="color:var(--accent);">Architecture</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>v0.5.2 · Single binary · Apache-2.0</span>
+        <span>© 2026 Stageproof · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.2</span>
       </div>
     </div>
   </footer>
@@ -1738,11 +1774,8 @@ verdict  PASSED (exit 0)  · 406ms · 0 AI calls</pre>
 </dl>
 
 <h2>Use the component</h2>
-<p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.5.2</code> digest. <code>1</code> is the major version in the CI/CD catalog.</p>
+<p><a href="https://gitlab.com/explore/catalog/zarovvvv/stageproof"><code>zarovvvv/stageproof</code></a> checks out the merge request and runs the Stageproof image. The default image is the <code>v0.5.2</code> digest. <code>1</code> is the major version in the CI/CD catalog. It runs the same check as <code>stageproof check-pr</code>.</p>
 <pre data-kind="file" data-label=".gitlab-ci.yml">
-# Same check as stageproof check-pr. No values-file input.
-# A chart uses its own values.yaml until .stageproof.yaml lists your files.
-# Argo CD and Flux use the values files those manifests name.
 include:
   - component: gitlab.com/zarovvvv/stageproof/stageproof@1
     inputs:
@@ -1845,11 +1878,8 @@ verdict  PASSED (exit 0)  · 4098ms · 0 AI calls</pre>
 </dl>
 
 <h2>Use the action</h2>
-<p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. <code>v1</code> is the major tag.</p>
+<p><a href="https://github.com/stageproof/action"><code>stageproof/action</code></a> checks out the pull request, downloads the released binary, checks <code>checksums.txt</code>, writes the report to the job summary, and posts one comment. <code>v1</code> is the major tag. It runs the same check as <code>stageproof check-pr</code>.</p>
 <pre data-kind="file" data-label=".github/workflows/stageproof.yml">
-# Same check as stageproof check-pr. No values-file input.
-# A chart uses its own values.yaml until .stageproof.yaml lists your files.
-# Argo CD and Flux use the values files those manifests name.
 name: stageproof
 on:
   pull_request:

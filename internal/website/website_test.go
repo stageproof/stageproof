@@ -15,20 +15,23 @@ var (
 	pages = []string{"index.html", "docs.html", "architecture.html", "security.html", "roadmap.html"}
 
 	// The index site (stageproof/index, internal/site/header.go) copies this
-	// header and its CI compares the two. Change both together.
+	// header and the footer links, and its CI compares them with the live
+	// pages. Change both together.
 	wantNav = []navLink{
 		{"Overview", "index.html"},
-		{"Chart Index", chartIndexURL},
 		{"Docs", "docs.html"},
-		{"Architecture", "architecture.html"},
+		{"Charts", chartIndexURL},
+		{"Check values", chartIndexURL + "values/"},
 		{"Security", "security.html"},
 		{"Roadmap", "roadmap.html"},
 	}
 
-	navBlock = regexp.MustCompile(`(?s)<nav class="nav-links"[^>]*>(.*?)</nav>`)
-	anchor   = regexp.MustCompile(`(?s)<a\s([^>]*)>(.*?)</a>`)
-	hrefAttr = regexp.MustCompile(`href="([^"]*)"`)
-	tags     = regexp.MustCompile(`<[^>]+>`)
+	navBlock    = regexp.MustCompile(`(?s)<nav class="nav-links"[^>]*>(.*?)</nav>`)
+	footerBlock = regexp.MustCompile(`(?s)<footer class="footer">.*?</footer>`)
+	homeCode    = regexp.MustCompile(`(?s)<pre id="code-[a-z]+">(.*?)</pre>`)
+	anchor      = regexp.MustCompile(`(?s)<a\s([^>]*)>(.*?)</a>`)
+	hrefAttr    = regexp.MustCompile(`href="([^"]*)"`)
+	tags        = regexp.MustCompile(`<[^>]+>`)
 )
 
 type navLink struct{ label, href string }
@@ -74,12 +77,54 @@ func TestEveryPageHasTheSameNav(t *testing.T) {
 				t.Errorf("%s: nav[%d] = %v, want %v", page, i, got[i], wantNav[i])
 			}
 		}
-		if active != 1 {
-			t.Errorf("%s: %d active nav links, want 1", page, active)
+		inNav := false
+		for _, link := range wantNav {
+			inNav = inNav || link.href == page
+		}
+		if want := map[bool]int{true: 1, false: 0}[inNav]; active != want {
+			t.Errorf("%s: %d active nav links, want %d", page, active, want)
 		}
 		for _, want := range []string{`id="theme-toggle"`, `id="nav-toggle"`} {
 			if !strings.Contains(html, want) {
 				t.Errorf("%s: missing %s", page, want)
+			}
+		}
+	}
+}
+
+func TestEveryPageHasTheSameFooter(t *testing.T) {
+	want := ""
+	for _, page := range pages {
+		footer := footerBlock.FindString(read(t, page))
+		if footer == "" {
+			t.Fatalf("%s: no footer", page)
+		}
+		if want == "" {
+			want = footer
+			continue
+		}
+		if footer != want {
+			t.Errorf("%s: footer differs from %s", page, pages[0])
+		}
+	}
+	for _, href := range []string{chartIndexURL, chartIndexURL + "values/", chartIndexURL + "api/", "architecture.html"} {
+		if !strings.Contains(want, `href="`+href+`"`) {
+			t.Errorf("footer does not link %s", href)
+		}
+	}
+}
+
+// The usage tabs explain a command above its box. The box holds only what
+// a reader copies.
+func TestHomeCodeBoxesHoldOnlyCode(t *testing.T) {
+	blocks := homeCode.FindAllStringSubmatch(read(t, "index.html"), -1)
+	if len(blocks) < 5 {
+		t.Fatalf("found %d usage code blocks, want 5", len(blocks))
+	}
+	for _, b := range blocks {
+		for _, line := range strings.Split(b[1], "\n") {
+			if strings.HasPrefix(strings.TrimSpace(line), "#") || strings.Contains(line, " # ") {
+				t.Errorf("usage code block has a prose comment: %q", line)
 			}
 		}
 	}
