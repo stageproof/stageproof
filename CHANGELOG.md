@@ -5,6 +5,34 @@ Stageproof is not 1.0. The rules for what a version may change are in [docs/vers
 
 ## [Unreleased]
 
+## [0.5.4] - 2026-11-26
+
+### Fixed
+
+- `helm.image.changed` now counts and lists every workload that shares the same image update instead of dropping workloads after the first match. Raw YAML fallback scanning also skips images already captured on the same object from structured fields.
+- The Helm plugin default download is `v0.5.4`.
+
+## [0.5.3] - 2026-11-26
+
+### Changed
+
+- Markdown pull request and merge request comments (`--comment-file` and `--format markdown`) now use status icons, a compact metadata table, collapsible `<details>` sections for info-only restarts and non-blocking findings, and a clean findings table without empty `()` targets. Blockers still expand by default, and `NOT TESTED LIVE` stays directly under the heading.
+- The Helm plugin default download is `v0.5.3`.
+
+## [0.5.2] - 2026-11-26
+
+### Fixed
+
+- A password path inside nested subchart templates (`charts/<outer>/charts/<inner>/...`) is stored under each dependency. `'auth.password'` in `charts/artifactory/charts/postgresql` becomes `artifactory.postgresql.auth.password`. A Chart.yaml alias replaces the directory name when the chart files are present. `global.*` stays unprefixed. Camunda platform 8.3.24 to 8.3.25 and Artifactory OSS 107.111.10 to 107.111.11 stayed `PASSED`, and those pairs no longer fall back to install-mode rendering.
+- The Helm plugin default download is `v0.5.2`.
+
+## [0.5.1] - 2026-11-26
+
+### Fixed
+
+- A password path named inside a subchart template (`charts/<name>/...`) is stored under that dependency, so `'auth.replicationPassword'` in the postgresql subchart becomes `postgresql.auth.replicationPassword`. `--is-upgrade` can render those charts. Pairs that were already `PASSED` or `BLOCKED` stayed on that exit in the pairs checked for this release.
+- The Helm plugin default download is `v0.5.1`.
+
 ## [0.5.0] - 2026-11-26
 
 ### Breaking

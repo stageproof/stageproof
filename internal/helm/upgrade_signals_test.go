@@ -363,3 +363,131 @@ spec:
 		}
 	}
 }
+
+func TestImageSignals_CountsAllWorkloadsSharingImageBump(t *testing.T) {
+	rawBase := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-applicationset-controller
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: applicationset-controller
+        image: quay.io/argoproj/argocd:v3.6.2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-notifications-controller
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: notifications-controller
+        image: quay.io/argoproj/argocd:v3.6.2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-repo-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: repo-server
+        image: quay.io/argoproj/argocd:v3.6.2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: argo-cd-server
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: server
+        image: quay.io/argoproj/argocd:v3.6.2
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: argo-cd-application-controller
+  namespace: argocd
+spec:
+  template:
+    spec:
+      containers:
+      - name: application-controller
+        image: quay.io/argoproj/argocd:v3.6.2
+`
+	rawHead := strings.ReplaceAll(rawBase, "argocd:v3.6.2", "argocd:v3.6.3")
+	base, err := k8sschema.ParseManifestStream(rawBase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := k8sschema.ParseManifestStream(rawHead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := imageSignals(base, head)
+	if len(got) != 1 {
+		t.Fatalf("got %+v", got)
+	}
+	msg := got[0].Message
+	if !strings.HasPrefix(msg, "5 container images changed. 5 workloads move from quay.io/argoproj/argocd:v3.6.2 to quay.io/argoproj/argocd:v3.6.3 (") {
+		t.Fatalf("unexpected message: %s", msg)
+	}
+	for _, want := range []string{
+		"Deployment/argocd/argo-cd-applicationset-controller",
+		"Deployment/argocd/argo-cd-notifications-controller",
+		"Deployment/argocd/argo-cd-repo-server",
+		"Deployment/argocd/argo-cd-server",
+		"StatefulSet/argocd/argo-cd-application-controller",
+	} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("missing workload %s in %s", want, msg)
+		}
+	}
+}
+
+func TestImageSignals_TwoContainersInOneWorkload(t *testing.T) {
+	rawBase := `
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: default
+spec:
+  template:
+    spec:
+      initContainers:
+      - name: migrate
+        image: ghcr.io/example/api:v1.0.0
+      containers:
+      - name: server
+        image: ghcr.io/example/api:v1.0.0
+`
+	rawHead := strings.ReplaceAll(rawBase, "api:v1.0.0", "api:v1.1.0")
+	base, err := k8sschema.ParseManifestStream(rawBase)
+	if err != nil {
+		t.Fatal(err)
+	}
+	head, err := k8sschema.ParseManifestStream(rawHead)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := imageSignals(base, head)
+	if len(got) != 1 {
+		t.Fatalf("got %+v", got)
+	}
+	want := "2 container images changed. 2 references in Deployment/default/api move from ghcr.io/example/api:v1.0.0 to ghcr.io/example/api:v1.1.0."
+	if got[0].Message != want {
+		t.Fatalf("got %q, want %q", got[0].Message, want)
+	}
+}

@@ -8,10 +8,9 @@
   <meta name="description" content="How the Stageproof CLI checks Helm charts, Argo CD Applications, Flux HelmReleases, and rendered Kubernetes manifests: render, values proof, image tags, local API server proof, impact diff, and optional kind rehearsal." />
   <meta name="theme-color" content="#06080D" />
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2306080D' stroke='%2338BDF8' stroke-width='2'/%3E%3Cpath d='M9 11h14M9 21h8' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18.5 21l2.5 2.5L25.5 18' fill='none' stroke='%232DD4BF' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/styles.css?v=19" />
+  <link rel="preload" href="assets/fonts/space-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="stylesheet" href="assets/styles.css?v=22" />
   <script src="assets/app.js?v=19" defer></script>
 </head>
 <body>
@@ -28,9 +27,9 @@
       </a>
       <nav class="nav-links" id="nav-links" aria-label="Primary">
         <a href="index.html">Overview</a>
-        <a href="https://stageproof.github.io/index/">Chart Index</a>
         <a href="docs.html">Docs</a>
-        <a href="architecture.html" class="active">Architecture</a>
+        <a href="https://stageproof.github.io/index/">Charts</a>
+        <a href="https://stageproof.github.io/index/values/">Check values</a>
         <a href="security.html">Security</a>
         <a href="roadmap.html">Roadmap</a>
       </nav>
@@ -99,7 +98,7 @@ kind cluster on this machine
         +-- upgrade, smoke, rollback ok -> PROVEN           exit 0
                                            checked: files, API server &lt;patch&gt;, live cluster</pre>
         </div>
-        <p class="sec-lede" style="margin-top:18px;"><code>stageproof check-pr</code> runs that path once per changed chart. A file the pull request deleted is still a change when it sat inside a chart. The pull request result is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. Rendered manifests skip the Helm steps. The API server, the impact check, and the API table still run. <code>--live</code> is not available for that mode.</p>
+        <p class="sec-lede measured"><code>stageproof check-pr</code> runs that path once per changed chart. A file the pull request deleted is still a change when it sat inside a chart. The pull request result is the worst of those results: <code>BLOCKED</code>, then <code>NOT CHECKED</code>, then <code>PASSED</code>, then <code>PROVEN</code>. Rendered manifests skip the Helm steps. The API server, the impact check, and the API table still run. <code>--live</code> is not available for that mode.</p>
       </div>
     </section>
 
@@ -198,9 +197,45 @@ kind cluster on this machine
 
   <footer class="footer">
     <div class="wrap">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html">
+            <svg class="brand-mark" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+              <rect x="2" y="2" width="28" height="28" rx="7" fill="#0B0F17" stroke="#38BDF8" stroke-width="1.8"/>
+              <path d="M8.5 11.5h15M8.5 16h9" stroke="#64748B" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M18 21.5l2.6 2.6 4.9-5.3" stroke="#2DD4BF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="brand-word">stageproof</span>
+          </a>
+          <p>Checks a Kubernetes upgrade before you merge it. Free and open source (Apache-2.0).</p>
+        </div>
+        <div class="footer-cols">
+          <div class="footer-col">
+            <span class="footer-h">Product</span>
+            <a href="docs.html#first-check">Quickstart</a>
+            <a href="https://stageproof.github.io/index/">Chart index</a>
+            <a href="https://stageproof.github.io/index/values/">Check your values</a>
+            <a href="roadmap.html">Roadmap</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Docs</span>
+            <a href="docs.html">Documentation</a>
+            <a href="architecture.html">Architecture</a>
+            <a href="security.html">Security</a>
+            <a href="https://stageproof.github.io/index/api/">JSON API</a>
+          </div>
+          <div class="footer-col">
+            <span class="footer-h">Code</span>
+            <a href="https://github.com/stageproof/stageproof">GitHub</a>
+            <a href="https://github.com/stageproof/action">GitHub Action</a>
+            <a href="https://gitlab.com/zarovvvv/stageproof">GitLab component</a>
+            <a href="https://github.com/stageproof/renovate-presets">Renovate preset</a>
+          </div>
+        </div>
+      </div>
       <div class="footer-bottom">
-        <span>© 2026 Stageproof. Free &amp; Open Source (Apache-2.0). <a href="index.html" style="color:var(--accent);">Overview</a> · <a href="docs.html" style="color:var(--accent);">Docs</a> · <a href="security.html" style="color:var(--accent);">Security</a></span>
-        <span class="status-pill"><span class="dot-live"></span>v0.5.0 · Single binary · Apache-2.0</span>
+        <span>© 2026 Stageproof · Apache-2.0</span>
+        <span class="status-pill"><span class="dot-live"></span>v0.5.4</span>
       </div>
     </div>
   </footer>
