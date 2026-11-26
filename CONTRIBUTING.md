@@ -16,6 +16,7 @@ Helm is required for the checks. The live test also needs kind, kubectl, and Doc
 
 - One change per pull request.
 - If the result text, the exit codes, or the flags change, update `web/docs.html` from a real run in the same change.
+- The `web/` pages share one header with the chart index at `https://stageproof.github.io/index/`. A change to the nav links needs the same change in `internal/site/header.go` in `stageproof/index`, whose CI compares the two. `internal/website` checks the nav on every page, the self-hosted fonts in `web/assets/fonts/` (no Google Fonts), and the `stageproof-theme` key both sites share.
 - Do not commit tokens, kubeconfigs, or chart values from a real cluster.
 
 ## Results
